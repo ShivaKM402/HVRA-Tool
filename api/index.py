@@ -11,16 +11,18 @@ sys.path.insert(0, backend_dir)
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
+_startup_error = None
+
 try:
     from config.wsgi import application
     app = application
 except Exception:
-    # If Django fails to start, return a diagnostic error response
-    _error = traceback.format_exc()
+    _startup_error = traceback.format_exc()
 
+    # Return 200 with the diagnostic error so we can read it
     def app(environ, start_response):
-        status = '500 Internal Server Error'
+        status = '200 OK'
         headers = [('Content-Type', 'text/plain; charset=utf-8'),
                    ('Access-Control-Allow-Origin', '*')]
         start_response(status, headers)
-        yield f"[HVRA API] Django startup failed:\n{_error}".encode('utf-8')
+        yield f"[HVRA API - Django startup failed]\n\nPython: {sys.version}\nbackend_dir: {backend_dir}\nsys.path: {sys.path[:5]}\n\nTraceback:\n{_startup_error}".encode('utf-8')

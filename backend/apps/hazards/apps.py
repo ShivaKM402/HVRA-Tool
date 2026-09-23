@@ -1,0 +1,8 @@
+"""Hazards app configuration"""
+from django.apps import AppConfig
+
+
+class HazardsConfig(AppConfig):
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "apps.hazards"
+    verbose_name = "Hazards"

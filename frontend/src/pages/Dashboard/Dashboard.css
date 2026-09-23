@@ -1,0 +1,83 @@
+.dashboard {}
+
+.health-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--color-gov-muted);
+  padding: 0.5rem 0.75rem;
+  background: var(--color-gov-white);
+  border: 1px solid var(--color-gov-border);
+  border-radius: var(--radius-md);
+}
+
+.health-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-success);
+  flex-shrink: 0;
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.hazard-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
+}
+
+.hazard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 1rem;
+}
+
+.hazard-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.25rem 0.75rem;
+  border-radius: var(--radius-lg);
+  border: 2px solid transparent;
+  text-align: center;
+  transition: all var(--transition-fast);
+  cursor: default;
+}
+
+.hazard-card.active {
+  border-color: var(--hazard-color, var(--color-primary));
+  background: color-mix(in srgb, var(--hazard-color, var(--color-primary)) 8%, white);
+  cursor: pointer;
+}
+
+.hazard-card.active:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.hazard-card.disabled {
+  border-color: var(--color-gov-border);
+  background: var(--color-gov-surface);
+  opacity: 0.6;
+}
+
+.hazard-card-icon {
+  font-size: 2rem;
+}
+
+.hazard-card-name {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-gov-dark);
+}

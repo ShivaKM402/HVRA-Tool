@@ -1,0 +1,1 @@
+"""Hazards migrations init"""

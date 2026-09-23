@@ -1,0 +1,1 @@
+"""Assessments migrations init"""

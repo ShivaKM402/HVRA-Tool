@@ -2,6 +2,7 @@
 HVRA Digital Tool — Django Settings
 """
 import os
+import shutil
 from pathlib import Path
 from decouple import config
 
@@ -15,7 +16,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # -------------------------------------------------------
 SECRET_KEY = config("SECRET_KEY", default="dev-secret-key-change-in-production")
 DEBUG = config("DEBUG", default=True, cast=bool)
-ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1").split(",")
+if os.environ.get("VERCEL"):
+    ALLOWED_HOSTS = ["*"]
+else:
+    ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1").split(",")
 
 # -------------------------------------------------------
 # Application definition
@@ -79,11 +83,19 @@ WSGI_APPLICATION = "config.wsgi.application"
 # Database — SQLite only
 # -------------------------------------------------------
 DATABASE_PATH = config("DATABASE_PATH", default="db.sqlite3")
+db_path = BASE_DIR / DATABASE_PATH
+
+if os.environ.get("VERCEL"):
+    tmp_db_path = "/tmp/db.sqlite3"
+    if not os.path.exists(tmp_db_path) and os.path.exists(db_path):
+        shutil.copyfile(db_path, tmp_db_path)
+    if os.path.exists(tmp_db_path):
+        db_path = tmp_db_path
 
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / DATABASE_PATH,
+        "NAME": db_path,
     }
 }
 

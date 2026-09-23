@@ -115,7 +115,8 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 UPLOAD_DIR = config("UPLOAD_DIR", default="uploads/")
-MAX_UPLOAD_SIZE_MB = config("MAX_UPLOAD_SIZE_MB", default=50, cast=int)
+_max_upload = config("MAX_UPLOAD_SIZE_MB", default="50")
+MAX_UPLOAD_SIZE_MB = int(_max_upload) if str(_max_upload).strip() else 50
 
 # -------------------------------------------------------
 # Default primary key

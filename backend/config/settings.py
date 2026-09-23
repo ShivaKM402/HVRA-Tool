@@ -168,7 +168,7 @@ CORS_ALLOWED_ORIGINS = config(
     default="http://localhost:5173,http://127.0.0.1:5173",
 ).split(",")
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_ALL_ORIGINS = DEBUG  # In debug mode, allow all for convenience
+CORS_ALLOW_ALL_ORIGINS = DEBUG or bool(os.environ.get("VERCEL"))
 
 # -------------------------------------------------------
 # Prototype / Application settings

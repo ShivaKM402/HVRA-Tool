@@ -28,10 +28,6 @@ const STEPS = [
   'Review'
 ];
 
-interface SelectedIndicator {
-  indicator_id: number;
-  weight: number;
-}
 
 export default function NewAssessment() {
   const navigate = useNavigate();
@@ -45,7 +41,7 @@ export default function NewAssessment() {
   const [hazards, setHazards] = useState<HazardType[]>([]);
   const [states, setStates] = useState<AdministrativeUnit[]>([]);
   const [districts, setDistricts] = useState<AdministrativeUnit[]>([]);
-  const [blocks, setBlocks] = useState<AdministrativeUnit[]>([]);
+  const [, setBlocks] = useState<AdministrativeUnit[]>([]);
   const [indicators, setIndicators] = useState<HazardIndicator[]>([]);
   const [dataSources, setDataSources] = useState<DataSource[]>([]);
   const [loadingData, setLoadingData] = useState(true);

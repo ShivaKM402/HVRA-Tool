@@ -1,20 +1,17 @@
 """
-Vercel Python serverless function using native BaseHTTPRequestHandler format.
-Tests if the @vercel/python runtime itself works before adding Django.
+Vercel Serverless Function entrypoint for Django WSGI application.
 """
-from http.server import BaseHTTPRequestHandler
 import os
 import sys
 
+# Ensure backend directory is in Python path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "backend"))
 
-class handler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        body = f"Python: {sys.version}\n__file__: {__file__}\ncwd: {os.getcwd()}\n".encode('utf-8')
-        self.send_response(200)
-        self.send_header('Content-Type', 'text/plain; charset=utf-8')
-        self.send_header('Content-Length', str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
+# Set default settings module
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
-    def do_POST(self):
-        self.do_GET()
+# Import Django WSGI application
+from config.wsgi import application
+
+# Export app for Vercel WSGI runner
+app = application

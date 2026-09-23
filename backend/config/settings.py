@@ -16,10 +16,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # -------------------------------------------------------
 SECRET_KEY = config("SECRET_KEY", default="dev-secret-key-change-in-production")
 DEBUG = config("DEBUG", default=True, cast=bool)
-if os.environ.get("VERCEL"):
-    ALLOWED_HOSTS = ["*"]
-else:
-    ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1").split(",")
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1,*").split(",")
 
 # -------------------------------------------------------
 # Application definition
@@ -84,13 +81,6 @@ WSGI_APPLICATION = "config.wsgi.application"
 # -------------------------------------------------------
 DATABASE_PATH = config("DATABASE_PATH", default="db.sqlite3")
 db_path = BASE_DIR / DATABASE_PATH
-
-if os.environ.get("VERCEL"):
-    tmp_db_path = "/tmp/db.sqlite3"
-    if not os.path.exists(tmp_db_path) and os.path.exists(db_path):
-        shutil.copyfile(db_path, tmp_db_path)
-    if os.path.exists(tmp_db_path):
-        db_path = tmp_db_path
 
 DATABASES = {
     "default": {
@@ -168,7 +158,7 @@ CORS_ALLOWED_ORIGINS = config(
     default="http://localhost:5173,http://127.0.0.1:5173",
 ).split(",")
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_ALL_ORIGINS = DEBUG or bool(os.environ.get("VERCEL"))
+CORS_ALLOW_ALL_ORIGINS = DEBUG
 
 # -------------------------------------------------------
 # Prototype / Application settings

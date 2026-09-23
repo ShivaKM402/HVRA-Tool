@@ -20,7 +20,7 @@ try:
     import pyproj
     from pyproj import Transformer
     HAS_GEOPANDAS = True
-except ImportError:
+except Exception:
     HAS_GEOPANDAS = False
     logging.warning("GeoPandas/Shapely not available. GIS features will be limited.")
 

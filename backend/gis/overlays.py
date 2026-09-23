@@ -13,7 +13,7 @@ try:
     import geopandas as gpd
     from shapely.geometry import shape, mapping
     HAS_GEOPANDAS = True
-except ImportError:
+except Exception:
     HAS_GEOPANDAS = False
 
 from .geometry import geojson_to_shapely, compute_area_sqkm

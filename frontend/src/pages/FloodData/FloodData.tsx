@@ -1,17 +1,35 @@
 import { useEffect, useState } from 'react';
-import { getFloodBlockSummary } from '../../services/api';
+import { getFloodBlockSummary, getDistricts } from '../../services/api';
+import type { AdministrativeUnit } from '../../types';
 
 export default function FloodData() {
+  const [districts, setDistricts] = useState<AdministrativeUnit[]>([]);
+  const [selectedDistrict, setSelectedDistrict] = useState<string>('');
   const [summaries, setSummaries] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Load available districts on mount
+  useEffect(() => {
+    async function loadDistricts() {
+      try {
+        const dists = await getDistricts();
+        setDistricts(dists || []);
+      } catch (err) {
+        console.error('Failed to load districts:', err);
+      }
+    }
+    loadDistricts();
+  }, []);
+
+  // Load summaries whenever selectedDistrict changes
   useEffect(() => {
     async function loadData() {
       try {
         setLoading(true);
         setError(null);
-        const res = await getFloodBlockSummary({ district: 'Kottayam' });
+        const query = selectedDistrict ? { district: selectedDistrict } : undefined;
+        const res = await getFloodBlockSummary(query);
         setSummaries(res || []);
       } catch (err: unknown) {
         console.error('Failed to load block summary:', err);
@@ -22,7 +40,7 @@ export default function FloodData() {
     }
 
     loadData();
-  }, []);
+  }, [selectedDistrict]);
 
   return (
     <div style={{ display: 'grid', gap: '1.5rem' }}>
@@ -35,17 +53,42 @@ export default function FloodData() {
           padding: '1.25rem 1.5rem',
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
               <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: '#ffffff' }}>
-                Block Flood Summary — Kottayam District
+                Block Flood Summary — {selectedDistrict ? `${selectedDistrict} District` : 'All Districts (Kerala)'}
               </h2>
               <span className="badge badge-warning">DEMO DATA</span>
             </div>
             <p style={{ margin: 0, fontSize: '0.85rem', color: '#94a3b8' }}>
               Per-block summary of historical flood events and flood-prone area percentages.
             </p>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <label style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: 600 }}>Filter District:</label>
+            <select
+              value={selectedDistrict}
+              onChange={(e) => setSelectedDistrict(e.target.value)}
+              style={{
+                background: '#1e293b',
+                color: '#ffffff',
+                border: '1px solid #475569',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontSize: '0.85rem',
+                cursor: 'pointer'
+              }}
+            >
+              <option value="">All Kerala Districts</option>
+              {districts.map(d => {
+                const clean = d.name.replace(' [DEMO]', '').trim();
+                return (
+                  <option key={d.id} value={clean}>{clean}</option>
+                );
+              })}
+            </select>
           </div>
         </div>
       </div>

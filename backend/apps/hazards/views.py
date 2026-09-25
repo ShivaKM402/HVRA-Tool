@@ -1,15 +1,29 @@
 """Hazards views"""
-from rest_framework import viewsets, filters
+from django.db import models
+from rest_framework import viewsets, filters, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from .models import HazardType, HazardEvent, HazardLayer, HazardIndicator
+from .models import (
+    HazardType, HazardEvent, HazardLayer, HazardIndicator,
+    ClimateContext, Recommendation,
+)
 from .serializers import (
     HazardTypeSerializer, HazardEventSerializer,
     HazardLayerSerializer, HazardIndicatorSerializer,
+    ClimateContextSerializer, RecommendationSerializer,
 )
 from rest_framework.views import APIView
 from apps.administration.models import AdministrativeUnit
+from apps.accounts.permissions import IsPlatformAdmin
+from apps.accounts.territory import scope_unit_qs
 from gis.spatial import process_flood_assessment
+
+
+def _admin_only_writes(view):
+    """Libraries are read by everyone; only Platform Admins may curate (HVRA §4.9, §2)."""
+    if view.action in ("create", "update", "partial_update", "destroy"):
+        return [IsPlatformAdmin()]
+    return [permissions.AllowAny()]
 
 
 class HazardTypeViewSet(viewsets.ReadOnlyModelViewSet):
@@ -17,14 +31,20 @@ class HazardTypeViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = HazardTypeSerializer
 
 
-class HazardEventViewSet(viewsets.ReadOnlyModelViewSet):
+class HazardEventViewSet(viewsets.ModelViewSet):
+    """Historical Hazard Events Repository (HVRA §4.9) — admin-curated."""
     queryset = HazardEvent.objects.select_related("administrative_unit").all()
     serializer_class = HazardEventSerializer
     filter_backends = [filters.OrderingFilter]
     ordering = ["-event_date"]
 
+    def get_permissions(self):
+        return _admin_only_writes(self)
+
     def get_queryset(self):
         qs = super().get_queryset()
+        # Territorial RBAC (HVRA §2): officers only see events in their territory.
+        qs = scope_unit_qs(qs, self.request.user)
         hazard_type = self.request.query_params.get("hazard_type")
         admin_unit = self.request.query_params.get("admin_unit")
         if hazard_type:
@@ -81,24 +101,75 @@ class HazardIndicatorViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         qs = super().get_queryset()
         hazard_type = self.request.query_params.get("hazard_type")
+        module_type = self.request.query_params.get("module_type")
         if hazard_type:
             qs = qs.filter(hazard_type=hazard_type.upper())
-        return qs
+        if module_type:
+            qs = qs.filter(module_type=module_type.upper())
+        return qs.order_by("module_type", "order", "name")
+
+
+class ClimateContextViewSet(viewsets.ModelViewSet):
+    """Climate Context Library (HVRA Section 4.9) — read for all, curated by admins."""
+    queryset = ClimateContext.objects.all().select_related("region")
+    serializer_class = ClimateContextSerializer
+
+    def get_permissions(self):
+        return _admin_only_writes(self)
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        if self.action in ("list", "retrieve") and not self.request.query_params.get("include_inactive") == "1":
+            qs = qs.filter(is_active=True)
+        hazard_type = self.request.query_params.get("hazard_type")
+        region = self.request.query_params.get("region")
+        if hazard_type:
+            qs = qs.filter(models.Q(hazard_type=hazard_type.upper()) | models.Q(hazard_type=""))
+        if region:
+            qs = qs.filter(models.Q(region_id=region) | models.Q(region__isnull=True))
+        return qs.order_by("hazard_type", "display_order")
+
+
+class RecommendationViewSet(viewsets.ModelViewSet):
+    """Recommendations Library (HVRA Section 4.9) — read for all, curated by admins."""
+    queryset = Recommendation.objects.all()
+    serializer_class = RecommendationSerializer
+
+    def get_permissions(self):
+        return _admin_only_writes(self)
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        if self.action in ("list", "retrieve") and not self.request.query_params.get("include_inactive") == "1":
+            qs = qs.filter(is_active=True)
+        module_type = self.request.query_params.get("module_type")
+        hazard_type = self.request.query_params.get("hazard_type")
+        classification = self.request.query_params.get("classification")
+        if module_type:
+            qs = qs.filter(module_type=module_type.upper())
+        if hazard_type:
+            qs = qs.filter(models.Q(hazard_type=hazard_type.upper()) | models.Q(hazard_type=""))
+        if classification:
+            qs = qs.filter(models.Q(classification=classification.upper()) | models.Q(classification=""))
+        return qs.order_by("display_order", "priority")
 
 
 class FloodBlockSummaryView(APIView):
     """
     Returns a per-block summary of flood-prone area and historical events.
-    Strictly scoped to Kottayam district blocks per Phase 3 requirements.
+    Supports any district or all blocks across Kerala.
     """
     def get(self, request):
-        district = request.query_params.get("district", "Kottayam")
+        district = request.query_params.get("district")
         
-        # Only Kottayam is allowed
-        if "kottayam" not in district.lower():
-            return Response({"error": "Only Kottayam district is supported in this demo."}, status=400)
+        blocks_qs = AdministrativeUnit.objects.filter(level="BLOCK")
+        if district:
+            blocks_qs = blocks_qs.filter(
+                models.Q(parent__name__icontains=district) |
+                models.Q(parent__code__iexact=district)
+            )
 
-        blocks = AdministrativeUnit.objects.filter(level="BLOCK", parent__name__icontains="Kottayam")
+        blocks = blocks_qs.all()
         events = HazardEvent.objects.filter(administrative_unit__in=blocks, hazard_type="FLOOD")
         flood_layers = HazardLayer.objects.filter(hazard_type="FLOOD")
         

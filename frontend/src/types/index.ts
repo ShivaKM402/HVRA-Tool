@@ -80,6 +80,7 @@ export interface WeightageRule {
 
 export interface HazardIndicator {
   id: number;
+  module_type: string;
   hazard_type: string;
   code: string;
   name: string;
@@ -114,7 +115,21 @@ export interface DataSource {
 // Assessments
 // -------------------------------------------------------
 export type AssessmentStatus = 'DRAFT' | 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+export type ModuleType = 'HAZARD' | 'VULNERABILITY' | 'EXPOSURE' | 'COMPOSITE_RISK';
 export type HazardClassification = 'NH' | 'LH' | 'MH' | 'HH';
+export type RiskClass = 'VERY_HIGH' | 'HIGH' | 'MODERATE' | 'LOW';
+export type ApprovalStatus = 'PENDING' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
+
+/** Task Force review fields shared by assessments and risk assessments (HVRA §8.2). */
+export interface ApprovalFields {
+  approval_status: ApprovalStatus;
+  submitted_at: string | null;
+  reviewer_name: string;
+  reviewer_org: string;
+  review_comment: string;
+  reviewed_at: string | null;
+  created_by_name: string | null;
+}
 
 export interface AssessmentIndicatorConfig {
   id: number;
@@ -130,6 +145,8 @@ export interface Assessment {
   id: number;
   name: string;
   description: string;
+  module_type: string;       // display label, e.g. "Vulnerability"
+  module_code: ModuleType;
   hazard_type: string;
   state: number;
   state_name: string;
@@ -143,6 +160,13 @@ export interface Assessment {
   classification_method: string;
   status: AssessmentStatus;
   error_message: string;
+  approval_status: ApprovalStatus;
+  submitted_at: string | null;
+  reviewer_name: string;
+  reviewer_org: string;
+  review_comment: string;
+  reviewed_at: string | null;
+  created_by_name: string | null;
   indicators: AssessmentIndicatorConfig[];
   result_count: number;
   created_at: string;
@@ -168,6 +192,8 @@ export interface AssessmentResult {
 
 export interface AssessmentResultsResponse {
   assessment: number;
+  module_type?: string;
+  module_label?: string;
   status: string;
   total_units: number;
   classification_summary: Record<string, number>;
@@ -175,6 +201,76 @@ export interface AssessmentResultsResponse {
   max_score?: number;
   average_score?: number;
   results: AssessmentResult[];
+}
+
+// -------------------------------------------------------
+// Module 4 — Composite Risk
+// -------------------------------------------------------
+export interface RiskAssessment {
+  id: number;
+  name: string;
+  description: string;
+  module_type: string;
+  module_code: string;
+  state: number;
+  state_name: string;
+  district: number;
+  district_name: string;
+  administrative_level: string;
+  hazard_assessment: number | null;
+  hazard_assessment_name: string | null;
+  vulnerability_assessment: number | null;
+  vulnerability_assessment_name: string | null;
+  exposure_assessment: number | null;
+  exposure_assessment_name: string | null;
+  formula: 'MULTIPLICATIVE' | 'ADDITIVE';
+  hazard_weight: number;
+  vulnerability_weight: number;
+  exposure_weight: number;
+  status: AssessmentStatus;
+  error_message: string;
+  approval_status: ApprovalStatus;
+  submitted_at: string | null;
+  reviewer_name: string;
+  reviewer_org: string;
+  review_comment: string;
+  reviewed_at: string | null;
+  created_by_name: string | null;
+  result_count: number;
+  created_at: string;
+  updated_at: string;
+  completed_at: string | null;
+}
+
+export interface RiskResult {
+  id: number;
+  administrative_unit: number;
+  unit_name: string;
+  unit_code: string;
+  hazard_score: number | null;
+  vulnerability_score: number | null;
+  exposure_score: number | null;
+  risk_score: number | null;
+  risk_class: RiskClass;
+  notes: string;
+}
+
+export interface RiskResultsResponse {
+  risk_assessment: number;
+  name: string;
+  module_type: string;
+  module_label: string;
+  formula: string;
+  weights: { hazard: number; vulnerability: number; exposure: number };
+  status: string;
+  total_units: number;
+  classification_summary: Record<string, number>;
+  risk_class_colors: Record<string, string>;
+  risk_class_labels: Record<string, string>;
+  min_score?: number;
+  max_score?: number;
+  average_score?: number;
+  results: RiskResult[];
 }
 
 // -------------------------------------------------------
@@ -214,6 +310,221 @@ export interface SelectedIndicator {
   indicator: HazardIndicator;
   weight: number;
   dataSource: DataSource | null;
+}
+
+// -------------------------------------------------------
+// Auth & User Management (HVRA §2 / §10)
+// -------------------------------------------------------
+export type UserRole =
+  | 'PLATFORM_ADMIN'
+  | 'STATE_OFFICIAL'
+  | 'DISTRICT_OFFICIAL'
+  | 'ANALYST'
+  | 'VIEWER';
+
+export interface UserProfile {
+  role: string;
+  role_code: UserRole;
+  role_label: string;
+  organization: string;
+  state: number | null;
+  state_name: string | null;
+  district: number | null;
+  district_name: string | null;
+  territory_restricted: boolean;
+  is_admin: boolean;
+}
+
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  date_joined: string;
+  is_staff: boolean;
+  /** Nested profile — returned by /auth/me/. */
+  profile?: UserProfile;
+  /** Flat profile fields — returned by the admin /users/ endpoint. */
+  role_code?: UserRole;
+  role_label?: string;
+  organization?: string;
+  state?: number | null;
+  state_name?: string | null;
+  district?: number | null;
+  district_name?: string | null;
+}
+
+export interface AuthResponse {
+  success: boolean;
+  token: string;
+  user: User;
+}
+
+export interface RoleOption {
+  code: string;
+  label: string;
+}
+
+// -------------------------------------------------------
+// Saved / Shareable Queries (HVRA §3.3)
+// -------------------------------------------------------
+export interface SavedQuery {
+  id: number;
+  name: string;
+  description: string;
+  module_type: string;
+  hazard_type: string;
+  state: number | null;
+  state_name: string | null;
+  district: number | null;
+  district_name: string | null;
+  administrative_level: string;
+  parameters: Record<string, any>;
+  created_by: number | null;
+  created_by_name: string | null;
+  share_token: string | null;
+  is_shared: boolean;
+  share_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SavedQueryPayload {
+  name: string;
+  description?: string;
+  module_type?: ModuleType;
+  hazard_type?: string;
+  state?: number | null;
+  district?: number | null;
+  administrative_level?: string;
+  parameters?: Record<string, any>;
+}
+
+// -------------------------------------------------------
+// Cross-district Dashboards (HVRA §3.4)
+// -------------------------------------------------------
+export interface DistrictSummaryRow {
+  district_id: number;
+  district_name: string;
+  assessment_count: number;
+  unit_results: number;
+  classification_summary: Record<string, number>;
+  average_score: number;
+  max_score: number;
+}
+
+export interface DashboardSummaryResponse {
+  module_type: string;
+  hazard_type: string;
+  districts: DistrictSummaryRow[];
+}
+
+// -------------------------------------------------------
+// Content Libraries (HVRA §4.9)
+// -------------------------------------------------------
+export interface ClimateContext {
+  id: number;
+  hazard_type: string;
+  region: number | null;
+  region_name: string | null;
+  title: string;
+  statement: string;
+  source: string;
+  source_url: string;
+  vintage: string;
+  display_order: number;
+  is_active: boolean;
+  is_demo: boolean;
+}
+
+export interface ClimateContextPayload {
+  hazard_type?: string;
+  region?: number | null;
+  title: string;
+  statement: string;
+  source?: string;
+  source_url?: string;
+  vintage?: string;
+  display_order?: number;
+  is_active?: boolean;
+  is_demo?: boolean;
+}
+
+export interface Recommendation {
+  id: number;
+  module_type: string;
+  module_code: string;
+  hazard_type: string;
+  classification: string;
+  text: string;
+  priority: string;
+  display_order: number;
+  is_active: boolean;
+  is_demo: boolean;
+}
+
+export interface RecommendationPayload {
+  module_type?: string;
+  module_code?: string;
+  hazard_type?: string;
+  classification?: string;
+  text: string;
+  priority?: string;
+  display_order?: number;
+  is_active?: boolean;
+  is_demo?: boolean;
+}
+
+export interface HazardEventPayload {
+  hazard_type: string;
+  event_date: string;
+  latitude: number;
+  longitude: number;
+  administrative_unit?: number | null;
+  magnitude?: number | null;
+  loss?: number | null;
+  description?: string;
+  source?: string;
+  source_url?: string;
+  is_demo?: boolean;
+}
+
+// -------------------------------------------------------
+// Approval request/response payloads (HVRA §8.2)
+// -------------------------------------------------------
+export interface SubmitForReviewResponse {
+  message: string;
+  assessment?: {
+    id: number;
+    name: string;
+    module_type: string;
+    status: string;
+    approval_status: ApprovalStatus;
+    submitted_at: string | null;
+    reviewer_name: string;
+    reviewer_org: string;
+    review_comment: string;
+    reviewed_at: string | null;
+  };
+  risk_assessment?: Record<string, unknown>;
+}
+
+export interface ApprovalActionResponse {
+  message: string;
+  assessment?: {
+    id: number;
+    name: string;
+    module_type: string;
+    status: string;
+    approval_status: ApprovalStatus;
+    submitted_at: string | null;
+    reviewer_name: string;
+    reviewer_org: string;
+    review_comment: string;
+    reviewed_at: string | null;
+  };
+  risk_assessment?: Record<string, unknown>;
 }
 
 // -------------------------------------------------------

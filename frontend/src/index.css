@@ -295,9 +295,12 @@ a:hover { color: var(--color-primary-dark); }
 
 .topbar-title {
   flex: 1;
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 600;
   color: var(--color-gov-dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .topbar-actions {

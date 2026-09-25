@@ -4,9 +4,10 @@
  */
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { checkHealth, getAssessments, getHazards, getDistricts } from '../../services/api';
-import type { Assessment, HealthCheckResponse, HazardType, AdministrativeUnit } from '../../types';
-import KottayamMap from '../../components/Map/KottayamMap';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
+import { checkHealth, getAssessments, getHazards, getDistricts, getDashboardSummary, getRiskDashboardSummary } from '../../services/api';
+import type { Assessment, HealthCheckResponse, HazardType, AdministrativeUnit, DashboardSummaryResponse } from '../../types';
+import KeralaMap from '../../components/Map/KeralaMap';
 import './Dashboard.css';
 
 function StatusBadge({ status }: { status: string }) {
@@ -20,8 +21,36 @@ export default function Dashboard() {
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [hazards, setHazards] = useState<HazardType[]>([]);
   const [districts, setDistricts] = useState<AdministrativeUnit[]>([]);
+  const [selectedDistrict, setSelectedDistrict] = useState<AdministrativeUnit | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Cross-district comparison (HVRA §3.4)
+  const [summary, setSummary] = useState<DashboardSummaryResponse | null>(null);
+  const [summaryModule, setSummaryModule] = useState<'HAZARD' | 'VULNERABILITY' | 'EXPOSURE' | 'COMPOSITE_RISK'>('HAZARD');
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadSummary() {
+      setSummaryLoading(true);
+      setSummaryError(null);
+      try {
+        const data =
+          summaryModule === 'COMPOSITE_RISK'
+            ? await getRiskDashboardSummary()
+            : await getDashboardSummary({ module_type: summaryModule });
+        if (!cancelled) setSummary(data);
+      } catch (err: any) {
+        if (!cancelled) setSummaryError(err.message || 'Failed to load district summary.');
+      } finally {
+        if (!cancelled) setSummaryLoading(false);
+      }
+    }
+    loadSummary();
+    return () => { cancelled = true; };
+  }, [summaryModule]);
 
   useEffect(() => {
     const load = async () => {
@@ -36,6 +65,9 @@ export default function Dashboard() {
         setAssessments(assessData.results || []);
         setHazards(hazardData);
         setDistricts(districtData);
+        if (districtData && districtData.length > 0) {
+          setSelectedDistrict(districtData[0]);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
       } finally {
@@ -111,13 +143,13 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Phase 2 Preselected Pilot Scope Banner */}
+      {/* Spatial Scope & Administrative Coverage */}
       <div className="card mb-6" style={{ background: '#f8fafc', borderLeft: '4px solid var(--color-primary)' }}>
         <div className="card-body" style={{ padding: '1rem 1.25rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
             <div>
               <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-primary)', marginBottom: '0.25rem' }}>
-                Pilot District Foundation — Preselected Context
+                Spatial Scope & Administrative Coverage
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap', marginTop: '0.35rem' }}>
                 <div>
@@ -125,29 +157,52 @@ export default function Dashboard() {
                   <strong style={{ fontSize: '1.05rem', color: '#0f172a' }}>Kerala</strong>
                 </div>
                 <div style={{ color: '#cbd5e1' }}>/</div>
-                <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <span style={{ fontSize: '0.8rem', color: '#64748b' }}>District:</span>{' '}
-                  <strong style={{ fontSize: '1.05rem', color: '#0f172a' }}>Kottayam</strong>
+                  <select
+                    value={selectedDistrict?.id || ''}
+                    onChange={(e) => {
+                      const id = Number(e.target.value);
+                      const d = districts.find(item => item.id === id);
+                      setSelectedDistrict(d || null);
+                    }}
+                    style={{
+                      fontSize: '0.95rem',
+                      fontWeight: 600,
+                      color: '#0f172a',
+                      padding: '3px 8px',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      background: '#ffffff',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {districts.map(d => (
+                      <option key={d.id} value={d.id}>
+                        {d.name.replace(' [DEMO]', '')}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div style={{ color: '#cbd5e1' }}>/</div>
                 <div>
                   <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Administrative Level:</span>{' '}
-                  <span className="badge badge-info" style={{ fontSize: '0.8rem' }}>Block (12 Pilot Units)</span>
+                  <span className="badge badge-info" style={{ fontSize: '0.8rem' }}>Block / Taluka Level</span>
                 </div>
               </div>
             </div>
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <span className="badge badge-warning" style={{ fontSize: '0.75rem' }}>
-                Single District Prototype
+              <span className="badge badge-success" style={{ fontSize: '0.75rem' }}>
+                {districts.length} Districts Available
               </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Pilot Map Section */}
+      {/* Map Section */}
       <div className="mb-8">
-        <KottayamMap />
+        <KeralaMap selectedDistrict={selectedDistrict} />
       </div>
 
       {/* Stat cards */}
@@ -170,7 +225,7 @@ export default function Dashboard() {
         <div className="stat-card" style={{ '--stat-color': '#8b5cf6', '--stat-bg': '#f5f3ff' } as React.CSSProperties}>
           <div className="stat-card-icon">🗺️</div>
           <div className="stat-card-value">{districts.length}</div>
-          <div className="stat-card-label">Pilot District (Kottayam)</div>
+          <div className="stat-card-label">Active Districts (Kerala)</div>
         </div>
       </div>
 
@@ -225,8 +280,8 @@ export default function Dashboard() {
                       )}
                     </td>
                     <td>
-                      <span className="hazard-tag" data-hazard={assessment.hazard_type}>
-                        {assessment.hazard_type}
+                      <span className="hazard-tag" data-hazard={assessment.hazard_type || assessment.module_code}>
+                        {assessment.hazard_type || assessment.module_type || assessment.module_code || 'Hazard'}
                       </span>
                     </td>
                     <td>{assessment.district_name}</td>
@@ -260,6 +315,110 @@ export default function Dashboard() {
                 ))}
               </tbody>
             </table>
+          )}
+        </div>
+      </div>
+
+      {/* Cross-district comparison (HVRA §3.4) */}
+      <div className="card mb-8">
+        <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <h2 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <span>🏙️</span> Cross-District Comparison
+            </h2>
+            <div style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '0.2rem' }}>
+              District-averaged module scores across completed assessments — supports State-level prioritization.
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+            {(['HAZARD', 'VULNERABILITY', 'EXPOSURE', 'COMPOSITE_RISK'] as const).map((m) => (
+              <button
+                key={m}
+                className={`btn ${summaryModule === m ? 'btn-primary' : 'btn-secondary'} btn-sm`}
+                style={{ fontSize: '0.72rem' }}
+                onClick={() => setSummaryModule(m)}
+              >
+                {m === 'COMPOSITE_RISK' ? 'Composite Risk' : m[0] + m.slice(1).toLowerCase()}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="card-body">
+          {summaryLoading ? (
+            <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>
+              <div className="spinner" style={{ margin: '0 auto 1rem auto' }} />
+              Computing district-level aggregation…
+            </div>
+          ) : summaryError ? (
+            <div className="alert alert-error">⚠️ {summaryError}</div>
+          ) : !summary || summary.districts.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-state-icon">🏙️</div>
+              <div className="empty-state-title">No completed {summaryModule.replace('_', ' ').toLowerCase()} assessments</div>
+              <div className="empty-state-description">
+                Complete assessments in at least two districts to populate the comparison.
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }} className="compare-grid">
+              {/* Chart */}
+              <div>
+                <h4 style={{ margin: '0 0 0.75rem', fontSize: '0.9rem', color: '#334155' }}>Average Score by District</h4>
+                <div style={{ height: 260 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={summary.districts} margin={{ top: 5, right: 10, left: -18, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                      <XAxis dataKey="district_name" tick={{ fontSize: 11 }} interval={0} angle={-30} textAnchor="end" height={70} tickFormatter={(v: string) => v.replace(' [DEMO]', '').slice(0, 12)} />
+                      <YAxis domain={[0, 10]} tick={{ fontSize: 11 }} />
+                      <Tooltip
+                        formatter={(value: any) => [Number(value).toFixed(2), 'Avg Score']}
+                        labelFormatter={(label: any) => String(label).replace(' [DEMO]', '')}
+                      />
+                      <Bar dataKey="average_score" radius={[4, 4, 0, 0]}>
+                        {summary.districts.map((d, i) => (
+                          <Cell key={i} fill={d.average_score >= 7 ? '#ef4444' : d.average_score >= 5 ? '#f59e0b' : d.average_score >= 3 ? '#eab308' : '#22c55e'} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Table */}
+              <div className="table-responsive" style={{ border: '1px solid #e2e8f0', borderRadius: 8 }}>
+                <table className="data-table" style={{ width: '100%', margin: 0, fontSize: '0.82rem' }}>
+                  <thead style={{ background: '#f8fafc' }}>
+                    <tr>
+                      <th style={{ textAlign: 'left', padding: '0.6rem 0.75rem' }}>District</th>
+                      <th style={{ textAlign: 'center', padding: '0.6rem 0.5rem' }}>Assess.</th>
+                      <th style={{ textAlign: 'center', padding: '0.6rem 0.5rem' }}>Units</th>
+                      <th style={{ textAlign: 'center', padding: '0.6rem 0.5rem' }}>Avg Score</th>
+                      <th style={{ textAlign: 'center', padding: '0.6rem 0.75rem' }}>Top Class</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {summary.districts.map((d) => {
+                      const summaryCounts = d.classification_summary || {};
+                      const topCls = Object.entries(summaryCounts).sort((a, b) => (b[1] as number) - (a[1] as number))[0]?.[0] || '—';
+                      return (
+                        <tr key={d.district_id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '0.55rem 0.75rem', fontWeight: 600 }}>{d.district_name.replace(' [DEMO]', '')}</td>
+                          <td style={{ textAlign: 'center', padding: '0.55rem 0.5rem' }}>{d.assessment_count}</td>
+                          <td style={{ textAlign: 'center', padding: '0.55rem 0.5rem' }}>{d.unit_results}</td>
+                          <td style={{ textAlign: 'center', padding: '0.55rem 0.5rem', fontWeight: 700 }}>{d.average_score.toFixed(2)}</td>
+                          <td style={{ textAlign: 'center', padding: '0.55rem 0.75rem' }}>
+                            <span className={`badge ${topCls === 'HH' || topCls === 'VERY_HIGH' ? 'badge-error' : topCls === 'MH' || topCls === 'HIGH' ? 'badge-warning' : 'badge-success'}`}>
+                              {topCls}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           )}
         </div>
       </div>

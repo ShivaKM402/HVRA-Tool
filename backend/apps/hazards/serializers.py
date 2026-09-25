@@ -1,6 +1,9 @@
 """Hazards serializers"""
 from rest_framework import serializers
-from .models import HazardType, HazardEvent, HazardLayer, HazardIndicator, IndicatorWeightageRule
+from .models import (
+    HazardType, HazardEvent, HazardLayer, HazardIndicator,
+    IndicatorWeightageRule, ClimateContext, Recommendation,
+)
 
 
 class HazardTypeSerializer(serializers.ModelSerializer):
@@ -50,11 +53,36 @@ class IndicatorWeightageRuleSerializer(serializers.ModelSerializer):
 
 class HazardIndicatorSerializer(serializers.ModelSerializer):
     weightage_rules = IndicatorWeightageRuleSerializer(many=True, read_only=True)
+    module_type = serializers.CharField(source="get_module_type_display", read_only=True)
 
     class Meta:
         model = HazardIndicator
         fields = [
-            "id", "hazard_type", "code", "name", "description", "unit",
+            "id", "module_type", "hazard_type", "code", "name", "description", "unit",
             "default_weight", "min_weight", "max_weight",
             "is_active", "order", "weightage_rules",
+        ]
+
+
+class ClimateContextSerializer(serializers.ModelSerializer):
+    region_name = serializers.CharField(source="region.name", read_only=True)
+
+    class Meta:
+        model = ClimateContext
+        fields = [
+            "id", "hazard_type", "region", "region_name", "title", "statement",
+            "source", "source_url", "vintage", "display_order",
+            "is_active", "is_demo",
+        ]
+
+
+class RecommendationSerializer(serializers.ModelSerializer):
+    module_type = serializers.CharField(source="get_module_type_display", read_only=True)
+    module_code = serializers.CharField(source="module_type", read_only=True)
+
+    class Meta:
+        model = Recommendation
+        fields = [
+            "id", "module_type", "module_code", "hazard_type", "classification",
+            "text", "priority", "display_order", "is_active", "is_demo",
         ]

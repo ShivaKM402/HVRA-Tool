@@ -32,11 +32,13 @@ DJANGO_APPS = [
 
 THIRD_PARTY_APPS = [
     "rest_framework",
+    "rest_framework.authtoken",
     "corsheaders",
 ]
 
 LOCAL_APPS = [
     "apps.administration",
+    "apps.accounts",
     "apps.hazards",
     "apps.datasets",
     "apps.assessments",
@@ -144,8 +146,9 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.SessionAuthentication",
         "rest_framework.authentication.BasicAuthentication",
+        "rest_framework.authentication.TokenAuthentication",
     ],
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "DEFAULT_PAGINATION_CLASS": "config.pagination.StandardPagination",
     "PAGE_SIZE": 50,
     "EXCEPTION_HANDLER": "config.exception_handler.custom_exception_handler",
 }

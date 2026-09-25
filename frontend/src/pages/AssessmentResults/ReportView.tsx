@@ -1,28 +1,82 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getAssessmentReport } from '../../services/api';
+import './ReportView.css';
 
 export default function ReportView() {
   const { id } = useParams();
   const [report, setReport] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [downloadingFormat, setDownloadingFormat] = useState<string | null>(null);
+  const [activeChapter, setActiveChapter] = useState(1);
+  const [regenerating, setRegenerating] = useState(false);
+  const previewRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    async function fetchReport() {
-      if (!id) return;
-      try {
-        setLoading(true);
-        const data = await getAssessmentReport(parseInt(id, 10));
-        setReport(data);
-      } catch (err: any) {
-        setError(err.message || 'Failed to load report.');
-      } finally {
-        setLoading(false);
-      }
+  const fetchReport = useCallback(async () => {
+    if (!id) return;
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await getAssessmentReport(parseInt(id, 10));
+      setReport(data);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load report.');
+    } finally {
+      setLoading(false);
     }
-    fetchReport();
   }, [id]);
+
+  useEffect(() => { void fetchReport(); }, [fetchReport]);
+
+  // Chapter list for the table of contents (spec Screen 4).
+  const chapters = [
+    { n: 1, title: 'Introduction & Objectives', id: 'ch-1' },
+    { n: 2, title: 'Study Area Profile', id: 'ch-2' },
+    { n: 3, title: 'Data Sources & Methodology', id: 'ch-3' },
+    { n: 4, title: 'Hazard / Indicator Profile', id: 'ch-4' },
+    { n: 5, title: 'Climate Context', id: 'ch-5' },
+    { n: 6, title: 'Hazard Intensity Classification', id: 'ch-6' },
+    { n: 7, title: 'Thematic & Admin-level Maps', id: 'ch-7' },
+    { n: 8, title: 'Indicator Analysis', id: 'ch-8' },
+    { n: 9, title: 'Findings & Priority Areas', id: 'ch-9' },
+    { n: 10, title: 'Recommendations', id: 'ch-10' },
+    { n: 11, title: 'Annexures', id: 'ch-11' },
+  ];
+
+  // Highlight the chapter currently in view.
+  useEffect(() => {
+    if (!report?.metadata) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+        if (visible) {
+          const n = parseInt(visible.target.id.replace('ch-', ''), 10);
+          if (!isNaN(n)) setActiveChapter(n);
+        }
+      },
+      { rootMargin: '-15% 0px -70% 0px', threshold: 0 },
+    );
+    chapters.forEach((c) => {
+      const el = document.getElementById(c.id);
+      if (el) observer.observe(el);
+    });
+    return () => observer.disconnect();
+  }, [report]);
+
+  const jumpToChapter = (chapterId: string) => {
+    const el = document.getElementById(chapterId);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const handleRegenerate = async () => {
+    setRegenerating(true);
+    await fetchReport();
+    setRegenerating(false);
+    previewRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   if (loading) {
     return (
@@ -33,57 +87,232 @@ export default function ReportView() {
     );
   }
 
-  if (error || !report) {
+  if (error || !report || !report.metadata) {
     return (
       <div className="alert alert-error" style={{ margin: '2rem' }}>
         <span>⚠️</span>
-        <div>{error || 'Report not found.'}</div>
-        <Link to={`/assessments/${id}/results`} className="btn btn-secondary" style={{ marginTop: '1rem' }}>Back to Results</Link>
+        <div>{error || report?.message || 'Report not found or assessment is not yet completed.'}</div>
+        <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem' }}>
+          <Link to={`/assessments/${id}/results`} className="btn btn-secondary">Back to Results</Link>
+          <Link to="/reports" className="btn btn-secondary">All Reports</Link>
+        </div>
       </div>
     );
   }
 
-  const { metadata, methodology, historical_profile, classification_summary, findings, recommendations, block_results } = report;
+  const { metadata, methodology, historical_profile, climate_context, classification_summary, findings, recommendations, block_results } = report;
+
+  const isHazardModule = !metadata?.module_type || metadata.module_type === 'HAZARD';
+  const moduleSubject = metadata?.hazard_type || (metadata?.module_label || 'Hazard');
+  const subjectNoun = isHazardModule
+    ? moduleSubject
+    : (moduleSubject.replace(/ Assessment/i, '').toLowerCase() || 'indicator');
+
+  const handleDownloadDocx = async () => {
+    try {
+      setDownloadingFormat('docx');
+      const { downloadReportDocx } = await import('../../services/api');
+      const filename = (metadata?.name || 'Assessment_Report').replace(/[^a-zA-Z0-9_-]/g, '_');
+      await downloadReportDocx(parseInt(id!, 10), `${filename}.docx`);
+    } catch (err: any) {
+      alert('Failed to download Word document: ' + err.message);
+    } finally {
+      setDownloadingFormat(null);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    try {
+      setDownloadingFormat('pdf');
+      const { downloadReportPdf } = await import('../../services/api');
+      const filename = (metadata?.name || 'Assessment_Report').replace(/[^a-zA-Z0-9_-]/g, '_');
+      await downloadReportPdf(parseInt(id!, 10), `${filename}.pdf`);
+    } catch (err: any) {
+      alert('Failed to download PDF: ' + err.message);
+    } finally {
+      setDownloadingFormat(null);
+    }
+  };
+
+  const handleDownloadCsv = async () => {
+    try {
+      setDownloadingFormat('csv');
+      const { downloadReportCsv } = await import('../../services/api');
+      const filename = (metadata?.name || 'Assessment_Report').replace(/[^a-zA-Z0-9_-]/g, '_');
+      await downloadReportCsv(parseInt(id!, 10), `${filename}_results.csv`);
+    } catch (err: any) {
+      alert('Failed to download CSV: ' + err.message);
+    } finally {
+      setDownloadingFormat(null);
+    }
+  };
 
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', background: '#fff', padding: '3rem 4rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', borderRadius: '8px' }}>
-      
-      {/* Report Header */}
-      <div style={{ borderBottom: '3px solid #1e293b', paddingBottom: '1.5rem', marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <div style={{ color: '#64748b', fontSize: '0.9rem', fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase' }}>
-              Final Assessment Report
-            </div>
-            <h1 style={{ margin: '0.5rem 0', fontSize: '2.2rem', color: '#0f172a' }}>{metadata.name}</h1>
-            <div style={{ fontSize: '1.1rem', color: '#475569' }}>
-              {metadata.state} → {metadata.district} → {metadata.level} Level
-            </div>
+    <div className="rpt">
+
+      {/* ==========================================================
+          Left: Report Contents + actions (spec Screen 4)
+          ========================================================== */}
+      <aside className="rpt-toc">
+        <h2 className="rpt-toc-title">Report Contents</h2>
+        <ol className="rpt-toc-list">
+          {chapters.map((c) => (
+            <li key={c.id}>
+              <button
+                type="button"
+                onClick={() => jumpToChapter(c.id)}
+                className={`rpt-toc-item ${activeChapter === c.n ? 'active' : ''}`}
+              >
+                <span className="rpt-toc-num">{c.n}.</span>
+                <span>{c.title}</span>
+              </button>
+            </li>
+          ))}
+        </ol>
+
+        <div className="rpt-toc-actions">
+          <button
+            type="button"
+            className="btn btn-secondary rpt-regen"
+            onClick={handleRegenerate}
+            disabled={regenerating}
+          >
+            {regenerating ? 'Regenerating…' : '↻ Auto-regenerate'}
+          </button>
+          <button
+            type="button"
+            className="rpt-export"
+            onClick={handleDownloadDocx}
+            disabled={downloadingFormat !== null}
+          >
+            {downloadingFormat === 'docx' ? 'Generating…' : 'Export as DOCX / PDF'}
+          </button>
+          <div className="rpt-toc-mini">
+            <button className="rpt-mini-btn" onClick={handleDownloadDocx} disabled={downloadingFormat !== null}>
+              DOCX
+            </button>
+            <button className="rpt-mini-btn" onClick={handleDownloadPdf} disabled={downloadingFormat !== null}>
+              PDF
+            </button>
+            <button className="rpt-mini-btn" onClick={handleDownloadCsv} disabled={downloadingFormat !== null}>
+              CSV
+            </button>
+            <button className="rpt-mini-btn" onClick={() => window.print()}>
+              Print
+            </button>
           </div>
-          {metadata.is_demo && (
-            <div style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d', padding: '0.5rem 1rem', borderRadius: '4px', fontWeight: 700, fontSize: '0.85rem' }}>
-              ⚠️ DEMO DATA
-            </div>
-          )}
         </div>
-        <div style={{ marginTop: '1.5rem', color: '#64748b', fontSize: '0.85rem' }}>
-          <strong>Generated on:</strong> {new Date(metadata.created_at).toLocaleString()} | <strong>Hazard:</strong> {metadata.hazard_type} | <strong>Status:</strong> {metadata.status}
+
+        <div className="rpt-toc-links">
+          <Link to={`/assessments/${id}/results`} className="rpt-mini-btn">
+            ← Map results
+          </Link>
+          <Link to="/reports" className="rpt-mini-btn">
+            All reports
+          </Link>
+        </div>
+      </aside>
+
+      {/* ==========================================================
+          Right: live report preview
+          ========================================================== */}
+      <div className="rpt-preview" ref={previewRef}>
+      {/* Top Action Bar (hidden on print) */}
+      <div className="report-action-bar" style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem',
+        background: '#f8fafc', padding: '0.75rem 1.25rem', borderRadius: '8px', border: '1px solid #e2e8f0'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <Link to={`/assessments/${id}/results`} className="btn btn-secondary" style={{ fontSize: '0.85rem' }}>
+            ← Back to Map Results
+          </Link>
+          <Link to="/reports" className="btn btn-secondary" style={{ fontSize: '0.85rem' }}>
+            📚 All Reports
+          </Link>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <button
+            className="btn btn-primary"
+            style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem', background: '#2563eb' }}
+            onClick={handleDownloadDocx}
+            disabled={downloadingFormat !== null}
+          >
+            📄 {downloadingFormat === 'docx' ? 'Generating DOCX...' : 'Download Word (DOCX)'}
+          </button>
+          <button
+            className="btn btn-primary"
+            style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem', background: '#dc2626' }}
+            onClick={handleDownloadPdf}
+            disabled={downloadingFormat !== null}
+          >
+            📥 {downloadingFormat === 'pdf' ? 'Generating PDF...' : 'Download PDF'}
+          </button>
+          <button
+            className="btn btn-secondary"
+            style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+            onClick={handleDownloadCsv}
+            disabled={downloadingFormat !== null}
+          >
+            📊 {downloadingFormat === 'csv' ? 'Exporting...' : 'Export CSV'}
+          </button>
+          <button
+            className="btn btn-secondary"
+            style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+            onClick={() => window.print()}
+          >
+            🖨️ Print
+          </button>
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem', fontSize: '1.05rem', lineHeight: '1.6', color: '#334155' }}>
+      {/* Main Printable Document Sheet */}
+      <div className="printable-report-sheet" style={{
+        background: '#fff', padding: '3.5rem 4.5rem',
+        boxShadow: '0 4px 12px -2px rgba(0,0,0,0.08)', borderRadius: '8px', border: '1px solid #e2e8f0'
+      }}>
+        
+        {/* Report Header */}
+        <div style={{ borderBottom: '3px solid #1e293b', paddingBottom: '1.5rem', marginBottom: '2rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <div style={{ color: '#64748b', fontSize: '0.85rem', fontWeight: 700, letterSpacing: '1.2px', textTransform: 'uppercase' }}>
+                State Disaster Management Framework · HVRA Digital Tool
+              </div>
+              <h1 style={{ margin: '0.5rem 0', fontSize: '2.1rem', color: '#0f172a', fontWeight: 800 }}>{metadata.name}</h1>
+              <div style={{ fontSize: '1.1rem', color: '#475569', fontWeight: 600 }}>
+                {metadata.state} → {metadata.district} → {metadata.level} Administrative Assessment
+              </div>
+            </div>
+            {metadata.is_demo && (
+              <div style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d', padding: '0.4rem 0.8rem', borderRadius: '4px', fontWeight: 700, fontSize: '0.8rem' }}>
+                ⚠️ DEMO ASSESSMENT
+              </div>
+            )}
+          </div>
+          <div style={{ marginTop: '1.25rem', color: '#64748b', fontSize: '0.85rem', display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+            <span><strong>Generated:</strong> {new Date(metadata.created_at).toLocaleString()}</span>
+            <span><strong>Module:</strong> {metadata.module_label || 'Hazard Assessment'}{metadata.hazard_type ? ` · Hazard: ${metadata.hazard_type}` : ''}</span>
+            <span><strong>Status:</strong> {metadata.status}</span>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem', fontSize: '1.02rem', lineHeight: '1.6', color: '#334155' }}>
         
         {/* 1. Introduction & Objectives */}
         <section>
+          <span id="ch-1" className="rpt-anchor" />
           <h2 style={{ color: '#1e293b', fontSize: '1.4rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem', marginBottom: '1rem' }}>1. Introduction & Objectives</h2>
           <p>
-            The purpose of this assessment is to evaluate and classify the spatial distribution of <strong>{metadata.hazard_type}</strong> hazard across the targeted administrative units. 
-            The objective is to establish a deterministic, indicator-based hazard score for each administrative block to guide localized disaster risk reduction planning.
+            The purpose of this assessment is to evaluate and classify the spatial distribution of <strong>{' '}{subjectNoun}</strong>{isHazardModule ? ' hazard' : ''} across the targeted administrative units. 
+            The objective is to establish a deterministic, indicator-based {isHazardModule ? 'hazard' : 'module'} score for each administrative block to guide localized disaster risk reduction planning.
           </p>
         </section>
 
         {/* 2. Study Area */}
         <section>
+          <span id="ch-2" className="rpt-anchor" />
           <h2 style={{ color: '#1e293b', fontSize: '1.4rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem', marginBottom: '1rem' }}>2. Study Area</h2>
           <p>
             The assessment covers the <strong>{metadata.district}</strong> district in the state of <strong>{metadata.state}</strong>. 
@@ -93,9 +322,14 @@ export default function ReportView() {
 
         {/* 3. Data & Methodology */}
         <section>
+          <span id="ch-3" className="rpt-anchor" />
           <h2 style={{ color: '#1e293b', fontSize: '1.4rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem', marginBottom: '1rem' }}>3. Data & Methodology</h2>
           <p>
-            The hazard assessment utilizes a composite scoring methodology. Raw spatial metrics (such as flood-prone area percentages and historical event frequencies) are extracted via GIS processing. These metrics are normalized and weighted to produce a final composite score on a 0–10 scale.
+            {isHazardModule ? (
+              <>The {metadata.hazard_type || ''} assessment utilizes a composite scoring methodology. Raw spatial metrics (such as flood-prone area percentages and historical event frequencies) are extracted via GIS processing. These metrics are normalized and weighted to produce a final composite score on a 0–10 scale.</>
+            ) : (
+              <>This module utilizes a deterministic indicator scoring methodology. Indicator values for each administrative block are generated from the module's indicator library (prototype DEMO DATA) and normalized to a 0–10 scale before weighted aggregation into a final composite score.</>
+            )}
           </p>
           <h4 style={{ marginTop: '1rem', color: '#0f172a' }}>Indicators & Applied Weights:</h4>
           <ul style={{ background: '#f8fafc', padding: '1.5rem 2.5rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
@@ -109,22 +343,56 @@ export default function ReportView() {
 
         {/* 4. Historical Hazard Profile */}
         <section>
-          <h2 style={{ color: '#1e293b', fontSize: '1.4rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem', marginBottom: '1rem' }}>4. Historical Hazard Profile</h2>
+          <span id="ch-4" className="rpt-anchor" />
+          <h2 style={{ color: '#1e293b', fontSize: '1.4rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem', marginBottom: '1rem' }}>{isHazardModule ? '4. Historical Hazard Profile' : '4. Indicator Database Profile'}</h2>
           <p>
-            An analysis of the historical event catalogue recorded a total of <strong>{historical_profile.total_events}</strong> distinct {metadata.hazard_type.toLowerCase()} events across the assessed blocks. These events form the basis for the frequency indicator calculations.
+            {isHazardModule ? (
+              <>An analysis of the historical event catalogue recorded a total of <strong>{historical_profile.total_events}</strong> distinct {metadata.hazard_type.toLowerCase()} events across the assessed blocks. These events form the basis for the frequency indicator calculations.</>
+            ) : (
+              <>Indicators for this module are derived from deterministic administrative and demographic database attributes (prototype DEMO DATA) rather than a historical event catalogue. No historical event dependency is required for this module.</>
+            )}
           </p>
         </section>
 
-        {/* 5. Climate Context */}
+        {/* 5. Climate Context (HVRA §4.9 — from Climate Context Library) */}
         <section>
+          <span id="ch-5" className="rpt-anchor" />
           <h2 style={{ color: '#1e293b', fontSize: '1.4rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem', marginBottom: '1rem' }}>5. Climate Context</h2>
-          <div style={{ padding: '1rem', background: '#f1f5f9', color: '#64748b', fontStyle: 'italic', borderRadius: '4px' }}>
-            Climate context data (e.g., precipitation trends, extreme weather projections) is not included in this prototype phase.
-          </div>
+          {(climate_context || []).length === 0 ? (
+            <div style={{ padding: '1rem', background: '#f1f5f9', color: '#64748b', fontStyle: 'italic', borderRadius: '4px' }}>
+              Climate context data (e.g., precipitation trends, extreme weather projections) is not available for this assessment.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {(climate_context || []).map((c: any, idx: number) => (
+                <div key={idx} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderLeft: '4px solid #0ea5e9', borderRadius: '6px', padding: '1rem 1.25rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <h4 style={{ margin: 0, fontSize: '0.98rem', color: '#0f172a', fontWeight: 700 }}>{c.title}</h4>
+                    {c.is_demo && (
+                      <span className="badge badge-warning" style={{ fontSize: '0.62rem' }}>DEMO</span>
+                    )}
+                  </div>
+                  <p style={{ margin: '0.5rem 0 0.25rem', color: '#334155', fontSize: '0.92rem', lineHeight: '1.55' }}>{c.statement}</p>
+                  {(c.source || c.vintage) && (
+                    <div style={{ marginTop: '0.35rem', fontSize: '0.75rem', color: '#64748b' }}>
+                      {c.source && <span><strong>Source:</strong> {c.source}</span>}
+                      {c.vintage && <span style={{ marginLeft: '1rem' }}><strong>Vintage:</strong> {c.vintage}</span>}
+                      {c.source_url && (
+                        <span style={{ marginLeft: '1rem' }}>
+                          <a href={c.source_url} target="_blank" rel="noreferrer" style={{ color: '#2563eb' }}>Link ↗</a>
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* 6. Hazard Classification */}
         <section>
+          <span id="ch-6" className="rpt-anchor" />
           <h2 style={{ color: '#1e293b', fontSize: '1.4rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem', marginBottom: '1rem' }}>6. Hazard Classification Summary</h2>
           <p>Blocks are classified into four deterministic categories based on their calculated composite hazard score:</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginTop: '1rem' }}>
@@ -149,6 +417,7 @@ export default function ReportView() {
 
         {/* 7. Maps */}
         <section>
+          <span id="ch-7" className="rpt-anchor" />
           <h2 style={{ color: '#1e293b', fontSize: '1.4rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem', marginBottom: '1rem' }}>7. Maps & Visualizations</h2>
           <p>
             The spatial distribution of the hazard classification has been rendered interactively. To view the high-resolution dynamic map, please navigate to the Assessment Dashboard.
@@ -162,6 +431,7 @@ export default function ReportView() {
 
         {/* 8. Indicator Analysis */}
         <section>
+          <span id="ch-8" className="rpt-anchor" />
           <h2 style={{ color: '#1e293b', fontSize: '1.4rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem', marginBottom: '1rem' }}>8. Indicator Analysis (Block-level Results)</h2>
           <div className="table-responsive" style={{ border: '1px solid #e2e8f0', borderRadius: '6px' }}>
             <table className="data-table" style={{ width: '100%', fontSize: '0.9rem', margin: 0 }}>
@@ -178,8 +448,10 @@ export default function ReportView() {
                 {block_results.map((r: any, idx: number) => (
                   <tr key={idx}>
                     <td style={{ padding: '0.75rem', fontWeight: 500 }}>{r.unit_name}</td>
-                    <td style={{ textAlign: 'right', padding: '0.75rem' }}>{r.flood_prone_percentage.toFixed(1)}%</td>
-                    <td style={{ textAlign: 'right', padding: '0.75rem' }}>{r.event_count}</td>
+                    <td style={{ textAlign: 'right', padding: '0.75rem' }}>
+                      {r.metadata?.flood_prone_percentage !== undefined ? r.metadata.flood_prone_percentage.toFixed(1) + '%' : r.flood_prone_percentage !== undefined ? r.flood_prone_percentage.toFixed(1) + '%' : '—'}
+                    </td>
+                    <td style={{ textAlign: 'right', padding: '0.75rem' }}>{r.metadata?.event_count ?? r.event_count ?? '—'}</td>
                     <td style={{ textAlign: 'right', padding: '0.75rem', fontWeight: 'bold' }}>{(r.composite_score || 0).toFixed(2)}</td>
                     <td style={{ textAlign: 'center', padding: '0.75rem' }}>
                       <span className={`badge badge-${r.classification === 'HH' ? 'error' : r.classification === 'MH' ? 'warning' : r.classification === 'LH' ? 'info' : 'success'}`}>
@@ -195,6 +467,7 @@ export default function ReportView() {
 
         {/* 9. Findings & Priority Areas */}
         <section>
+          <span id="ch-9" className="rpt-anchor" />
           <h2 style={{ color: '#1e293b', fontSize: '1.4rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem', marginBottom: '1rem' }}>9. Findings & Priority Areas</h2>
           <ul style={{ paddingLeft: '1.5rem' }}>
             <li style={{ marginBottom: '0.5rem' }}>
@@ -209,6 +482,7 @@ export default function ReportView() {
 
         {/* 10. Recommendations */}
         <section>
+          <span id="ch-10" className="rpt-anchor" />
           <h2 style={{ color: '#1e293b', fontSize: '1.4rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem', marginBottom: '1rem' }}>10. Recommendations (Prototype)</h2>
           <ul style={{ paddingLeft: '1.5rem' }}>
             {recommendations.map((rec: string, idx: number) => (
@@ -219,6 +493,7 @@ export default function ReportView() {
 
         {/* 11. Annexures */}
         <section>
+          <span id="ch-11" className="rpt-anchor" />
           <h2 style={{ color: '#1e293b', fontSize: '1.4rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem', marginBottom: '1rem' }}>11. Annexures</h2>
           <div style={{ background: '#fefce8', padding: '1.5rem', border: '1px solid #fef08a', borderRadius: '6px' }}>
             <h4 style={{ margin: '0 0 0.5rem 0', color: '#854d0e' }}>Disclaimer: DEMO DATA</h4>
@@ -229,7 +504,15 @@ export default function ReportView() {
             </p>
           </div>
         </section>
+      </div>
 
+        {/* Page footer (spec Screen 4) */}
+        <div className="rpt-pagefoot">
+          <span>Page {activeChapter} of {chapters.length}</span>
+          <span>NDMA HVRA Platform — Auto-generated Report</span>
+        </div>
+
+      </div>
       </div>
     </div>
   );

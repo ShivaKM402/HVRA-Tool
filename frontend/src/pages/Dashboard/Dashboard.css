@@ -81,3 +81,14 @@
   font-weight: 600;
   color: var(--color-gov-dark);
 }
+
+/* Cross-district comparison grid (HVRA §3.4) */
+.compare-grid {
+  grid-template-columns: 1fr 1fr;
+}
+
+@media (max-width: 1024px) {
+  .compare-grid {
+    grid-template-columns: 1fr;
+  }
+}

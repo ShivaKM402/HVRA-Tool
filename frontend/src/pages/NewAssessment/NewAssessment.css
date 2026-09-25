@@ -224,3 +224,248 @@
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* =====================================================
+   Area Step — Google-style district picker
+   ===================================================== */
+.area-section {
+  margin-bottom: 1.5rem;
+}
+
+.area-section-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  margin-bottom: 0.75rem;
+}
+
+/* State chips */
+.area-state-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.area-state-chip {
+  padding: 0.45rem 1.1rem;
+  border-radius: 999px;
+  border: 2px solid #e2e8f0;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+
+.area-state-chip:hover {
+  border-color: var(--color-gov-navy);
+  background: #f0f4f8;
+  color: var(--color-gov-navy);
+}
+
+.area-state-chip.selected {
+  border-color: var(--color-gov-navy);
+  background: var(--color-gov-navy);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(26, 58, 92, 0.3);
+}
+
+/* Add district button */
+.area-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 1rem;
+  border-radius: 999px;
+  border: 2px dashed #2563eb;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.area-add-btn:hover {
+  background: #2563eb;
+  color: #fff;
+  border-style: solid;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  transform: translateY(-1px);
+}
+
+/* Search box */
+.area-search-wrap {
+  display: flex;
+  align-items: center;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+  overflow: hidden;
+  margin-bottom: 1rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.area-search-wrap:focus-within {
+  border-color: var(--color-gov-navy);
+  box-shadow: 0 0 0 3px rgba(26, 58, 92, 0.1);
+  background: #fff;
+}
+
+.area-search-icon {
+  padding: 0 0.75rem;
+  font-size: 1rem;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.area-search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 0.65rem 0;
+  font-size: 0.9rem;
+  color: #0f172a;
+  font-family: inherit;
+}
+
+.area-search-input::placeholder { color: #94a3b8; }
+
+.area-search-clear {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0 0.75rem;
+  font-size: 0.75rem;
+  transition: color 0.15s;
+}
+.area-search-clear:hover { color: #ef4444; }
+
+/* District card grid */
+.area-district-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.75rem;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 2px;
+}
+
+.area-district-grid::-webkit-scrollbar {
+  width: 6px;
+}
+.area-district-grid::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 3px; }
+.area-district-grid::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+.area-district-grid::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Individual district card */
+.area-district-card {
+  position: relative;
+  padding: 0.9rem 0.9rem 0.7rem;
+  border-radius: 12px;
+  border: 2px solid #e2e8f0;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+  font-family: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.area-district-card:hover {
+  border-color: #94a3b8;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  transform: translateY(-2px);
+}
+
+.area-district-card.selected {
+  border-color: var(--color-gov-navy);
+  background: #f0f4f8;
+  box-shadow: 0 0 0 3px rgba(26, 58, 92, 0.12);
+}
+
+.area-district-card-check {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--color-gov-navy);
+  min-width: 16px;
+}
+
+.area-district-card-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.3;
+  padding-right: 1rem;
+}
+
+.area-district-card.selected .area-district-card-name {
+  color: var(--color-gov-navy);
+}
+
+.area-district-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.area-district-state-badge {
+  font-size: 0.68rem;
+  background: #e2e8f0;
+  color: #475569;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-weight: 500;
+}
+
+.area-district-demo-badge {
+  font-size: 0.68rem;
+  background: #fef3c7;
+  color: #92400e;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+/* Empty state */
+.area-empty {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+/* Selected summary */
+.area-selected-summary {
+  animation: fadeIn 0.25s ease;
+}
+
+.area-selected-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.9rem 1.1rem;
+  background: linear-gradient(135deg, #f0f4f8, #e8f0fe);
+  border: 2px solid #c7d7f0;
+  border-radius: 12px;
+}
+
+.area-selected-icon {
+  font-size: 1.4rem;
+}
+

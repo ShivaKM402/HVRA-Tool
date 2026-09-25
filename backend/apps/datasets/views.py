@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.conf import settings
+from apps.accounts.permissions import CanContributeData
 from .models import DataSource, UploadedDataset
 from .serializers import DataSourceSerializer, UploadedDatasetSerializer, DatasetUploadSerializer
 from .validators import DatasetValidator
@@ -35,6 +36,8 @@ class DatasetUploadView(APIView):
     - File content (format-specific)
     """
     parser_classes = [MultiPartParser, FormParser]
+    # Write-protected: signed-in, non-Viewer roles only (HVRA §2).
+    permission_classes = [CanContributeData]
 
     def post(self, request):
         serializer = DatasetUploadSerializer(data=request.data)
@@ -101,12 +104,48 @@ class DatasetUploadView(APIView):
         validator = DatasetValidator(dataset)
         validator.validate()
 
+        # If valid, automatically create DataSource and HazardLayer for immediate use in assessments
+        data_source_id = None
+        if dataset.status == "VALID":
+            import json
+            from .models import DataSource
+            from apps.hazards.models import HazardLayer
+
+            ds = DataSource.objects.create(
+                name=f"{dataset.name} (Custom Upload)",
+                organization=dataset.organization or "User Upload",
+                description=dataset.description or f"Custom user-uploaded {dataset.file_format} dataset ({dataset.record_count or 0} records)",
+                vintage=dataset.vintage or "2024",
+                is_builtin=False,
+                is_demo=False,
+                metadata={"uploaded_dataset_id": dataset.id, "format": dataset.file_format}
+            )
+            data_source_id = ds.id
+
+            if dataset.file_format == "GEOJSON":
+                try:
+                    dataset.file.seek(0)
+                    gj_data = json.loads(dataset.file.read().decode("utf-8"))
+                    HazardLayer.objects.create(
+                        name=f"{dataset.name} [Custom Layer]",
+                        hazard_type=dataset.hazard_type or "FLOOD",
+                        geometry_type="POLYGON",
+                        source="User Upload",
+                        organization=dataset.organization or "Uploaded by User",
+                        vintage=dataset.vintage or "2024",
+                        is_demo=False,
+                        geometry_geojson=json.dumps(gj_data)
+                    )
+                except Exception:
+                    pass
+
         out_serializer = UploadedDatasetSerializer(dataset)
         return Response(
             {
                 "success": True,
                 "message": "Dataset uploaded and validated.",
                 "dataset": out_serializer.data,
+                "data_source_id": data_source_id,
             },
             status=status.HTTP_201_CREATED,
         )

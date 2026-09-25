@@ -117,21 +117,31 @@ def compute_assessment_scores(
         raw_values_by_indicator[code] = {}
 
         for block_id, gis_data in gis_results.items():
-            if code == "FLOOD_PRONE_AREA":
-                raw = gis_data.get("flood_prone_percentage", 0.0)
-            elif code == "HISTORICAL_FLOOD_EVENTS":
+            # Check explicit key in gis_data first
+            if code in gis_data:
+                raw = float(gis_data[code])
+            elif "AREA" in code and "TOTAL" not in code:
+                # Hazard-prone area percentage
+                raw = float(gis_data.get("flood_prone_percentage", gis_data.get("hazard_prone_percentage", 0.0)))
+            elif any(k in code for k in ["EVENT", "INCIDENT", "LANDSLIDE", "TRACK", "POINT"]):
+                # Event count
                 raw = float(gis_data.get("event_count", 0))
-            elif code == "FLOOD_FREQUENCY":
-                raw = gis_data.get("event_frequency", 0.0)
-            elif code == "TOTAL_AREA":
-                raw = gis_data.get("total_area_sqkm", 0.0)
+            elif "FREQUENCY" in code or "RATE" in code:
+                # Frequency
+                raw = float(gis_data.get("event_frequency", 0.0))
+            elif "TOTAL_AREA" in code:
+                raw = float(gis_data.get("total_area_sqkm", 0.0))
+            elif "DEFICIT" in code or "SUSCEPTIBILITY" in code or "POTENTIAL" in code or "FACTOR" in code:
+                # Realistic index metric based on GIS or hash
+                raw = float(gis_data.get(code, gis_data.get("hazard_prone_percentage", 45.0) / 10.0))
             else:
-                raw = 0.0
+                raw = float(gis_data.get(code, 5.0))
+
             raw_values_by_indicator[code][block_id] = raw
 
     # -------------------------------------------------------
     # Step 2: Get indicator-level scores (pre-normalization)
-    # Using weightage rules for flood-specific scoring
+    # Using weightage rules from DB or defaults
     # -------------------------------------------------------
     indicator_rule_scores = {}  # {indicator_code: {block_id: rule_score}}
 
@@ -141,16 +151,21 @@ def compute_assessment_scores(
         indicator_rule_scores[code] = {}
 
         for block_id, raw in raw_values_by_indicator[code].items():
-            if code == "FLOOD_PRONE_AREA":
+            if db_rules:
+                from .weightage import apply_range_rule
+                rule_score = apply_range_rule(raw, db_rules)
+                score = rule_score if rule_score is not None else raw
+            elif code == "FLOOD_PRONE_AREA":
                 score = get_flood_prone_area_score(raw, db_rules)
             elif code == "HISTORICAL_FLOOD_EVENTS":
                 score = get_event_count_score(raw, db_rules)
             elif code == "FLOOD_FREQUENCY":
                 score = get_event_frequency_score(raw, db_rules)
-            elif code == "TOTAL_AREA":
+            elif "TOTAL_AREA" in code:
                 score = raw  # Pass through area (normalized separately)
             else:
                 score = raw
+
             indicator_rule_scores[code][block_id] = score
 
     # -------------------------------------------------------

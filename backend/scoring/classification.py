@@ -26,10 +26,10 @@ logger = logging.getLogger(__name__)
 # Documented classification thresholds (from specification)
 # -------------------------------------------------------
 DEFAULT_THRESHOLDS = {
-    "NH": 0.0,   # No Hazard — score 0 (documented)
-    "LH": 4.0,   # Low Hazard — score 4 (documented)
-    "MH": 6.0,   # Medium Hazard — score 6 (documented)
-    "HH": 8.0,   # High Hazard — score 8 (documented)
+    "NH": 0.0,   # No Hazard (< 4.0)
+    "LH": 4.0,   # Low Hazard (4.0 - < 6.0)
+    "MH": 6.0,   # Medium Hazard (6.0 - < 8.0)
+    "HH": 8.0,   # High Hazard (>= 8.0)
 }
 
 CLASSIFICATION_COLORS = {

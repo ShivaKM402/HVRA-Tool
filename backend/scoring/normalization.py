@@ -42,7 +42,7 @@ def normalize_min_max(
         Returns target_min if max_val == min_val (no variance).
     """
     if max_val == min_val:
-        return target_min  # All values are equal — assign minimum
+        return target_min
     normalized = (value - min_val) / (max_val - min_val) * (target_max - target_min) + target_min
     return round(max(target_min, min(target_max, normalized)), 4)
 

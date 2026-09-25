@@ -149,12 +149,28 @@ class HazardLayer(models.Model):
         return None
 
 
+class ModuleTypeChoices(models.TextChoices):
+    """The HVRA framework module an indicator belongs to."""
+    HAZARD = "HAZARD", "Hazard"
+    VULNERABILITY = "VULNERABILITY", "Vulnerability"
+    EXPOSURE = "EXPOSURE", "Exposure"
+
+
 class HazardIndicator(models.Model):
     """
-    Definition of a hazard indicator with default weightage.
-    Weights and thresholds are configurable — not hard-coded.
+    Definition of an indicator (hazard / vulnerability / exposure) with default
+    weightage. Weights and thresholds are configurable — not hard-coded.
     """
-    hazard_type = models.CharField(max_length=32, choices=HazardTypeChoices.choices)
+    module_type = models.CharField(
+        max_length=16,
+        choices=ModuleTypeChoices.choices,
+        default=ModuleTypeChoices.HAZARD,
+        db_index=True,
+        help_text="HVRA framework module this indicator belongs to.",
+    )
+    hazard_type = models.CharField(
+        max_length=32, choices=HazardTypeChoices.choices, blank=True
+    )
     code = models.CharField(max_length=64, unique=True)
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
@@ -169,7 +185,7 @@ class HazardIndicator(models.Model):
     class Meta:
         db_table = "hazard_indicator"
         verbose_name = "Hazard Indicator"
-        ordering = ["hazard_type", "order", "name"]
+        ordering = ["module_type", "hazard_type", "order", "name"]
 
     def __str__(self):
         return f"{self.hazard_type} — {self.name}"
@@ -210,3 +226,101 @@ class IndicatorWeightageRule(models.Model):
     def __str__(self):
         upper = f"–{self.range_max}" if self.range_max else "+"
         return f"{self.indicator.code}: {self.range_min}{upper} → {self.score}"
+
+
+class RecommendationModuleChoices(models.TextChoices):
+    """Modules that can carry recommendations (includes Module 4)."""
+    HAZARD = "HAZARD", "Hazard"
+    VULNERABILITY = "VULNERABILITY", "Vulnerability"
+    EXPOSURE = "EXPOSURE", "Exposure"
+    COMPOSITE_RISK = "COMPOSITE_RISK", "Composite Risk"
+
+
+class ClimateContext(models.Model):
+    """
+    Climate Context Library (HVRA spec Section 4.9).
+
+    Curated, sourced statements describing the climate drivers relevant to a
+    hazard type + region. Report Chapters "Climate Context" are populated from
+    this library instead of a hard-coded placeholder.
+    """
+    hazard_type = models.CharField(
+        max_length=32, choices=HazardTypeChoices.choices, blank=True,
+        help_text="Hazard the statement relates to. Blank = general/state-wide.",
+    )
+    region = models.ForeignKey(
+        "administration.AdministrativeUnit",
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name="climate_contexts",
+        help_text="Optional region (district) scope. Blank = state-wide.",
+    )
+    title = models.CharField(max_length=255)
+    statement = models.TextField(
+        help_text="Narrative climate context (trends, projections, drivers)."
+    )
+    source = models.CharField(max_length=255, blank=True)
+    source_url = models.URLField(blank=True)
+    vintage = models.CharField(max_length=32, blank=True)
+    display_order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    is_demo = models.BooleanField(
+        default=True,
+        help_text="True = DEMO DATA (prototype content, not a real climate assessment).",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "climate_context"
+        verbose_name = "Climate Context"
+        verbose_name_plural = "Climate Context Entries"
+        ordering = ["hazard_type", "display_order"]
+
+    def __str__(self):
+        return f"{self.title} [{self.hazard_type or 'GENERAL'}]"
+
+
+class Recommendation(models.Model):
+    """
+    Recommendations Library (HVRA spec Section 4.9).
+
+    Typed, prioritised mitigation recommendations. Reports pull from this
+    library (filtered by module + observed hazard/risk classes) instead of
+    ad-hoc hard-coded lists.
+    """
+    module_type = models.CharField(
+        max_length=16,
+        choices=RecommendationModuleChoices.choices,
+        default=RecommendationModuleChoices.HAZARD,
+        db_index=True,
+    )
+    hazard_type = models.CharField(
+        max_length=32, choices=HazardTypeChoices.choices, blank=True,
+        help_text="Optional hazard filter (e.g. only FLOOD recommendations).",
+    )
+    classification = models.CharField(
+        max_length=16, blank=True,
+        help_text="Optional class filter (NH/LH/MH/HH or VERY_HIGH/HIGH/MODERATE/LOW). Blank = applies to all classes.",
+    )
+    text = models.TextField()
+    priority = models.CharField(
+        max_length=16,
+        choices=[
+            ("HIGH", "High"),
+            ("MEDIUM", "Medium"),
+            ("LOW", "Low"),
+        ],
+        default="MEDIUM",
+    )
+    display_order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    is_demo = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "recommendation"
+        verbose_name = "Recommendation"
+        ordering = ["module_type", "display_order", "priority"]
+
+    def __str__(self):
+        return f"[{self.module_type}] {self.text[:60]}…"

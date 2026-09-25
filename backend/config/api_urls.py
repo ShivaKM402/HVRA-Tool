@@ -12,6 +12,9 @@ urlpatterns = [
     # Administration
     path("", include("apps.administration.urls")),
 
+    # Accounts (RBAC / user management — HVRA Section 2)
+    path("", include("apps.accounts.urls")),
+
     # Hazards
     path("", include("apps.hazards.urls")),
 

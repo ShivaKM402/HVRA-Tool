@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { getAssessment, getAssessmentResults } from '../../services/api';
-import type { Assessment, AssessmentResultsResponse } from '../../types';
+import type { Assessment, AssessmentResultsResponse, ApprovalStatus } from '../../types';
 import ResultsMap from '../../components/Map/ResultsMap';
 import ResultsTable from './ResultsTable';
+import ApprovalPanel from '../../components/ApprovalPanel/ApprovalPanel';
 
 const CLASSIFICATION_COLORS: Record<string, string> = {
   "NH": "#22c55e",
@@ -22,6 +23,13 @@ export default function AssessmentResults() {
   
   // Sync state between map and table
   const [selectedBlockId, setSelectedBlockId] = useState<number | null>(null);
+
+  // Task Force review status (HVRA §8.2)
+  const [approvalStatus, setApprovalStatus] = useState<ApprovalStatus | null>(null);
+
+  useEffect(() => {
+    if (assessment) setApprovalStatus(assessment.approval_status || 'PENDING');
+  }, [assessment]);
 
   useEffect(() => {
     async function loadData() {
@@ -91,7 +99,7 @@ export default function AssessmentResults() {
               </span>
             </h2>
             <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.25rem' }}>
-              <strong>Kerala</strong> / <strong>{assessment.district_name || 'Kottayam'}</strong> / <strong>{assessment.administrative_level}</strong> / <strong>{assessment.hazard_type}</strong>
+              <strong>{assessment.state_name || 'Kerala'}</strong> / <strong>{assessment.district_name || 'District'}</strong> / <strong>{assessment.administrative_level}</strong> / <strong>{assessment.hazard_type || assessment.module_type}</strong>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -143,6 +151,17 @@ export default function AssessmentResults() {
           </div>
         </div>
       </div>
+
+      {/* Task Force review workflow */}
+      {approvalStatus && (
+        <ApprovalPanel
+          kind="assessment"
+          id={assessment.id}
+          status={approvalStatus}
+          isCompleted={assessment.status === 'COMPLETED'}
+          onStatusChanged={(s) => setApprovalStatus(s)}
+        />
+      )}
 
       {/* Main Interactive Dashboard Area */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', minHeight: '600px' }}>

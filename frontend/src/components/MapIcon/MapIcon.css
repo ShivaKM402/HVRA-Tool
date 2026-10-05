@@ -1,0 +1,41 @@
+/* From Uiverse.io by JaydipPrajapati1910 */ 
+.uiverse-map-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5em;
+  height: 1.5em;
+  vertical-align: middle;
+  margin-right: 0.25em; /* default spacing */
+}
+
+.uiverse-map-loader {
+  width: 44.8px;
+  height: 44.8px;
+  position: relative;
+  /* Scale it down so it fits nicely as an icon */
+  transform: scale(0.4) rotate(45deg);
+  flex-shrink: 0;
+}
+
+.uiverse-map-loader:before,
+.uiverse-map-loader:after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50% 50% 0 50%;
+  background: transparent;
+  background-image: radial-gradient(circle 11.2px at 50% 50%, transparent 94%, #ff4747);
+}
+
+.uiverse-map-loader:after {
+  animation: pulse-ytk0dhmd 1s infinite;
+  transform: perspective(336px) translateZ(0px);
+}
+
+@keyframes pulse-ytk0dhmd {
+  to {
+    transform: perspective(336px) translateZ(168px);
+    opacity: 0;
+  }
+}

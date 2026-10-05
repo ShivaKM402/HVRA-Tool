@@ -1,204 +1,243 @@
 /**
- * Layout — Sidebar + Topbar + Main content
+ * Persistent Navigation Shell (HVRA §4)
+ * Contains Topbar with District Switcher, Role Badge, Notification Bell,
+ * Command Palette (Ctrl+K), Sidebar with all modules, and Clickable Breadcrumb bar.
  */
-import { Outlet, NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { useState } from 'react';
+import { Outlet, NavLink, useLocation, useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useDistrict } from '../../context/DistrictContext';
+import { useToast } from '../../context/ToastContext';
+import CommandPalette from '../CommandPalette/CommandPalette';
+import OnboardingTour from '../OnboardingTour/OnboardingTour';
+import ToastStack from '../Toast/ToastStack';
 import './Layout.css';
-
-const navItems = [
-  { path: '/dashboard', icon: '📊', label: 'Dashboard Home' },
-  { path: '/new-assessment?module=HAZARD', icon: '🌊', label: 'Hazard Assessment', match: '/new-assessment', exactModule: 'HAZARD' },
-  { path: '/new-assessment?module=VULNERABILITY', icon: '👥', label: 'Vulnerability Assessment', match: '/new-assessment', exactModule: 'VULNERABILITY' },
-  { path: '/new-assessment?module=EXPOSURE', icon: '🏘️', label: 'Exposure Assessment', match: '/new-assessment', exactModule: 'EXPOSURE' },
-  { path: '/new-assessment?module=COMPOSITE_RISK', icon: '⚖️', label: 'Risk Assessment (HVRA)', match: '/new-assessment', exactModule: 'COMPOSITE_RISK' },
-  { path: '/flood-data', icon: '🗺️', label: 'Data Library' },
-  { path: '/data-library', icon: '🗃️', label: 'Data Library (Uploads)', match: '/data-library' },
-  { path: '/reports', icon: '📄', label: 'Report Generator' },
-];
-
-const settingsItems = [
-  { path: '/libraries', icon: '📚', label: 'Libraries' },
-  { path: '/settings', icon: '⚙️', label: 'Admin / Settings' },
-];
 
 export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, isAuthenticated, isAdmin, logout } = useAuth();
-  const [menuOpen, setMenuOpen] = useState(false);
+  const { districts, activeDistrictId, setActiveDistrictId } = useDistrict();
+  const { unreadCount } = useToast();
+
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isOnboardingTourOpen, setIsOnboardingTourOpen] = useState(false);
+
+
+  // Global Ctrl+K / Cmd+K listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handleLogout = async () => {
     await logout();
     navigate('/login', { replace: true });
   };
 
-  const getPageTitle = () => {
+  // Build clickable breadcrumbs based on route
+  const getBreadcrumbs = () => {
     const path = location.pathname;
-    if (path === '/dashboard') return 'Dashboard';
-    if (path === '/new-assessment') {
+    if (path === '/dashboard') return null;
+
+    const crumbs: { label: string; to: string }[] = [
+      { label: 'Dashboard', to: '/dashboard' },
+    ];
+
+    if (path.startsWith('/new-assessment')) {
       const m = searchParams.get('module') || 'HAZARD';
-      const label =
-        m === 'VULNERABILITY' ? 'Vulnerability'
-          : m === 'EXPOSURE' ? 'Exposure'
-            : m === 'COMPOSITE_RISK' ? 'Composite Risk'
-              : 'Hazard';
-      return `${label} Assessment – Query Builder`;
+      crumbs.push({ label: `${m} Assessment (Query Builder)`, to: `${path}?module=${m}` });
+    } else if (path.startsWith('/assessments') || path.startsWith('/risk-assessments')) {
+      crumbs.push({ label: 'Assessments', to: '/reports' });
+      if (path.includes('/results')) {
+        const tab = searchParams.get('tab') || 'map';
+        crumbs.push({ label: `Results (${tab.toUpperCase()})`, to: `${path}?tab=${tab}` });
+      } else if (path.includes('/report')) {
+        crumbs.push({ label: 'Dossier Report View', to: path });
+      } else if (path.includes('/processing')) {
+        crumbs.push({ label: 'Processing State', to: path });
+      }
+    } else if (path === '/review-queue') {
+      crumbs.push({ label: 'Task Force Review Queue', to: '/review-queue' });
+    } else if (path === '/saved-queries') {
+      crumbs.push({ label: 'Saved Queries & Templates', to: '/saved-queries' });
+    } else if (path === '/risk-builder') {
+      crumbs.push({ label: 'Composite Risk Builder', to: '/risk-builder' });
+    } else if (path === '/data-library') {
+      crumbs.push({ label: 'Data Library & Catalog', to: '/data-library' });
+    } else if (path === '/reports') {
+      crumbs.push({ label: 'Reports Gallery', to: '/reports' });
+    } else if (path === '/dashboard/compare') {
+      crumbs.push({ label: 'Compare Dashboards', to: '/dashboard/compare' });
+    } else if (path === '/admin-units') {
+      crumbs.push({ label: 'Administrative Unit Explorer', to: '/admin-units' });
+    } else if (path === '/settings') {
+      crumbs.push({ label: 'Admin & System Settings', to: '/settings' });
+    } else if (path === '/profile') {
+      crumbs.push({ label: 'User Profile', to: '/profile' });
+    } else if (path === '/notifications') {
+      crumbs.push({ label: 'Notification Center', to: '/notifications' });
+    } else if (path === '/help') {
+      crumbs.push({ label: 'Help & Compliance', to: '/help' });
     }
-    if (path === '/flood-data') return 'Flood Data';
-    if (path.startsWith('/assessments')) return 'Report Generator';
-    if (path === '/data-library') return 'Data Library';
-    if (path === '/reports') return 'Report Generator';
-    if (path === '/libraries') return 'Libraries';
-    if (path === '/settings') return 'Admin / Settings';
-    return 'HVRA Digital Tool';
+
+    return crumbs;
   };
+
+  const breadcrumbs = getBreadcrumbs();
 
   return (
     <div className="app-layout">
       {/* Sidebar */}
-      <aside className="sidebar">
-        <div className="sidebar-brand">
-          <div className="sidebar-brand-logo">
-            <div className="sidebar-brand-icon">🌊</div>
+      {/* Top Navigation Bar */}
+      <header className="top-nav-bar">
+        <div className="top-nav-brand">
+          <Link to="/dashboard" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <div className="top-nav-brand-icon">🌊</div>
             <div>
-              <div className="sidebar-brand-name">HVRA Tool</div>
+              <div className="top-nav-brand-name">HVRA Digital Tool</div>
             </div>
-          </div>
-          <div className="sidebar-brand-sub">Hazard Assessment Platform</div>
+          </Link>
         </div>
 
-        <nav className="sidebar-nav">
-          <div className="sidebar-section-label">Modules</div>
-          {navItems.map((item) => {
-            const isActive = item.exactModule
-              ? location.pathname === item.match &&
-                (searchParams.get('module') || 'HAZARD') === item.exactModule
-              : location.pathname === item.path;
-            return (
-              <NavLink
-                key={item.label}
-                to={item.path}
-                className={() => `sidebar-nav-item${isActive ? ' active' : ''}`}
-              >
-                <span className="sidebar-nav-item-icon">{item.icon}</span>
-                {item.label}
-              </NavLink>
-            );
-          })}
+        <nav className="top-nav-links">
+          <NavLink to="/dashboard" className={({ isActive }) => `top-nav-item${isActive ? ' active' : ''}`}>
+            Dashboard
+          </NavLink>
 
+          <NavLink
+            to="/new-assessment?module=HAZARD"
+            className={({ isActive }) =>
+              `top-nav-item${isActive && location.pathname === '/new-assessment' ? ' active' : ''}`
+            }
+          >
+            Assessments (HVE)
+          </NavLink>
+
+          <NavLink to="/risk-builder" className={({ isActive }) => `top-nav-item${isActive ? ' active' : ''}`}>
+            Risk
+          </NavLink>
+
+          <NavLink to="/data-library" className={({ isActive }) => `top-nav-item${isActive ? ' active' : ''}`}>
+            Data Library
+          </NavLink>
+          
+          <NavLink to="/reports" className={({ isActive }) => `top-nav-item${isActive ? ' active' : ''}`}>
+            Reports
+          </NavLink>
+          
           {isAdmin && (
-            <>
-              <div className="sidebar-section-label" style={{ marginTop: '1rem' }}>System</div>
-              {settingsItems.map((item) => (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  className={({ isActive }) =>
-                    `sidebar-nav-item${isActive ? ' active' : ''}`
-                  }
-                >
-                  <span className="sidebar-nav-item-icon">{item.icon}</span>
-                  {item.label}
-                </NavLink>
-              ))}
-            </>
+            <NavLink to="/settings" className={({ isActive }) => `top-nav-item${isActive ? ' active' : ''}`}>
+              Settings
+            </NavLink>
           )}
         </nav>
+      </header>
 
-        <div className="sidebar-footer">
-          <span className="prototype-badge">Prototype v1.0</span>
-          <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', marginTop: '0.5rem' }}>
-            Phase 1 — Project Setup
-          </div>
-        </div>
-      </aside>
-
-      {/* Main content */}
+      {/* Main Content Area */}
       <div className="main-content">
-        {/* Top bar */}
+        {/* Topbar */}
         <header className="topbar">
-          <div className="topbar-title">{getPageTitle()}</div>
-          <div className="topbar-actions">
-            <div className="demo-notice" style={{ padding: '0.25rem 0.75rem', fontSize: '0.75rem' }}>
-              <span>⚠️ DEMO DATA — Not official government data</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            {/* Context Switcher for District */}
+            <div className="district-switcher">
+              <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Territory:</span>
+              <select
+                className="district-select"
+                value={activeDistrictId || ''}
+                onChange={(e) => setActiveDistrictId(e.target.value ? parseInt(e.target.value, 10) : null)}
+                title="Switch active territory context"
+              >
+                <option value="">All Kerala Districts</option>
+                {districts.map((d) => (
+                  <option key={d.id} value={d.id}>{d.name} District</option>
+                ))}
+              </select>
             </div>
-            <NavLink to="/new-assessment" className="btn btn-primary btn-sm">
-              + New Assessment
+
+            {/* Quick Command Palette Button */}
+            <button
+              className="cmd-trigger-btn"
+              onClick={() => setIsCommandPaletteOpen(true)}
+              title="Global search (Ctrl+K)"
+            >
+              <span>🔍 Jump to...</span>
+              <kbd className="cmd-kbd">Ctrl+K</kbd>
+            </button>
+          </div>
+
+          <div className="topbar-actions">
+            {/* Help Menu */}
+            <Link to="/help" className="topbar-icon-btn" title="Help & Compliance">
+              ❓
+            </Link>
+
+            {/* Notification Center with badge */}
+            <Link to="/notifications" className="topbar-icon-btn" title="Notification Center">
+              🔔
+              {unreadCount > 0 && <span className="notif-badge">{unreadCount}</span>}
+            </Link>
+
+            {/* Primary Action Button */}
+            <NavLink to="/new-assessment?module=HAZARD" className="btn btn-primary btn-sm">
+              + Run Assessment
             </NavLink>
+
+            {/* Profile / Auth Menu */}
             {isAuthenticated && user ? (
               <div style={{ position: 'relative' }}>
                 <button
-                  className="btn btn-secondary btn-sm"
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}
-                  onClick={() => setMenuOpen((v) => !v)}
+                  className="user-profile-btn"
+                  onClick={() => setProfileMenuOpen((v) => !v)}
                 >
-                  <span
-                    style={{
-                      width: 26, height: 26, borderRadius: '50%',
-                      background: isAdmin ? '#7c3aed' : '#2563eb',
-                      color: '#fff', display: 'inline-flex', alignItems: 'center',
-                      justifyContent: 'center', fontSize: '0.78rem', fontWeight: 700,
-                    }}
-                  >
+                  <span className="user-avatar">
                     {(user.first_name?.[0] || user.username[0] || 'U').toUpperCase()}
                   </span>
-                  <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>
+                  <span className="user-name">
                     {user.first_name || user.username}
                   </span>
                   <span style={{ fontSize: '0.7rem' }}>▾</span>
                 </button>
 
-                {menuOpen && (
-                  <div
-                    style={{
-                      position: 'absolute', right: 0, top: 'calc(100% + 6px)',
-                      background: '#fff', borderRadius: 10, boxShadow: '0 10px 30px rgba(0,0,0,0.18)',
-                      border: '1px solid #e2e8f0', minWidth: 220, zIndex: 1200, overflow: 'hidden',
-                    }}
-                  >
-                    <div style={{ padding: '0.85rem 1rem', borderBottom: '1px solid #f1f5f9', background: '#f8fafc' }}>
+                {profileMenuOpen && (
+                  <div className="profile-dropdown">
+                    <div className="profile-dropdown-header">
                       <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0f172a' }}>
-                        {user.first_name || user.username} {user.last_name}
+                        {user.first_name || user.username} {user.last_name || ''}
                       </div>
-                      <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.15rem' }}>
-                        @{user.username} · {user.profile?.role_label || user.profile?.role || 'User'}
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+                        @{user.username}
                       </div>
-                      {isAdmin && (
-                        <span className="badge badge-info" style={{ fontSize: '0.65rem', marginTop: '0.3rem' }}>
-                          Platform Admin
-                        </span>
-                      )}
+                      <div className="badge badge-info" style={{ fontSize: '0.68rem', marginTop: '0.4rem' }}>
+                        {user.profile?.role_label || user.profile?.role || (isAdmin ? 'Platform Admin' : 'Officer')}
+                      </div>
                     </div>
-                    <div style={{ padding: '0.4rem' }}>
-                      {isAdmin && (
-                        <NavLink
-                          to="/libraries"
-                          className="sidebar-nav-item"
-                          style={{ borderRadius: 8, padding: '0.5rem 0.75rem' }}
-                          onClick={() => setMenuOpen(false)}
-                        >
-                          📚 Libraries
-                        </NavLink>
-                      )}
-                      {isAdmin && (
-                        <NavLink
-                          to="/settings"
-                          className="sidebar-nav-item"
-                          style={{ borderRadius: 8, padding: '0.5rem 0.75rem' }}
-                          onClick={() => setMenuOpen(false)}
-                        >
-                          ⚙️ Settings
-                        </NavLink>
-                      )}
+                    <div style={{ padding: '0.35rem' }}>
+                      <Link
+                        to="/profile"
+                        className="dropdown-item"
+                        onClick={() => setProfileMenuOpen(false)}
+                      >
+                        👤 View Profile & Jurisdiction
+                      </Link>
+                      <Link
+                        to="/review-queue"
+                        className="dropdown-item"
+                        onClick={() => setProfileMenuOpen(false)}
+                      >
+                        🏛️ Task Force Review Queue
+                      </Link>
                       <button
-                        className="sidebar-nav-item"
-                        style={{
-                          borderRadius: 8, padding: '0.5rem 0.75rem', width: '100%',
-                          background: 'transparent', border: 'none', cursor: 'pointer',
-                          textAlign: 'left', color: '#dc2626', fontWeight: 600, fontSize: '0.85rem',
-                        }}
+                        className="dropdown-item"
+                        style={{ color: '#dc2626', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', cursor: 'pointer' }}
                         onClick={handleLogout}
                       >
                         🚪 Sign Out
@@ -208,18 +247,63 @@ export default function Layout() {
                 )}
               </div>
             ) : (
-              <NavLink to="/login" className="btn btn-secondary btn-sm">
-                🔐 Sign In
-              </NavLink>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                <span
+                  style={{
+                    fontSize: '0.72rem',
+                    padding: '0.2rem 0.5rem',
+                    borderRadius: '4px',
+                    backgroundColor: '#e2e8f0',
+                    color: '#475569',
+                    fontWeight: 600,
+                  }}
+                  title="Operating in local prototype demo mode"
+                >
+                  ⚡ Prototype Mode
+                </span>
+                <NavLink to="/login" className="btn btn-secondary btn-sm">
+                  🔐 Sign In
+                </NavLink>
+              </div>
             )}
+
           </div>
         </header>
 
-        {/* Page content */}
+        {/* Clickable Breadcrumb Bar (HVRA §4) */}
+        {breadcrumbs && (
+          <div className="breadcrumb-bar" aria-label="Breadcrumb">
+            {breadcrumbs.map((crumb, idx) => (
+              <span key={crumb.to} style={{ display: 'inline-flex', alignItems: 'center' }}>
+                {idx > 0 && <span className="breadcrumb-separator">/</span>}
+                {idx === breadcrumbs.length - 1 ? (
+                  <span className="breadcrumb-current">{crumb.label}</span>
+                ) : (
+                  <Link to={crumb.to} className="breadcrumb-link">
+                    {crumb.label}
+                  </Link>
+                )}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Page Content */}
         <main className="page-content">
           <Outlet />
         </main>
       </div>
+
+      {/* Global Modals & Toast Stack */}
+      <ToastStack />
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+      />
+      <OnboardingTour
+        isOpen={isOnboardingTourOpen}
+        onClose={() => setIsOnboardingTourOpen(false)}
+      />
     </div>
   );
 }

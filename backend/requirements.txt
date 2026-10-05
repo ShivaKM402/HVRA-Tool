@@ -20,6 +20,7 @@ pandas==2.2.3
 python-docx==1.1.2
 reportlab==4.2.5
 Pillow==10.4.0
+matplotlib>=3.8.0
 
 # File handling / validation
 openpyxl==3.1.5

@@ -1,9 +1,44 @@
+import { MapIcon } from '../MapIcon/MapIcon';
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { MapContainer, TileLayer, GeoJSON, CircleMarker, Popup, Polyline } from 'react-leaflet';
+import { MapContainer, TileLayer, GeoJSON, CircleMarker, Popup, Polyline, useMap } from 'react-leaflet';
 import type { Layer } from 'leaflet';
 import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import leafletImage from 'leaflet-image';
 import { getAssessmentMapData, getRiskAssessmentMap } from '../../services/api';
+import DigitalTwin3D from '../Map3D/DigitalTwin3D';
+
+/** Helper to keep map size valid and fly to bounds accurately */
+function MapController({
+  bounds,
+  onMapReady,
+}: {
+  bounds: L.LatLngBounds | null;
+  onMapReady: (map: L.Map) => void;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    onMapReady(map);
+    map.invalidateSize();
+    const t1 = setTimeout(() => map.invalidateSize(), 150);
+    const t2 = setTimeout(() => map.invalidateSize(), 400);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [map, onMapReady]);
+
+  useEffect(() => {
+    if (bounds && bounds.isValid()) {
+      map.invalidateSize();
+      map.flyToBounds(bounds, { padding: [30, 30], duration: 0.8 });
+    }
+  }, [map, bounds]);
+
+  return null;
+}
+
 
 interface ResultsMapProps {
   assessmentId: number;
@@ -18,13 +53,15 @@ interface ResultsMapProps {
   classificationLabels?: Record<string, string>;
   /** Optional legend title override (e.g. "Vulnerability Classification"). */
   legendTitle?: string;
+  /** Explicit step mode: 'thematic' for Tab 1, 'classification' for Tab 2, or 'all'. */
+  mode?: 'thematic' | 'classification' | 'all';
 }
 
 const CLASSIFICATION_COLORS: Record<string, string> = {
-  NH: '#22c55e',
-  LH: '#eab308',
-  MH: '#f97316',
-  HH: '#ef4444',
+  NH: '#64748b',
+  LH: '#0d9488',
+  MH: '#d97706',
+  HH: '#e11d48',
 };
 
 const RISK_COLORS: Record<string, string> = {
@@ -68,6 +105,7 @@ export default function ResultsMap({
   colorMap,
   classificationLabels,
   legendTitle,
+  mode = 'all',
 }: ResultsMapProps) {
   const isRisk = variant === 'risk';
   const colors = colorMap || (isRisk ? RISK_COLORS : CLASSIFICATION_COLORS);
@@ -79,6 +117,7 @@ export default function ResultsMap({
   const [bounds, setBounds] = useState<L.LatLngBounds | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [viewIn3D, setViewIn3D] = useState(false);
 
   // Layer Visibility Toggles
   const [showBlocks, setShowBlocks] = useState(true);
@@ -136,16 +175,19 @@ export default function ResultsMap({
     return () => { cancelled = true; };
   }, [assessmentId, isRisk]);
 
-  // Fly to bounds once map + geojson are ready
-  useEffect(() => {
-    if (!bounds) return;
-    const t = setTimeout(() => {
-      if (mapRef.current) {
-        mapRef.current.flyToBounds(bounds, { padding: [30, 30], duration: 0.8 });
-      }
-    }, 300);
-    return () => clearTimeout(t);
-  }, [bounds]);
+
+  const featureStyle = useCallback((feature: any) => {
+    const cls = feature?.properties?.classification || (isRisk ? 'LOW' : 'NH');
+    const isSelected = feature?.properties?.unit_id === selectedBlockId;
+    const isThematicMode = mode === 'thematic';
+    return {
+      fillColor: isThematicMode ? '#0284c7' : (colors[cls] || '#94a3b8'),
+      weight: isSelected ? 3 : 1.5,
+      opacity: 1,
+      color: isSelected ? '#0f172a' : isThematicMode ? '#0369a1' : '#475569',
+      fillOpacity: isSelected ? 0.85 : isThematicMode ? 0.08 : 0.65,
+    };
+  }, [isRisk, selectedBlockId, mode, colors]);
 
   // Highlight selected block from table click
   useEffect(() => {
@@ -161,19 +203,9 @@ export default function ResultsMap({
         layer.setStyle(featureStyle(layer.feature));
       }
     });
-  }, [selectedBlockId]);
+  }, [selectedBlockId, featureStyle]);
 
-  const featureStyle = (feature: any) => {
-    const cls = feature?.properties?.classification || (isRisk ? 'LOW' : 'NH');
-    const isSelected = feature?.properties?.unit_id === selectedBlockId;
-    return {
-      fillColor: colors[cls] || '#94a3b8',
-      weight: isSelected ? 3 : 1.5,
-      opacity: 1,
-      color: isSelected ? '#1e293b' : '#475569',
-      fillOpacity: isSelected ? 0.85 : 0.55,
-    };
-  };
+
 
   const onEachFeature = useCallback((feature: any, layer: Layer) => {
     const props = feature.properties;
@@ -243,7 +275,8 @@ export default function ResultsMap({
         }
       },
     });
-  }, [resultsData, selectedBlockId, onBlockSelect, isRisk, colors, labels]);
+  }, [resultsData, selectedBlockId, onBlockSelect, isRisk, colors, labels, featureStyle]);
+
 
   if (loading) {
     return (
@@ -301,23 +334,52 @@ export default function ResultsMap({
   const defaultCenter: [number, number] = [9.6, 76.6];
   const defaultZoom = 7;
 
+  if (viewIn3D) {
+    return (
+      <div style={{ position: 'relative', width: '100%' }}>
+        <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 30 }}>
+          <button
+            type="button"
+            onClick={() => setViewIn3D(false)}
+            style={{
+              padding: '6px 14px',
+              borderRadius: 8,
+              background: '#0f172a',
+              color: '#38bdf8',
+              border: '1px solid rgba(56, 189, 248, 0.4)',
+              fontSize: '0.78rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+            }}
+          >
+            🗺️ Switch to 2D Cartographic Map
+          </button>
+        </div>
+        <DigitalTwin3D assessmentId={assessmentId} />
+      </div>
+    );
+  }
+
   return (
-    <div style={{ position: 'relative', height: '100%', minHeight: 520, width: '100%', borderRadius: 'var(--radius-md, 8px)', overflow: 'hidden' }}>
+    <div style={{ position: 'relative', height: '580px', minHeight: 580, width: '100%', borderRadius: 'var(--radius-md, 8px)', overflow: 'hidden' }}>
       <MapContainer
         center={defaultCenter}
         zoom={defaultZoom}
         scrollWheelZoom
-        style={{ height: '100%', width: '100%' }}
-        ref={(map) => {
-          if (map) {
-            (mapRef as any).current = map;
-          }
-        }}
+        style={{ height: '580px', minHeight: '580px', width: '100%' }}
       >
+        <MapController
+          bounds={bounds}
+          onMapReady={(map) => {
+            (mapRef as any).current = map;
+          }}
+        />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+
 
         {/* 1. Administrative Blocks Choropleth */}
         {showBlocks && geoJSON && (
@@ -476,7 +538,7 @@ export default function ResultsMap({
         border: '1px solid #e2e8f0', minWidth: 180,
       }}>
         <div style={{ fontWeight: 700, marginBottom: 8, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span>🗺️</span> Thematic Map Layers
+          <span><MapIcon /></span> Thematic Map Layers
         </div>
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, cursor: 'pointer' }}>
           <input type="checkbox" checked={showBlocks} onChange={(e) => setShowBlocks(e.target.checked)} />
@@ -504,10 +566,24 @@ export default function ResultsMap({
         )}
         <button
           type="button"
+          onClick={() => setViewIn3D(true)}
+          style={{
+            marginTop: 10, width: '100%',
+            padding: '7px 10px', borderRadius: 6,
+            border: '1px solid #38bdf8',
+            background: '#0f172a', color: '#38bdf8',
+            fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(56, 189, 248, 0.25)',
+          }}
+        >
+          🌐 View in 3D Digital Twin
+        </button>
+        <button
+          type="button"
           onClick={handleExportPng}
           disabled={exporting}
           style={{
-            marginTop: 10, width: '100%',
+            marginTop: 6, width: '100%',
             padding: '7px 10px', borderRadius: 6,
             border: '1px solid #0284c7',
             background: '#0284c7', color: '#fff',

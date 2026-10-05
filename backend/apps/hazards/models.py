@@ -74,6 +74,15 @@ class HazardEvent(models.Model):
     description = models.TextField(blank=True)
     source = models.CharField(max_length=255, blank=True)
     source_url = models.URLField(blank=True)
+    
+    data_source = models.ForeignKey(
+        "datasets.DataSource",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="hazard_events",
+        help_text="The source catalog entry for this data.",
+    )
 
     # Geometry stored as GeoJSON Point text
     geometry_geojson = models.TextField(null=True, blank=True)
@@ -126,6 +135,15 @@ class HazardLayer(models.Model):
     vintage = models.CharField(max_length=32, blank=True, help_text="Data vintage year or period.")
     crs = models.CharField(max_length=64, default="EPSG:4326", help_text="Coordinate Reference System.")
     metadata = models.JSONField(default=dict, blank=True)
+
+    data_source = models.ForeignKey(
+        "datasets.DataSource",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="hazard_layers",
+        help_text="The source catalog entry for this layer.",
+    )
 
     # GeoJSON FeatureCollection text
     geometry_geojson = models.TextField(null=True, blank=True)

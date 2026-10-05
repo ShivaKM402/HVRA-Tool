@@ -1,0 +1,808 @@
+/* =========================================================
+   HVRA Dashboard — State-of-the-Art Executive Command Center
+   ========================================================= */
+
+.dashboard {
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  padding: 0 2.25rem 3.5rem;
+  max-width: 1480px;
+  margin: 0 auto;
+}
+
+/* -------------------------------------------------------
+   Executive Hero Command Banner
+   ------------------------------------------------------- */
+.hero-command-banner {
+  background: radial-gradient(circle at 85% 15%, rgba(37, 99, 235, 0.22) 0%, rgba(9, 14, 26, 0.98) 70%),
+    linear-gradient(135deg, #090e1a 0%, #0f172a 50%, #1e293b 100%);
+  border-radius: var(--radius-2xl);
+  padding: 2.25rem 2.5rem;
+  color: #ffffff;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 16px 40px -10px rgba(9, 14, 26, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 2rem;
+}
+
+.hero-command-banner::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.hero-live-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-radius: var(--radius-full);
+  padding: 0.3rem 0.85rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #34d399;
+}
+
+.hero-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 10px #10b981;
+  animation: pulseGlow 1.8s infinite;
+}
+
+.hero-telemetry-capsule {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(10px);
+  padding: 0.35rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.hero-title-area {
+  margin-bottom: 1.6rem;
+}
+
+.hero-main-title {
+  font-family: var(--font-heading);
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(180deg, #ffffff 40%, rgba(255, 255, 255, 0.8) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero-subtitle {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.75);
+  max-width: 780px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.hero-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
+/* -------------------------------------------------------
+   KPI Cards Grid
+   ------------------------------------------------------- */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+  width: 100%;
+}
+
+
+.kpi-card {
+  background: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  border-radius: var(--radius-xl);
+  padding: 1.4rem 1.5rem;
+  box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.05);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.kpi-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px -4px rgba(15, 23, 42, 0.1);
+  border-color: rgba(148, 163, 184, 0.5);
+}
+
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--kpi-accent, #3b82f6);
+}
+
+.kpi-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.kpi-icon-bubble {
+  width: 46px;
+  height: 46px;
+  border-radius: var(--radius-lg);
+  background: var(--kpi-bg, #eff6ff);
+  color: var(--kpi-accent, #2563eb);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  transition: transform 0.2s ease;
+}
+
+.kpi-card:hover .kpi-icon-bubble {
+  transform: scale(1.1) rotate(-5deg);
+}
+
+.kpi-value {
+  font-family: var(--font-heading);
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: var(--color-gov-navy);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  margin-bottom: 0.25rem;
+}
+
+.kpi-label {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--color-gov-muted);
+}
+
+.kpi-subtext {
+  font-size: 0.76rem;
+  color: #64748b;
+  margin-top: 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* -------------------------------------------------------
+   Spatial Command & District Inspector Split Grid
+   ------------------------------------------------------- */
+.spatial-command-layout {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 1.5rem;
+  margin-bottom: 2.25rem;
+}
+
+.spatial-theater-card {
+  background: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+}
+
+.spatial-theater-header {
+  padding: 1.2rem 1.5rem;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.85);
+  background: linear-gradient(180deg, #ffffff 0%, #fafbfd 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.spatial-theater-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.district-pill-scroll {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  padding: 0.6rem 1.25rem;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.district-pill-btn {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #334155;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.district-pill-btn:hover {
+  background: #eff6ff;
+  border-color: #3b82f6;
+  color: #1d4ed8;
+}
+
+.district-pill-btn.active {
+  background: var(--color-primary-gradient);
+  border-color: transparent;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+}
+
+.district-dossier-card {
+  background: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  border-radius: var(--radius-xl);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.dossier-hero {
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid #f1f5f9;
+  margin-bottom: 1.25rem;
+}
+
+.dossier-name {
+  font-family: var(--font-heading);
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--color-gov-navy);
+  margin-bottom: 0.25rem;
+}
+
+.dossier-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  padding: 2px 10px;
+}
+
+.dossier-stat-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem;
+  margin-bottom: 1.25rem;
+}
+
+.dossier-stat-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-md);
+  padding: 0.75rem;
+  text-align: center;
+}
+
+.dossier-stat-val {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.dossier-stat-lbl {
+  font-size: 0.72rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+/* -------------------------------------------------------
+   Connected Workflow Portals (HVRA 4 Modules)
+   ------------------------------------------------------- */
+.workflow-section {
+  margin-bottom: 2.25rem;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.1rem;
+}
+
+.section-title {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--color-gov-navy);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.workflow-modules-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.workflow-card {
+  background: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: var(--radius-xl);
+  padding: 1.4rem;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+.workflow-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 14px 30px -4px var(--wf-shadow, rgba(37, 99, 235, 0.18));
+  border-color: var(--wf-color, #3b82f6);
+}
+
+.workflow-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--wf-color, #3b82f6);
+}
+
+.workflow-card-tag {
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--wf-color, #2563eb);
+  margin-bottom: 0.75rem;
+}
+
+.workflow-card-icon {
+  font-size: 2rem;
+  margin-bottom: 0.65rem;
+}
+
+.workflow-card-name {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-gov-navy);
+  margin-bottom: 0.4rem;
+  line-height: 1.25;
+}
+
+.workflow-card-desc {
+  font-size: 0.78rem;
+  color: #64748b;
+  line-height: 1.45;
+  margin-bottom: 1.25rem;
+}
+
+.workflow-card-btn {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--wf-color, #2563eb);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: gap 0.15s ease;
+}
+
+.workflow-card:hover .workflow-card-btn {
+  gap: 0.55rem;
+}
+
+/* Secondary Tools Row */
+.secondary-tools-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.secondary-tool-item {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-lg);
+  padding: 0.9rem 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.secondary-tool-item:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+}
+
+.secondary-tool-icon {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+.secondary-tool-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.secondary-tool-sub {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+/* -------------------------------------------------------
+   Cross-District Comparison Studio (Recharts)
+   ------------------------------------------------------- */
+.compare-studio-card {
+  background: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 2.25rem;
+  overflow: hidden;
+}
+
+.compare-studio-header {
+  padding: 1.25rem 1.75rem;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.compare-module-tabs {
+  display: flex;
+  background: #f1f5f9;
+  padding: 3px;
+  border-radius: 10px;
+  gap: 2px;
+}
+
+.compare-tab-btn {
+  background: transparent;
+  border: none;
+  padding: 0.4rem 0.95rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #64748b;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.compare-tab-btn.active {
+  background: #ffffff;
+  color: #1e293b;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+}
+
+.compare-body-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.75rem;
+  padding: 1.75rem;
+}
+
+.custom-chart-tooltip {
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  color: #ffffff;
+  font-size: 0.8rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.tooltip-district-name {
+  font-weight: 700;
+  margin-bottom: 0.3rem;
+  color: #38bdf8;
+}
+
+.tooltip-score-val {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+/* -------------------------------------------------------
+   Recent Assessments Ledger Table
+   ------------------------------------------------------- */
+.ledger-card {
+  background: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 2.25rem;
+  overflow: hidden;
+}
+
+.ledger-header {
+  padding: 1.25rem 1.75rem;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.ledger-search-box {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.82rem;
+  width: 240px;
+}
+
+.ledger-search-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  width: 100%;
+  font-family: inherit;
+  font-size: 0.82rem;
+  color: #0f172a;
+}
+
+.pipeline-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.pipeline-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+  border-radius: 6px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pipeline-btn-map {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+.pipeline-btn-map:hover {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.pipeline-btn-classes {
+  background: #fefce8;
+  color: #ca8a04;
+  border: 1px solid #fde047;
+}
+
+.pipeline-btn-classes:hover {
+  background: #ca8a04;
+  color: #ffffff;
+}
+
+.pipeline-btn-report {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.pipeline-btn-report:hover {
+  background: #0f172a;
+  color: #ffffff;
+}
+
+/* -------------------------------------------------------
+   Hazard Modalities Grid
+   ------------------------------------------------------- */
+.hazard-modalities-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 1rem;
+}
+
+.hazard-modality-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 1.4rem 1rem;
+  border-radius: var(--radius-lg);
+  border: 1.5px solid rgba(226, 232, 240, 0.9);
+  background: #ffffff;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+}
+
+.hazard-modality-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--hazard-color, #3b82f6);
+  box-shadow: 0 8px 20px -3px rgba(15, 23, 42, 0.08);
+}
+
+.hazard-modality-icon {
+  font-size: 2.2rem;
+  margin-bottom: 0.6rem;
+  transition: transform 0.2s ease;
+}
+
+.hazard-modality-card:hover .hazard-modality-icon {
+  transform: scale(1.15);
+}
+
+.hazard-modality-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 0.4rem;
+}
+
+/* -------------------------------------------------------
+   Responsive Media Queries
+   ------------------------------------------------------- */
+@media (max-width: 1280px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .workflow-modules-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .secondary-tools-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .spatial-command-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+@media (max-width: 768px) {
+  .hero-command-banner {
+    padding: 1.5rem;
+  }
+
+  .hero-main-title {
+    font-size: 1.65rem;
+  }
+
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .workflow-modules-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .secondary-tools-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .compare-body-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* -------------------------------------------------------
+   Hero Banner Section (Top)
+   ------------------------------------------------------- */
+.dashboard-hero-banner {
+  width: 100%;
+  height: 600px;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero-overlay {
+  background: rgba(0, 0, 0, 0.4);
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero-main-text {
+  color: white;
+  font-size: 3.5rem;
+  font-weight: 700;
+  text-align: center;
+  text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.6);
+  z-index: 10;
+}
+
+.dashboard-hero-footer {
+  width: 100%;
+  background: #3476a8;
+  /* match resources banner blue */
+  color: white;
+  text-align: center;
+  padding: 1rem 0;
+  margin-bottom: 2rem;
+}
+
+.dashboard-hero-footer h2 {
+  color: white;
+  margin: 0;
+  font-size: 1.8rem;
+}

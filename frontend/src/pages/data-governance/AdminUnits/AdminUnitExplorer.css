@@ -1,0 +1,102 @@
+.admin-units-container {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 3rem;
+}
+
+.explorer-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 1.5rem;
+}
+
+.district-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-height: 520px;
+  overflow-y: auto;
+}
+
+.district-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  border: 1px solid transparent;
+}
+
+.district-item:hover {
+  background: #f1f5f9;
+}
+
+.district-item.selected {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.district-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.district-item.selected .district-name {
+  color: #1d4ed8;
+}
+
+.district-sub {
+  font-size: 0.72rem;
+  color: #64748b;
+  margin-top: 1px;
+}
+
+.district-arrow {
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
+.district-item.selected .district-arrow {
+  color: #2563eb;
+}
+
+.blocks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+.block-pill-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.75rem;
+  transition: all 0.1s ease;
+}
+
+.block-pill-card:hover {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.04);
+}
+
+.block-pill-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.block-pill-code {
+  font-size: 0.7rem;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+@media (max-width: 850px) {
+  .explorer-grid {
+    grid-template-columns: 1fr;
+  }
+}

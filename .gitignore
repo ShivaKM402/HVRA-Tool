@@ -1,8 +1,28 @@
+# Dependency & build outputs
 node_modules/
 dist/
 venv/
+.venv/
+
+# Python cache & compiled files
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs & temp files
+*.log
+*.tmp
+*.bak
+*.swp
+*~
+
+# Environment & local files
 .env
 .DS_Store
+Thumbs.db
 media/
+

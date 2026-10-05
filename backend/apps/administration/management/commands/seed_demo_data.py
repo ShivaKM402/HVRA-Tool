@@ -372,6 +372,91 @@ class Command(BaseCommand):
                     "disclaimer": "DEMO DATA — Not official historical records",
                 },
             },
+            {
+                "name": "KSDMA Statewide Flood Hazard Zonation [DEMO]",
+                "organization": "Kerala State Disaster Management Authority (KSDMA)",
+                "description": "Comprehensive Kerala flood-prone and inundation polygons spanning 14 revenue districts and major river basins (Periyar, Pamba, Bharathapuzha, Chaliyar).",
+                "source_url": "https://sdma.kerala.gov.in",
+                "vintage": "2024",
+                "last_updated": date(2026, 1, 15),
+                "is_builtin": True,
+                "is_demo": True,
+                "metadata": {
+                    "data_type": "Flood Hazard Layer",
+                    "coverage": "All 14 Kerala Districts",
+                    "crs": "EPSG:4326",
+                    "record_count": 1420,
+                    "resolution": "State / District / Block",
+                },
+            },
+            {
+                "name": "GSI Kerala Landslide Susceptibility Atlas [DEMO]",
+                "organization": "Geological Survey of India (GSI) & NCESS",
+                "description": "Slope stability, debris flow corridors, and high-risk hilly taluks across Wayanad, Idukki, Pathanamthitta, and Palakkad Western Ghats.",
+                "source_url": "https://gsi.gov.in",
+                "vintage": "2024",
+                "last_updated": date(2026, 2, 10),
+                "is_builtin": True,
+                "is_demo": True,
+                "metadata": {
+                    "data_type": "Landslide Layer",
+                    "coverage": "Western Ghats Hilly Zones",
+                    "crs": "EPSG:4326",
+                    "record_count": 890,
+                    "resolution": "Block / Village",
+                },
+            },
+            {
+                "name": "IMD Coastal Surge & Cyclone Wind Atlas [DEMO]",
+                "organization": "India Meteorological Department (IMD)",
+                "description": "Arabian Sea coastal buffer, gale wind velocity contours, and tidal inundation zones covering 580km Kerala coastline.",
+                "source_url": "https://mausam.imd.gov.in",
+                "vintage": "2023–2025",
+                "last_updated": date(2025, 11, 20),
+                "is_builtin": True,
+                "is_demo": True,
+                "metadata": {
+                    "data_type": "Cyclone Layer",
+                    "coverage": "9 Coastal Districts (Alappuzha, Kollam, etc.)",
+                    "crs": "EPSG:4326",
+                    "record_count": 640,
+                    "resolution": "Coastal Strip / Taluk",
+                },
+            },
+            {
+                "name": "Kerala Demographic & Socio-Economic Vulnerability Index [DEMO]",
+                "organization": "Department of Economics & Statistics, Kerala",
+                "description": "Block-level population density, elderly/child dependency ratios, katcha housing prevalence, and socio-economic deprivation indicators.",
+                "source_url": "https://ecostat.kerala.gov.in",
+                "vintage": "2023 Census Extrapolations",
+                "last_updated": date(2025, 12, 1),
+                "is_builtin": True,
+                "is_demo": True,
+                "metadata": {
+                    "data_type": "Vulnerability Layer",
+                    "coverage": "All 152 Kerala CD Blocks",
+                    "crs": "EPSG:4326",
+                    "record_count": 152,
+                    "resolution": "CD Block Level",
+                },
+            },
+            {
+                "name": "Kerala Lifeline & Critical Infrastructure Asset Inventory [DEMO]",
+                "organization": "Kerala PWD & Health Services Directorate",
+                "description": "Spatial geocodes for designated cyclone/flood relief camps, district hospitals, sub-centers, substation grid transformers, and major bridges.",
+                "source_url": "https://kerala.gov.in",
+                "vintage": "2024",
+                "last_updated": date(2026, 1, 5),
+                "is_builtin": True,
+                "is_demo": True,
+                "metadata": {
+                    "data_type": "Critical Infrastructure",
+                    "coverage": "Statewide Lifeline Network",
+                    "crs": "EPSG:4326",
+                    "record_count": 3120,
+                    "resolution": "Point Geocodes",
+                },
+            },
         ]
 
         for src in sources:
@@ -489,7 +574,7 @@ class Command(BaseCommand):
         update_unit_geometry_metadata(kottayam)
 
         self.stdout.write(
-            f"  [OK] Created: Kerala → Kottayam → {created_count} blocks"
+            f"  [OK] Created: Kerala -> Kottayam -> {created_count} blocks"
         )
 
     def _seed_flood_layers(self):

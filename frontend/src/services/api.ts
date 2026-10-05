@@ -65,8 +65,7 @@ const api: AxiosInstance = axios.create({
 api.interceptors.request.use((config) => {
   const token = getToken();
   if (token) {
-    config.headers = config.headers || {};
-    config.headers.Authorization = `Token ${token}`;
+    config.headers.set('Authorization', `Token ${token}`);
   }
   return config;
 });
@@ -229,6 +228,31 @@ export const getDataSources = async (): Promise<PaginatedResponse<DataSource>> =
   return response.data;
 };
 
+export const deleteDataSource = async (id: number): Promise<void> => {
+  await api.delete(`/data-sources/${id}/`);
+};
+
+export interface DataSourcePreviewResponse {
+  id: number;
+  name: string;
+  organization: string;
+  vintage: string;
+  record_count: number;
+  geometry_type: string;
+  properties_keys: string[];
+  features_preview: Array<{
+    type: string;
+    geometry?: { type: string; coordinates: any };
+    properties?: Record<string, any>;
+  }>;
+  raw_geojson?: any;
+}
+
+export const getDataSourcePreview = async (id: number): Promise<DataSourcePreviewResponse> => {
+  const response = await api.get<DataSourcePreviewResponse>(`/data-sources/${id}/preview/`);
+  return response.data;
+};
+
 // -------------------------------------------------------
 // Assessments
 // -------------------------------------------------------
@@ -330,6 +354,10 @@ export const getAssessmentMapData = async (id: number): Promise<GeoJSONFeatureCo
   return response.data;
 };
 
+export const deleteAssessment = async (id: number): Promise<void> => {
+  await api.delete(`/assessments/${id}/`);
+};
+
 // -------------------------------------------------------
 // Module 4 — Composite Risk (Risk = H × V × E)
 // -------------------------------------------------------
@@ -414,6 +442,10 @@ export const downloadRiskReportPdf = async (id: number, filename = 'HVRA_Risk_Re
   document.body.removeChild(link);
 };
 
+export const deleteRiskAssessment = async (id: number): Promise<void> => {
+  await api.delete(`/risk-assessments/${id}/`);
+};
+
 // -------------------------------------------------------
 // Dataset Upload & Report Exports
 // -------------------------------------------------------
@@ -422,6 +454,10 @@ export const uploadDataset = async (formData: FormData): Promise<{ success: bool
     headers: { 'Content-Type': 'multipart/form-data' },
   });
   return response.data;
+};
+
+export const deleteUploadedDataset = async (id: number): Promise<void> => {
+  await api.delete(`/uploaded-datasets/${id}/`);
 };
 
 export const getExportDocxUrl = (id: number): string => `${API_BASE_URL}/assessments/${id}/export/docx/`;
@@ -550,20 +586,28 @@ export const submitAssessmentForReview = async (id: number): Promise<SubmitForRe
 
 export const approveAssessment = async (
   id: number,
-  comment = ''
+  comment = '',
+  reviewerName = '',
+  reviewerOrg = ''
 ): Promise<ApprovalActionResponse> => {
   const response = await api.post<ApprovalActionResponse>(`/assessments/${id}/approve/`, {
     review_comment: comment,
+    reviewer_name: reviewerName,
+    reviewer_org: reviewerOrg,
   });
   return response.data;
 };
 
 export const rejectAssessment = async (
   id: number,
-  comment = ''
+  comment = '',
+  reviewerName = '',
+  reviewerOrg = ''
 ): Promise<ApprovalActionResponse> => {
   const response = await api.post<ApprovalActionResponse>(`/assessments/${id}/reject/`, {
     review_comment: comment,
+    reviewer_name: reviewerName,
+    reviewer_org: reviewerOrg,
   });
   return response.data;
 };

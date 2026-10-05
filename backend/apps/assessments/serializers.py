@@ -4,6 +4,17 @@ from .models import (
     Assessment, AssessmentIndicator, AssessmentResult,
     RiskAssessment, RiskResult, SavedQuery,
 )
+from apps.administration.models import AdministrativeUnit
+
+
+class FlexibleStateField(serializers.PrimaryKeyRelatedField):
+    """Gracefully accepts state PK or falls back if outdated/missing ID is provided."""
+    def to_internal_value(self, data):
+        try:
+            return super().to_internal_value(data)
+        except Exception:
+            return None
+
 
 
 class AssessmentIndicatorSerializer(serializers.ModelSerializer):
@@ -72,6 +83,11 @@ class AssessmentSerializer(serializers.ModelSerializer):
 
 class AssessmentCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating a new assessment with indicators."""
+    state = FlexibleStateField(
+        queryset=AdministrativeUnit.objects.filter(level="STATE"),
+        required=False,
+        allow_null=True,
+    )
     indicators = serializers.ListField(
         child=serializers.DictField(),
         write_only=True,
@@ -97,7 +113,14 @@ class AssessmentCreateSerializer(serializers.ModelSerializer):
             "indicators": {"required": False},
         }
 
+    def validate(self, attrs):
+        district = attrs.get("district")
+        if district and (not attrs.get("state") or getattr(attrs.get("state"), "level", None) != "STATE"):
+            attrs["state"] = getattr(district, "parent", None) or district
+        return super().validate(attrs)
+
     def create(self, validated_data):
+
         indicators_data = validated_data.pop("indicators", [])
         assessment = Assessment.objects.create(**validated_data)
 
@@ -162,6 +185,12 @@ def _validate_module_assessment(attrs, field, module_code, required):
 
 
 class RiskAssessmentCreateSerializer(serializers.ModelSerializer):
+    state = FlexibleStateField(
+        queryset=AdministrativeUnit.objects.filter(level="STATE"),
+        required=False,
+        allow_null=True,
+    )
+
     class Meta:
         model = RiskAssessment
         fields = [
@@ -172,6 +201,10 @@ class RiskAssessmentCreateSerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, attrs):
+        district = attrs.get("district")
+        if district and (not attrs.get("state") or getattr(attrs.get("state"), "level", None) != "STATE"):
+            attrs["state"] = getattr(district, "parent", None) or district
+
         attrs = super().validate(attrs)
         _validate_module_assessment(attrs, "hazard_assessment", "HAZARD", required=False)
         _validate_module_assessment(attrs, "vulnerability_assessment", "VULNERABILITY", required=False)
@@ -187,6 +220,7 @@ class RiskAssessmentCreateSerializer(serializers.ModelSerializer):
                 "Provide at least one completed module assessment (H, V or E)."
             )
         return attrs
+
 
     def create(self, validated_data):
         risk = RiskAssessment.objects.create(**validated_data)

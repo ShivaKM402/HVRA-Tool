@@ -1,0 +1,144 @@
+.cmd-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 10vh;
+  animation: fadeIn 0.15s ease-out;
+}
+
+.cmd-modal {
+  width: 100%;
+  max-width: 580px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.cmd-search-bar {
+  display: flex;
+  align-items: center;
+  padding: 0.85rem 1.15rem;
+  border-bottom: 1px solid #e2e8f0;
+  gap: 0.75rem;
+}
+
+.cmd-search-icon {
+  font-size: 1.1rem;
+  color: #64748b;
+}
+
+.cmd-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 0.98rem;
+  color: #0f172a;
+  background: transparent;
+  font-family: inherit;
+}
+
+.cmd-input::placeholder {
+  color: #94a3b8;
+}
+
+.cmd-kbd {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  padding: 0.15rem 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #64748b;
+  font-family: monospace;
+}
+
+.cmd-list {
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 0.5rem;
+}
+
+.cmd-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.cmd-item.selected {
+  background: #f0fdf4;
+  outline: 1px solid #bbf7d0;
+}
+
+.cmd-item-icon {
+  font-size: 1.15rem;
+}
+
+.cmd-item-content {
+  flex: 1;
+}
+
+.cmd-item-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.cmd-item-cat {
+  font-size: 0.72rem;
+  color: #64748b;
+  margin-top: 1px;
+}
+
+.cmd-item-enter {
+  color: #94a3b8;
+  font-size: 0.85rem;
+  opacity: 0;
+}
+
+.cmd-item.selected .cmd-item-enter {
+  opacity: 1;
+  color: #166534;
+}
+
+.cmd-empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.88rem;
+}
+
+.cmd-footer {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.6rem 1rem;
+  background: #f8fafc;
+  border-top: 1px solid #f1f5f9;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.cmd-footer kbd {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 3px;
+  padding: 0.1rem 0.35rem;
+  font-size: 0.68rem;
+  font-family: monospace;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}

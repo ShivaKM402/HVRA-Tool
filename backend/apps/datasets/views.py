@@ -2,7 +2,12 @@
 Datasets views — data source catalogue and file upload.
 """
 import os
+import json
+import csv
+import io
+from django.db.models import Q
 from rest_framework import viewsets, status
+from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -17,14 +22,167 @@ ALLOWED_EXTENSIONS = {".csv", ".geojson", ".json", ".zip"}
 MAX_UPLOAD_BYTES = getattr(settings, "MAX_UPLOAD_SIZE_MB", 50) * 1024 * 1024
 
 
-class DataSourceViewSet(viewsets.ReadOnlyModelViewSet):
+class DataSourceViewSet(viewsets.ModelViewSet):
     queryset = DataSource.objects.all()
     serializer_class = DataSourceSerializer
+    permission_classes = [CanContributeData]
+
+    def perform_destroy(self, instance):
+        # Also clean up any auto-created hazard layers for this data source
+        from apps.hazards.models import HazardLayer
+        HazardLayer.objects.filter(name__icontains=instance.name).delete()
+        instance.delete()
+
+    @action(detail=True, methods=["get"])
+    def preview(self, request, pk=None):
+        """Return rich geospatial features and attribute records for this DataSource."""
+        ds = self.get_object()
+        features = []
+        record_count = 0
+        geometry_type = "POLYGON"
+        properties_keys = []
+        raw_geojson = None
+
+        # 1. Check if linked to UploadedDataset
+        uploaded_id = ds.metadata.get("uploaded_dataset_id") if isinstance(ds.metadata, dict) else None
+        ud = None
+        if uploaded_id:
+            ud = UploadedDataset.objects.filter(id=uploaded_id).first()
+        if not ud and not ds.is_builtin:
+            clean = ds.name.replace(" (Custom Upload)", "").replace(" [DEMO]", "").strip()
+            ud = UploadedDataset.objects.filter(name__icontains=clean).first() or UploadedDataset.objects.first()
+
+        if ud and ud.file:
+            try:
+                ud.file.seek(0)
+                content = ud.file.read().decode("utf-8", errors="ignore")
+                if ud.file_format == "GEOJSON" or ud.file.name.endswith((".geojson", ".json")):
+                    data = json.loads(content)
+                    raw_geojson = data
+                    features = data.get("features", [])
+                    record_count = len(features)
+                elif ud.file_format == "CSV" or ud.file.name.endswith(".csv"):
+                    reader = csv.DictReader(io.StringIO(content))
+                    rows = list(reader)
+                    record_count = len(rows)
+                    features = [
+                        {"type": "Feature", "properties": row, "geometry": None}
+                        for row in rows[:50]
+                    ]
+            except Exception:
+                pass
+
+        # 2. Check if Historical Events
+        if not features and ("historical" in ds.name.lower() or "event" in ds.name.lower()):
+            from apps.hazards.models import HazardEvent
+            events = HazardEvent.objects.select_related("administrative_unit")[:50]
+            record_count = HazardEvent.objects.count()
+            geometry_type = "POINT"
+            features = [
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [float(e.longitude), float(e.latitude)]
+                    },
+                    "properties": {
+                        "id": e.id,
+                        "event_date": e.event_date.isoformat() if e.event_date else None,
+                        "unit": e.administrative_unit.name.replace(" [DEMO]", "") if e.administrative_unit else "Kottayam",
+                        "hazard": e.hazard_type,
+                        "magnitude": e.magnitude,
+                        "loss_crore": e.loss,
+                        "description": e.description[:80] if e.description else "Historical incident record",
+                    }
+                }
+                for e in events
+            ]
+
+        # 3. Check if Administrative Boundaries
+        if not features and ("administrative" in ds.name.lower() or "boundary" in ds.name.lower()):
+            from apps.administration.models import AdministrativeUnit
+            units = AdministrativeUnit.objects.filter(level="BLOCK")[:30]
+            record_count = AdministrativeUnit.objects.filter(level="BLOCK").count()
+            features = []
+            for u in units:
+                geom = None
+                if u.geometry_geojson:
+                    try:
+                        geom = json.loads(u.geometry_geojson)
+                    except Exception:
+                        pass
+                features.append({
+                    "type": "Feature",
+                    "geometry": geom or {
+                        "type": "Point",
+                        "coordinates": [float(u.centroid_lon or 76.5), float(u.centroid_lat or 9.6)]
+                    },
+                    "properties": {
+                        "id": u.id,
+                        "name": u.name.replace(" [DEMO]", ""),
+                        "code": u.code,
+                        "level": u.level,
+                        "area_sqkm": float(u.area_sqkm or 0),
+                    }
+                })
+
+        # 4. Check if linked to HazardLayer by matching name
+        if not features:
+            from apps.hazards.models import HazardLayer
+            clean_name = ds.name.replace(" [DEMO]", "").replace(" (Custom Upload)", "").strip()
+            hl = HazardLayer.objects.filter(
+                Q(name__icontains=clean_name) | Q(name__icontains="Kottayam")
+            ).first()
+            if hl and hl.geometry_geojson:
+                try:
+                    geom = json.loads(hl.geometry_geojson)
+                    raw_geojson = geom
+                    if geom.get("type") == "FeatureCollection":
+                        features = geom.get("features", [])
+                    elif geom.get("type") == "Feature":
+                        features = [geom]
+                    else:
+                        features = [{"type": "Feature", "geometry": geom, "properties": {"name": hl.name, "hazard_type": hl.hazard_type}}]
+                    record_count = len(features)
+                    geometry_type = hl.geometry_type or "POLYGON"
+                except Exception:
+                    pass
+
+        # Derive properties keys & geometry types
+        if features:
+            for f in features:
+                if f.get("properties"):
+                    for k in f["properties"].keys():
+                        if k not in properties_keys:
+                            properties_keys.append(k)
+                if f.get("geometry") and isinstance(f["geometry"], dict) and f["geometry"].get("type"):
+                    geometry_type = f["geometry"]["type"]
+
+        return Response({
+            "id": ds.id,
+            "name": ds.name,
+            "organization": ds.organization,
+            "vintage": ds.vintage,
+            "record_count": record_count or len(features),
+            "geometry_type": geometry_type,
+            "properties_keys": properties_keys[:12],
+            "features_preview": features[:50],
+            "raw_geojson": raw_geojson,
+        })
 
 
-class UploadedDatasetViewSet(viewsets.ReadOnlyModelViewSet):
+class UploadedDatasetViewSet(viewsets.ModelViewSet):
     queryset = UploadedDataset.objects.all()
     serializer_class = UploadedDatasetSerializer
+    permission_classes = [CanContributeData]
+
+    def perform_destroy(self, instance):
+        if instance.file:
+            try:
+                instance.file.delete(save=False)
+            except Exception:
+                pass
+        instance.delete()
 
 
 class DatasetUploadView(APIView):

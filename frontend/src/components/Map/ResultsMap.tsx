@@ -6,7 +6,6 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import leafletImage from 'leaflet-image';
 import { getAssessmentMapData, getRiskAssessmentMap } from '../../services/api';
-import DigitalTwin3D from '../Map3D/DigitalTwin3D';
 
 /** Helper to keep map size valid and fly to bounds accurately */
 function MapController({
@@ -117,14 +116,13 @@ export default function ResultsMap({
   const [bounds, setBounds] = useState<L.LatLngBounds | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [viewIn3D, setViewIn3D] = useState(false);
 
   // Layer Visibility Toggles
   const [showBlocks, setShowBlocks] = useState(true);
   const [showHazardZones, setShowHazardZones] = useState(!isRisk);
   const [showEvents, setShowEvents] = useState(!isRisk);
   const [showStations, setShowStations] = useState(!isRisk);
-  // Linear features (fault lines, cyclone tracks — HVRA §4.3)
+  // Linear features (embankments, flood drainage corridors — HVRA §4.3)
   const [showLinearFeatures, setShowLinearFeatures] = useState(!isRisk);
 
   const geoJsonLayerRef = useRef<any>(null);
@@ -295,7 +293,7 @@ export default function ResultsMap({
     );
   }
 
-  // Split thematic zones into polygon (inundation) vs linear (fault / cyclone track) features
+  // Split thematic zones into polygon (inundation) vs linear (drainage channels / embankments) features
   const zoneFeatures = thematicLayers?.hazard_zones?.features || [];
   const linearFeatures = zoneFeatures.filter(
     (f: any) =>
@@ -306,16 +304,9 @@ export default function ResultsMap({
     (f: any) => !(f?.geometry?.type === 'LineString' || f?.geometry?.type === 'MultiLineString')
   );
 
-  // Linear feature styling by hazard type (HVRA §4.3 fault lines & cyclone tracks)
-  const linearStyle = (p: any) => {
-    const hz = (p?.hazard_type || '').toUpperCase();
-    if (hz.includes('EARTHQUAKE') || hz.includes('FAULT')) {
-      return { color: '#b45309', weight: 3, dashArray: '8, 4', opacity: 0.85 };
-    }
-    if (hz.includes('CYCLONE')) {
-      return { color: '#7c3aed', weight: 3, dashArray: '4, 6', opacity: 0.85 };
-    }
-    return { color: '#0369a1', weight: 2.5, dashArray: '6, 4', opacity: 0.7 };
+  // Linear feature styling for flood drainage corridors & canals
+  const linearStyle = (_p: any) => {
+    return { color: '#0284c7', weight: 2.5, dashArray: '6, 4', opacity: 0.85 };
   };
 
   const linearPositions = (geom: any): [number, number][] | [number, number][][] => {
@@ -334,32 +325,7 @@ export default function ResultsMap({
   const defaultCenter: [number, number] = [9.6, 76.6];
   const defaultZoom = 7;
 
-  if (viewIn3D) {
-    return (
-      <div style={{ position: 'relative', width: '100%' }}>
-        <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 30 }}>
-          <button
-            type="button"
-            onClick={() => setViewIn3D(false)}
-            style={{
-              padding: '6px 14px',
-              borderRadius: 8,
-              background: '#0f172a',
-              color: '#38bdf8',
-              border: '1px solid rgba(56, 189, 248, 0.4)',
-              fontSize: '0.78rem',
-              fontWeight: 800,
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-            }}
-          >
-            🗺️ Switch to 2D Cartographic Map
-          </button>
-        </div>
-        <DigitalTwin3D assessmentId={assessmentId} />
-      </div>
-    );
-  }
+
 
   return (
     <div style={{ position: 'relative', height: '580px', minHeight: 580, width: '100%', borderRadius: 'var(--radius-md, 8px)', overflow: 'hidden' }}>
@@ -420,15 +386,12 @@ export default function ResultsMap({
           />
         )}
 
-        {/* 2b. Linear Hazard Features — fault lines & cyclone tracks (HVRA §4.3) */}
+        {/* 2b. Linear Flood Features — drainage corridors & river channels */}
         {showLinearFeatures && linearFeatures.map((f: any, idx: number) => {
           const p = f.properties || {};
-          const hz = (p.hazard_type || '').toUpperCase();
           const style = linearStyle(p);
           const positions = linearPositions(f.geometry);
           if (!positions.length) return null;
-          const isEarthquake = hz.includes('EARTHQUAKE') || hz.includes('FAULT');
-          const isCyclone = hz.includes('CYCLONE');
           return (
             <Polyline
               key={`lin-${idx}`}
@@ -443,13 +406,11 @@ export default function ResultsMap({
               <Popup>
                 <div style={{ fontFamily: 'Inter,system-ui,sans-serif', minWidth: 180 }}>
                   <div style={{ fontWeight: 700, color: style.color, borderBottom: '1px solid #e2e8f0', paddingBottom: 4, fontSize: 13 }}>
-                    {isEarthquake ? '🌋 Fault Structure' : isCyclone ? '🌀 Cyclone Track' : '📍 Linear Hazard'}
+                    🌊 River / Drainage Corridor
                   </div>
                   <div style={{ fontSize: 12, marginTop: 4, color: '#334155' }}>
-                    <strong>Name:</strong> {p.name || 'Linear hazard feature'}<br/>
-                    <strong>Hazard Type:</strong> {p.hazard_type || 'UNKNOWN'}<br/>
-                    {p.seismicity_zone && <div><strong>Seismic Zone:</strong> {p.seismicity_zone}</div>}
-                    {p.intensity_category && <div><strong>Intensity:</strong> {p.intensity_category}</div>}
+                    <strong>Name:</strong> {p.name || 'Drainage corridor'}<br/>
+                    <strong>Type:</strong> Flood Drainage Network<br/>
                     {p.year && <div><strong>Year:</strong> {p.year}</div>}
                     <small style={{ color: '#64748b' }}>{p.is_demo ? 'DEMO DATA — not official' : 'GIS layer'}</small>
                   </div>
@@ -552,7 +513,7 @@ export default function ResultsMap({
             </label>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, cursor: 'pointer' }}>
               <input type="checkbox" checked={showLinearFeatures} onChange={(e) => setShowLinearFeatures(e.target.checked)} />
-              <span style={{ color: '#b45309', fontWeight: 600 }}>〰️ Faults & Cyclone Tracks</span>
+              <span style={{ color: '#0284c7', fontWeight: 600 }}>〰️ River / Drainage Corridors</span>
             </label>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, cursor: 'pointer' }}>
               <input type="checkbox" checked={showEvents} onChange={(e) => setShowEvents(e.target.checked)} />
@@ -564,20 +525,7 @@ export default function ResultsMap({
             </label>
           </>
         )}
-        <button
-          type="button"
-          onClick={() => setViewIn3D(true)}
-          style={{
-            marginTop: 10, width: '100%',
-            padding: '7px 10px', borderRadius: 6,
-            border: '1px solid #38bdf8',
-            background: '#0f172a', color: '#38bdf8',
-            fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(56, 189, 248, 0.25)',
-          }}
-        >
-          🌐 View in 3D Digital Twin
-        </button>
+
         <button
           type="button"
           onClick={handleExportPng}
@@ -619,14 +567,10 @@ export default function ResultsMap({
         {!isRisk && (
           <>
             <div style={{ borderTop: '1px solid #e2e8f0', margin: '8px 0' }} />
-            <div style={{ fontSize: 13, color: '0f172a', marginBottom: 4 }}>Linear Hazards (HVRA §4.3)</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-              <svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="#7c3aed" strokeWidth="3" strokeDasharray="4, 6" /></svg>
-              <span style={{ fontSize: '0.75rem' }}>Cyclone Track</span>
-            </div>
+            <div style={{ fontSize: 13, color: '#0f172a', marginBottom: 4 }}>Drainage Features</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="#b45309" strokeWidth="3" strokeDasharray="8, 4" /></svg>
-              <span style={{ fontSize: '0.75rem' }}>Fault Line / Seismic</span>
+              <svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="#0284c7" strokeWidth="3" strokeDasharray="6, 4" /></svg>
+              <span style={{ fontSize: '0.75rem' }}>River / Canal Drainage</span>
             </div>
           </>
         )}

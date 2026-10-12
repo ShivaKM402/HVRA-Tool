@@ -102,10 +102,16 @@ class HazardIndicatorViewSet(viewsets.ReadOnlyModelViewSet):
         qs = super().get_queryset()
         hazard_type = self.request.query_params.get("hazard_type")
         module_type = self.request.query_params.get("module_type")
+        category = self.request.query_params.get("category")
+        department = self.request.query_params.get("department")
         if hazard_type:
-            qs = qs.filter(hazard_type=hazard_type.upper())
+            qs = qs.filter(models.Q(hazard_type=hazard_type.upper()) | models.Q(hazard_type=""))
         if module_type:
             qs = qs.filter(module_type=module_type.upper())
+        if category:
+            qs = qs.filter(category=category.upper())
+        if department:
+            qs = qs.filter(department__icontains=department)
         return qs.order_by("module_type", "order", "name")
 
 

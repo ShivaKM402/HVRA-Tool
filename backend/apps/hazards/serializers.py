@@ -54,11 +54,14 @@ class IndicatorWeightageRuleSerializer(serializers.ModelSerializer):
 class HazardIndicatorSerializer(serializers.ModelSerializer):
     weightage_rules = IndicatorWeightageRuleSerializer(many=True, read_only=True)
     module_type = serializers.CharField(source="get_module_type_display", read_only=True)
+    module_code = serializers.CharField(source="module_type", read_only=True)
+    category_display = serializers.CharField(source="get_category_display", read_only=True)
 
     class Meta:
         model = HazardIndicator
         fields = [
-            "id", "module_type", "hazard_type", "code", "name", "description", "unit",
+            "id", "module_type", "module_code", "hazard_type", "category", "category_display",
+            "department", "code", "name", "description", "unit",
             "default_weight", "min_weight", "max_weight",
             "is_active", "order", "weightage_rules",
         ]

@@ -12,13 +12,13 @@
 
 /* Formula Banner */
 .risk-formula-banner {
-  background: radial-gradient(circle at 90% 10%, rgba(139, 92, 246, 0.25) 0%, rgba(9, 14, 26, 0.98) 75%),
-              linear-gradient(135deg, #090e1a 0%, #1e1b4b 60%, #312e81 100%);
+  background: radial-gradient(circle at 90% 10%, rgba(217, 119, 6, 0.35) 0%, rgba(41, 24, 7, 0.98) 75%),
+              linear-gradient(135deg, #1c1108 0%, #381a04 60%, #572a08 100%);
   border-radius: var(--radius-xl);
   padding: 1.85rem 2.25rem;
-  color: #ffffff;
-  border: 1px solid rgba(167, 139, 250, 0.3);
-  box-shadow: 0 12px 32px -6px rgba(15, 23, 42, 0.35);
+  color: #fff9f0;
+  border: 1px solid rgba(217, 119, 6, 0.4);
+  box-shadow: 0 12px 32px -6px rgba(69, 26, 3, 0.35);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -30,7 +30,7 @@
   font-family: var(--font-heading);
   font-size: 1.55rem;
   font-weight: 800;
-  color: #ffffff;
+  color: #fff9f0;
   display: flex;
   align-items: center;
   gap: 0.6rem;
@@ -38,9 +38,9 @@
 }
 
 .formula-tag {
-  background: rgba(167, 139, 250, 0.2);
-  border: 1px solid rgba(167, 139, 250, 0.45);
-  color: #c4b5fd;
+  background: rgba(217, 119, 6, 0.25);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  color: #fef3c7;
   border-radius: 999px;
   padding: 3px 12px;
   font-size: 0.74rem;
@@ -58,29 +58,29 @@
 }
 
 .module-selector-box {
-  background: #ffffff;
-  border: 1.5px solid #e2e8f0;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-default);
   border-radius: var(--radius-lg);
   padding: 1.2rem 1.4rem;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  box-shadow: 0 1px 3px rgba(120, 53, 15, 0.04);
 }
 
 .module-selector-box:hover {
-  border-color: #cbd5e1;
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+  border-color: var(--border-bright);
+  box-shadow: 0 4px 14px rgba(120, 53, 15, 0.06);
 }
 
 .module-selector-box.selected {
-  border-color: #7c3aed;
-  background: #faf5ff;
-  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
+  border-color: var(--color-primary);
+  background: var(--bg-surface);
+  box-shadow: 0 0 0 2px rgba(180, 83, 9, 0.2);
 }
 
 /* Weight Sliders */
 .weight-slider-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
   padding: 1.1rem 1.3rem;
   margin-bottom: 0.85rem;
@@ -89,8 +89,8 @@
 }
 
 .weight-slider-card:hover {
-  border-color: #cbd5e1;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+  border-color: var(--border-bright);
+  box-shadow: 0 4px 12px rgba(120, 53, 15, 0.06);
 }
 
 .weight-slider-header {
@@ -106,17 +106,17 @@
   font-weight: 800;
   padding: 2px 10px;
   border-radius: 999px;
-  background: #f3e8ff;
-  color: #7c3aed;
-  border: 1px solid #e9d5ff;
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
 }
 
 /* Live Preview Side */
 .preview-sticky-card {
   position: sticky;
   top: 1.5rem;
-  background: #ffffff;
-  border: 1px solid rgba(226, 232, 240, 0.9);
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-sm);
   padding: 1.6rem 1.8rem;

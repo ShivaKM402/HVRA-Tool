@@ -123,7 +123,7 @@ def compute_assessment_scores(
             elif "AREA" in code and "TOTAL" not in code:
                 # Hazard-prone area percentage
                 raw = float(gis_data.get("flood_prone_percentage", gis_data.get("hazard_prone_percentage", 0.0)))
-            elif any(k in code for k in ["EVENT", "INCIDENT", "LANDSLIDE", "TRACK", "POINT"]):
+            elif any(k in code for k in ["EVENT", "INCIDENT", "TRACK", "POINT"]):
                 # Event count
                 raw = float(gis_data.get("event_count", 0))
             elif "FREQUENCY" in code or "RATE" in code:
@@ -177,9 +177,16 @@ def compute_assessment_scores(
     for indicator in indicator_configs:
         code = indicator["code"]
         method = indicator.get("normalization_method") or normalization_method
+        direction = indicator.get("direction", "direct")
+        lower_ref = indicator.get("lower_ref", indicator.get("lower_threshold"))
+        upper_ref = indicator.get("upper_ref", indicator.get("upper_threshold"))
         raw_scores = indicator_rule_scores[code]
         normalized_scores_by_indicator[code] = normalize_batch(
-            raw_scores, method=method
+            raw_scores,
+            method=method,
+            direction=direction,
+            lower_ref=lower_ref,
+            upper_ref=upper_ref,
         )
 
     # -------------------------------------------------------
@@ -191,11 +198,16 @@ def compute_assessment_scores(
     for block_id in gis_results:
         block_indicator_data = []
         indicator_detail = {}
+        missing_indicators = []
 
         for indicator in indicator_configs:
             code = indicator["code"]
             weight = indicator.get("weight", 5.0)
-            raw_val = raw_values_by_indicator[code].get(block_id, 0.0)
+            raw_val = raw_values_by_indicator[code].get(block_id)
+            if raw_val is None:
+                missing_indicators.append(code)
+                raw_val = 0.0
+
             rule_score = indicator_rule_scores[code].get(block_id, 0.0)
             norm_val = normalized_scores_by_indicator[code].get(block_id, 0.0)
             w_score = compute_weighted_score(norm_val, weight, total_weight)
@@ -206,6 +218,7 @@ def compute_assessment_scores(
                 "normalized_value": norm_val,
                 "weight": weight,
                 "weighted_score": w_score,
+                "direction": indicator.get("direction", "direct"),
             }
             block_indicator_data.append({
                 "normalized_value": norm_val,
@@ -219,6 +232,8 @@ def compute_assessment_scores(
             "raw_values": {code: raw_values_by_indicator[code].get(block_id) for code in raw_values_by_indicator},
             "indicator_scores": indicator_detail,
             "composite_score": composite,
+            "is_complete": len(missing_indicators) == 0,
+            "missing_indicators": missing_indicators,
         }
 
     return results

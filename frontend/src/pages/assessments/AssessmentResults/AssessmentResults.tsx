@@ -12,6 +12,8 @@ import type { Assessment, AssessmentResultsResponse, AssessmentResult } from '@/
 import ResultsMap from '@/components/Map/ResultsMap';
 import ResultsTable from './ResultsTable';
 import ReportView from './ReportView';
+import DepartmentCoordinationTab from './DepartmentCoordinationTab';
+import ExpertRecalibrationModal from './ExpertRecalibrationModal';
 import UnitDetailModal from '@/components/Modals/UnitDetailModal';
 import ExportModal from '@/components/Modals/ExportModal';
 import ReviewModal from '@/components/Modals/ReviewModal';
@@ -28,10 +30,16 @@ export default function AssessmentResults() {
   const { id } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Active step: 'map' | 'classification' | 'report'
+  // Active step: 'map' | 'classification' | 'coordination' | 'report'
   const stepParam = searchParams.get('tab') || searchParams.get('step') || 'map';
-  const [activeStep, setActiveStep] = useState<'map' | 'classification' | 'report'>(
-    stepParam === 'report' ? 'report' : stepParam === 'classification' ? 'classification' : 'map'
+  const [activeStep, setActiveStep] = useState<'map' | 'classification' | 'coordination' | 'report'>(
+    stepParam === 'report'
+      ? 'report'
+      : stepParam === 'coordination'
+      ? 'coordination'
+      : stepParam === 'classification'
+      ? 'classification'
+      : 'map'
   );
 
   const [assessment, setAssessment] = useState<Assessment | null>(null);
@@ -44,9 +52,10 @@ export default function AssessmentResults() {
   const [isUnitModalOpen, setIsUnitModalOpen] = useState(false);
   const [selectedBlockId, setSelectedBlockId] = useState<number | null>(null);
 
-  // Export & Review modals
+  // Export, Review & Expert Recalibration modals
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [isExpertModalOpen, setIsExpertModalOpen] = useState(false);
   const navigate = useNavigate();
 
   const handleDeleteThisAssessment = async () => {
@@ -62,13 +71,28 @@ export default function AssessmentResults() {
     }
   };
 
+  const refreshAssessmentData = async () => {
+    if (!id) return;
+    try {
+      const assessmentId = parseInt(id, 10);
+      const [details, res] = await Promise.all([
+        getAssessment(assessmentId),
+        getAssessmentResults(assessmentId),
+      ]);
+      setAssessment(details);
+      setResultsData(res);
+    } catch (err) {
+      console.error('Failed to reload results', err);
+    }
+  };
+
   useEffect(() => {
-    if (stepParam === 'map' || stepParam === 'classification' || stepParam === 'report') {
+    if (stepParam === 'map' || stepParam === 'classification' || stepParam === 'coordination' || stepParam === 'report') {
       setActiveStep(stepParam);
     }
   }, [stepParam]);
 
-  const setStep = (step: 'map' | 'classification' | 'report') => {
+  const setStep = (step: 'map' | 'classification' | 'coordination' | 'report') => {
     setActiveStep(step);
     setSearchParams({ tab: step });
   };
@@ -164,6 +188,14 @@ export default function AssessmentResults() {
           <div className="results-action-group">
             <button
               className="btn btn-secondary btn-sm"
+              onClick={() => setIsExpertModalOpen(true)}
+              style={{ background: '#f8fafc', borderColor: '#cbd5e1', color: '#1e40af', fontWeight: 600 }}
+              title="Authorised Expert Review & Recalibration (HVRA §6)"
+            >
+              ⚡ Expert Recalibrate
+            </button>
+            <button
+              className="btn btn-secondary btn-sm"
               onClick={() => setIsExportModalOpen(true)}
             >
               📥 Export Dossier
@@ -190,7 +222,7 @@ export default function AssessmentResults() {
           </div>
         </div>
 
-        {/* 3-Step Journey Indicator (MANDATORY per spec §4) */}
+        {/* 4-Step Google-Style Tab Stepper */}
         <div className="journey-indicator-bar" role="tablist" aria-label="Assessment Journey Steps">
           <button
             role="tab"
@@ -200,12 +232,10 @@ export default function AssessmentResults() {
           >
             <span className="step-num">1</span>
             <div className="step-text">
-              <div className="step-title">Thematic Map</div>
-              <div className="step-sub">Raw hazard layers & events</div>
+              <div className="step-title">Inundation Map</div>
+              <div className="step-sub">Spatial flood footprint</div>
             </div>
           </button>
-
-          <div className="journey-arrow">→</div>
 
           <button
             role="tab"
@@ -215,12 +245,23 @@ export default function AssessmentResults() {
           >
             <span className="step-num">2</span>
             <div className="step-text">
-              <div className="step-title">Administrative Classification</div>
-              <div className="step-sub">NH / LH / MH / HH choropleth</div>
+              <div className="step-title">Risk Classification</div>
+              <div className="step-sub">Panchayat &amp; Taluk severity</div>
             </div>
           </button>
 
-          <div className="journey-arrow">→</div>
+          <button
+            role="tab"
+            aria-selected={activeStep === 'coordination'}
+            className={`journey-step ${activeStep === 'coordination' ? 'active' : ''}`}
+            onClick={() => setStep('coordination')}
+          >
+            <span className="step-num">3</span>
+            <div className="step-text">
+              <div className="step-title">Department Coordination</div>
+              <div className="step-sub">Data collection &amp; tracking</div>
+            </div>
+          </button>
 
           <button
             role="tab"
@@ -228,10 +269,10 @@ export default function AssessmentResults() {
             className={`journey-step ${activeStep === 'report' ? 'active' : ''}`}
             onClick={() => setStep('report')}
           >
-            <span className="step-num">3</span>
+            <span className="step-num">4</span>
             <div className="step-text">
-              <div className="step-title">Chapter-wise Report</div>
-              <div className="step-sub">Official narrative & PDF</div>
+              <div className="step-title">Official Report</div>
+              <div className="step-sub">Dossier narrative &amp; PDF</div>
             </div>
           </button>
         </div>
@@ -246,7 +287,7 @@ export default function AssessmentResults() {
                 Step 1: Thematic Map & Raw Hazard Footprint
               </h3>
               <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: '#475569' }}>
-                Review the raw spatial extent of inundation polygons, fault lines, cyclone tracks, and historical disaster events plotted over administrative boundaries before relative normalization.
+                Review the raw spatial extent of inundation polygons, river catchments, and historical flood events plotted over administrative boundaries before relative normalization.
               </p>
             </div>
             <button className="btn btn-primary" onClick={() => setStep('classification')}>
@@ -288,8 +329,8 @@ export default function AssessmentResults() {
                 Each administrative unit is shaded into 4 colorblind-safe bands (NH, LH, MH, HH) relative to neighbouring units in {assessment.district_name || 'the district'}. Click any unit on the map or table for deep attribution.
               </p>
             </div>
-            <button className="btn btn-primary" onClick={() => setStep('report')}>
-              Send to Report →
+            <button className="btn btn-primary" onClick={() => setStep('coordination')}>
+              Proceed to Coordination →
             </button>
           </div>
 
@@ -392,8 +433,51 @@ export default function AssessmentResults() {
             <button className="btn btn-secondary" onClick={() => setStep('map')}>
               ← Back to Thematic Map
             </button>
+            <button className="btn btn-primary" onClick={() => setStep('coordination')}>
+              Proceed to Department Coordination →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* STEP 3: DEPARTMENT COORDINATION */}
+      {activeStep === 'coordination' && (
+        <div className="step-content-view">
+          <div className="step-guidance-banner">
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1rem', color: '#0f172a' }}>
+                Step 3: Departmental Data Management & Inter-Agency Coordination (HVRA §6)
+              </h3>
+              <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: '#475569' }}>
+                Track data completeness across responsible line departments (Water Resources, LSGD, Revenue, PWD, Health, Agriculture, KSEB). Toggle between Simultaneous (Parallel) entry and Sequential handover workflows.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => setIsExpertModalOpen(true)}
+              >
+                ⚡ Expert Recalibrate
+              </button>
+              <button className="btn btn-primary" onClick={() => setStep('report')}>
+                Proceed to Report →
+              </button>
+            </div>
+          </div>
+
+          <div className="card" style={{ padding: '1.25rem' }}>
+            <DepartmentCoordinationTab
+              assessmentId={assessment.id}
+              onRefresh={refreshAssessmentData}
+            />
+          </div>
+
+          <div className="step-footer-cta">
+            <button className="btn btn-secondary" onClick={() => setStep('classification')}>
+              ← Back to Classification Map
+            </button>
             <button className="btn btn-primary" onClick={() => setStep('report')}>
-              Send to Chapter-wise Report →
+              Proceed to Chapter-wise Report →
             </button>
           </div>
         </div>
@@ -427,8 +511,8 @@ export default function AssessmentResults() {
           <ReportView />
 
           <div className="step-footer-cta">
-            <button className="btn btn-secondary" onClick={() => setStep('classification')}>
-              ← Back to Classification Map
+            <button className="btn btn-secondary" onClick={() => setStep('coordination')}>
+              ← Back to Department Coordination
             </button>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               <Link to="/dashboard" className="btn btn-secondary">
@@ -466,6 +550,14 @@ export default function AssessmentResults() {
         onSuccess={(status) => {
           setAssessment((prev) => (prev ? { ...prev, approval_status: status as any } : prev));
         }}
+      />
+
+      <ExpertRecalibrationModal
+        isOpen={isExpertModalOpen}
+        onClose={() => setIsExpertModalOpen(false)}
+        assessment={assessment}
+        results={resultsData.results}
+        onSuccess={refreshAssessmentData}
       />
     </div>
   );

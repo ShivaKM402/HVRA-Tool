@@ -328,39 +328,7 @@ class Command(BaseCommand):
             geometry_geojson=json.dumps(flood_overlay),
             is_demo=True,
         )
-
-        # 2. Fault Lineament Layer (Linear)
-        fault_coords = [
-            [[76.85, 8.75], [76.95, 8.62], [77.05, 8.45], [77.12, 8.35]],
-            [[76.78, 8.68], [76.88, 8.55], [76.98, 8.42]],
-        ]
-        HazardLayer.objects.create(
-            name="Thiruvananthapuram Fault Lineaments [DEMO]",
-            hazard_type="EARTHQUAKE",
-            geometry_type="MultiLineString",
-            source="DEMO / GSI Lineament Map",
-            vintage=2023,
-            organization="Geological Survey of India (Demo)",
-            geometry_geojson=json.dumps({"type": "MultiLineString", "coordinates": fault_coords}),
-            is_demo=True,
-        )
-
-        # 3. Cyclone Track Layer (Linear)
-        cyclone_coords = [
-            [[76.60, 8.20], [76.75, 8.40], [76.90, 8.65], [77.05, 8.90]],
-        ]
-        HazardLayer.objects.create(
-            name="Thiruvananthapuram Cyclone Historical Tracks [DEMO]",
-            hazard_type="CYCLONE",
-            geometry_type="LineString",
-            source="DEMO / IMD Cyclone Atlas",
-            vintage=2024,
-            organization="India Meteorological Department (Demo)",
-            geometry_geojson=json.dumps({"type": "LineString", "coordinates": cyclone_coords[0]}),
-            is_demo=True,
-        )
-
-        self.stdout.write("   Seeded 3 GIS hazard layers (Flood, Earthquake faults, Cyclone tracks).")
+        self.stdout.write("   Seeded Flood GIS hazard layer.")
         return flood_layer
 
     def _setup_historical_events(self, blocks):

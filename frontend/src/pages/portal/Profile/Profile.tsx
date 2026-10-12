@@ -59,24 +59,24 @@ export default function Profile() {
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-          <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: 8, border: '1px solid #e2e8f0' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Assigned Administrative State</div>
-            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a', marginTop: '0.2rem' }}>Kerala</div>
+          <div style={{ background: 'var(--bg-surface)', padding: '1rem', borderRadius: 10, border: '1px solid var(--border-default)' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>Assigned Administrative State</div>
+            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-heading)', marginTop: '0.2rem' }}>Kerala</div>
           </div>
 
-          <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: 8, border: '1px solid #e2e8f0' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>Active Operational District</div>
-            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a', marginTop: '0.2rem' }}>
+          <div style={{ background: 'var(--bg-surface)', padding: '1rem', borderRadius: 10, border: '1px solid var(--border-default)' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>Active Operational District</div>
+            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-heading)', marginTop: '0.2rem' }}>
               {activeDistrict?.name || 'Thiruvananthapuram'} District
             </div>
           </div>
         </div>
 
-        <div style={{ background: '#eff6ff', padding: '1rem', borderRadius: 8, border: '1px solid #bfdbfe', fontSize: '0.85rem', color: '#1e40af', marginBottom: '1.5rem' }}>
-          <strong>Territorial Access Scoping (HVRA §2):</strong> Your account is authorized to generate assessments, configure indicators, and view published thematic outputs for all blocks and panchayats within your jurisdiction.
+        <div style={{ background: 'var(--bg-surface)', padding: '1rem', borderRadius: 10, border: '1px solid var(--border-default)', fontSize: '0.85rem', color: 'var(--text-primary)', marginBottom: '1.5rem' }}>
+          <strong style={{ color: 'var(--color-primary)' }}>Territorial Access Scoping (HVRA §2):</strong> Your account is authorized to generate assessments, configure indicators, and view published thematic outputs for all blocks and panchayats within your jurisdiction.
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '1.25rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-default)', paddingTop: '1.25rem' }}>
           <Link to="/dashboard" className="btn btn-secondary btn-sm">
             ← Back to Dashboard
           </Link>

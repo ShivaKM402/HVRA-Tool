@@ -95,8 +95,6 @@ export default function DataLibrary() {
     if (metaType) return metaType;
     if (src.name.includes('Administrative') || src.name.includes('Boundaries')) return 'Administrative Boundaries';
     if (src.name.includes('Flood') || src.name.includes('Inundation')) return 'Flood Hazard Layer';
-    if (src.name.includes('Landslide')) return 'Landslide Susceptibility';
-    if (src.name.includes('Cyclone') || src.name.includes('Surge')) return 'Cyclone & Surge Grid';
     if (src.name.includes('Vulnerability') || src.name.includes('Socio-Economic')) return 'Socio-Economic Vulnerability';
     if (src.name.includes('Infrastructure') || src.name.includes('Lifeline')) return 'Critical Infrastructure';
     if (src.name.includes('Historical')) return 'Historical Event Log';
@@ -107,7 +105,7 @@ export default function DataLibrary() {
     if (!src.is_builtin) return 'CUSTOM';
     const dtype = getDatasetType(src).toLowerCase();
     const name = src.name.toLowerCase();
-    if (dtype.includes('flood') || dtype.includes('landslide') || dtype.includes('cyclone') || dtype.includes('hazard') || dtype.includes('historical') || name.includes('flood') || name.includes('landslide')) {
+    if (dtype.includes('flood') || dtype.includes('hazard') || dtype.includes('historical') || name.includes('flood')) {
       return 'HAZARD';
     }
     if (dtype.includes('infrastructure') || dtype.includes('exposure') || dtype.includes('lifeline') || name.includes('infrastructure') || name.includes('asset')) {
@@ -468,7 +466,7 @@ export default function DataLibrary() {
                             className="badge badge-info"
                             style={{ fontSize: '0.74rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
                           >
-                            {dtype.includes('Flood') ? '🌊' : dtype.includes('Landslide') ? '⛰️' : dtype.includes('Cyclone') ? '🌀' : dtype.includes('Vulnerability') ? '📉' : dtype.includes('Infrastructure') ? '🏥' : '<MapIcon />'} {dtype}
+                            {dtype.includes('Flood') ? '🌊' : dtype.includes('Vulnerability') ? '📉' : dtype.includes('Infrastructure') ? '🏥' : '<MapIcon />'} {dtype}
                           </span>
                         </td>
 
@@ -866,11 +864,6 @@ export default function DataLibrary() {
                     onChange={(e) => setUploadHazardType(e.target.value)}
                   >
                     <option value="FLOOD">🌊 Flood</option>
-                    <option value="LANDSLIDE">⛰️ Landslide</option>
-                    <option value="CYCLONE">🌀 Cyclone</option>
-                    <option value="COASTAL_EROSION">🏖️ Coastal Erosion</option>
-                    <option value="DROUGHT">☀️ Drought</option>
-                    <option value="LIGHTNING">⚡ Lightning</option>
                   </select>
                 </div>
 

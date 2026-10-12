@@ -105,9 +105,10 @@ export default function NewAssessment() {
   const [loadingData, setLoadingData] = useState(true);
 
   // User selections
-  const [selectedHazardCode, setSelectedHazardCode] = useState<string>('');
+  const [selectedHazardCode, setSelectedHazardCode] = useState<string>('FLOOD');
   const [selectedStateId, setSelectedStateId] = useState<number | null>(null);
   const [selectedDistrictId, setSelectedDistrictId] = useState<number | null>(null);
+  const [coordinationMode, setCoordinationMode] = useState<'PARALLEL' | 'SEQUENTIAL'>('PARALLEL');
   
   // Indicators selection { id: weight }
   const [indicatorWeights, setIndicatorWeights] = useState<Record<number, number>>({});
@@ -303,7 +304,11 @@ export default function NewAssessment() {
     } else if (assessmentModule === 'VULNERABILITY' || assessmentModule === 'EXPOSURE') {
       const loadModuleIndicators = async () => {
         try {
-          const inds = await getIndicators(undefined, assessmentModule);
+          const hCode = selectedHazardCode || 'FLOOD';
+          let inds = await getIndicators(hCode, assessmentModule);
+          if (!inds || inds.length === 0) {
+            inds = await getIndicators(undefined, assessmentModule);
+          }
           if (!isCurrent) return;
           setIndicators(inds);
 
@@ -592,7 +597,8 @@ export default function NewAssessment() {
         name: `${hzName} ${modLabels[assessmentModule]} — ${distName} (${new Date().toLocaleDateString('en-GB')})`,
         description: `Automated assessment conducted under the HVRA Decision Framework for ${distName} district.`,
         module_type: assessmentModule,
-        hazard_type: assessmentModule === 'HAZARD' ? selectedHazardCode : '',
+        hazard_type: selectedHazardCode || 'FLOOD',
+        coordination_mode: coordinationMode,
         state: selectedStateId,
         district: selectedDistrictId,
         administrative_level: administrativeLevel,
@@ -636,9 +642,9 @@ export default function NewAssessment() {
               key={mod.id}
               onClick={() => setAssessmentModule(mod.id as any)}
               style={{
-                border: assessmentModule === mod.id ? '2px solid #2563eb' : '1px solid #e2e8f0',
-                background: assessmentModule === mod.id ? '#eff6ff' : '#ffffff',
-                borderRadius: '8px',
+                border: assessmentModule === mod.id ? '2px solid var(--color-primary)' : '1.5px solid var(--border-default)',
+                background: assessmentModule === mod.id ? 'var(--bg-surface)' : 'var(--bg-card)',
+                borderRadius: '10px',
                 padding: '1rem',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
@@ -1048,43 +1054,136 @@ export default function NewAssessment() {
     );
   };
 
-  const renderStepIndicators = () => (
-    <div className="wizard-step">
-      <h3 className="wizard-step-title">Select Indicators</h3>
-      <p className="text-muted mb-6">Select the indicators to include in the assessment calculation.</p>
-      
-      <div className="indicator-list">
-        {indicators.map(ind => {
-          const isEnabled = enabledIndicators.has(ind.id);
-          return (
-            <div key={ind.id} className={`indicator-item ${isEnabled ? 'enabled' : ''}`}>
-              <label className="checkbox-label" style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', width: '100%', cursor: 'pointer' }}>
-                <input 
-                  type="checkbox" 
-                  checked={isEnabled}
-                  onChange={(e) => {
-                    const newSet = new Set(enabledIndicators);
-                    if (e.target.checked) newSet.add(ind.id);
-                    else newSet.delete(ind.id);
-                    setEnabledIndicators(newSet);
-                  }}
-                  style={{ marginTop: '0.25rem' }}
-                />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, color: 'var(--color-gov-navy)' }}>{ind.name}</div>
-                  <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.25rem' }}>{ind.description}</div>
-                </div>
-                <div style={{ textAlign: 'right', fontSize: '0.8rem', color: '#94a3b8' }}>
-                  Unit: {ind.unit}<br/>
-                  Default Weight: {ind.default_weight}
-                </div>
-              </label>
+  const renderStepIndicators = () => {
+    const isVulnerability = assessmentModule === 'VULNERABILITY';
+    const categories = [
+      { key: 'SOCIO_ECONOMIC', title: '1. Socio-Economic Vulnerability', icon: '👥', desc: 'Demographic fragility, poverty incidence, and marginal worker vulnerability.' },
+      { key: 'PHYSICAL', title: '2. Physical Vulnerability', icon: '🏗️', desc: 'Housing construction fragility, stormwater drainage deficits, and submersible roads.' },
+      { key: 'ENVIRONMENTAL', title: '3. Environmental Vulnerability', icon: '🌿', desc: 'Wetland/flood basin sink reduction and paved surface runoff factor.' },
+      { key: 'OTHER', title: '4. Other / Coping Capacity Vulnerability', icon: '🛡️', desc: 'Health access gaps, community early-warning coverage, and relief shelter capacity.' },
+    ];
+
+    const toggleAllCategory = (catKey: string, select: boolean) => {
+      const catInds = indicators.filter(i => (i.category || 'OTHER') === catKey);
+      const newSet = new Set(enabledIndicators);
+      catInds.forEach(i => {
+        if (select) newSet.add(i.id);
+        else newSet.delete(i.id);
+      });
+      setEnabledIndicators(newSet);
+    };
+
+    const renderIndicatorCard = (ind: HazardIndicator) => {
+      const isEnabled = enabledIndicators.has(ind.id);
+      return (
+        <div key={ind.id} className={`indicator-item ${isEnabled ? 'enabled' : ''}`} style={{ marginBottom: '0.65rem' }}>
+          <label className="checkbox-label" style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', width: '100%', cursor: 'pointer' }}>
+            <input 
+              type="checkbox" 
+              checked={isEnabled}
+              onChange={(e) => {
+                const newSet = new Set(enabledIndicators);
+                if (e.target.checked) newSet.add(ind.id);
+                else newSet.delete(ind.id);
+                setEnabledIndicators(newSet);
+              }}
+              style={{ marginTop: '0.25rem' }}
+            />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 600, color: 'var(--color-gov-navy)', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <span>{ind.name}</span>
+                {ind.department && (
+                  <span className="badge" style={{ fontSize: '0.7rem', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
+                    🏛️ {ind.department}
+                  </span>
+                )}
+                {ind.category_display && (
+                  <span className="badge" style={{ fontSize: '0.7rem', background: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0' }}>
+                    🏷️ {ind.category_display}
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: '0.84rem', color: '#64748b', marginTop: '0.25rem', lineHeight: 1.4 }}>{ind.description}</div>
             </div>
-          );
-        })}
+            <div style={{ textAlign: 'right', fontSize: '0.8rem', color: '#94a3b8', minWidth: '130px' }}>
+              Unit: <strong style={{ color: '#475569' }}>{ind.unit}</strong><br/>
+              Default Weight: <strong style={{ color: '#475569' }}>{ind.default_weight}</strong>
+            </div>
+          </label>
+        </div>
+      );
+    };
+
+    return (
+      <div className="wizard-step">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
+          <div>
+            <h3 className="wizard-step-title" style={{ marginBottom: '0.25rem' }}>
+              Select Indicators ({enabledIndicators.size} of {indicators.length} selected)
+            </h3>
+            <p className="text-muted" style={{ margin: 0 }}>
+              {isVulnerability
+                ? 'Flood Vulnerability indicators organized under 4 mandatory assessment dimensions (§6.1).'
+                : 'Select the indicators mapped with responsible government departments.'}
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => setEnabledIndicators(new Set(indicators.map(i => i.id)))}
+            >
+              Select All
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => setEnabledIndicators(new Set())}
+            >
+              Deselect All
+            </button>
+          </div>
+        </div>
+
+        {isVulnerability ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {categories.map(cat => {
+              const catInds = indicators.filter(i => (i.category || 'OTHER') === cat.key);
+              if (catInds.length === 0) return null;
+              const allChecked = catInds.every(i => enabledIndicators.has(i.id));
+              return (
+                <div key={cat.key} style={{ background: 'var(--bg-surface)', padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--border-default)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.98rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ fontSize: '1.2rem' }}>{cat.icon}</span>
+                      <span>{cat.title}</span>
+                      <span className="badge badge-draft" style={{ fontSize: '0.7rem' }}>{catInds.length} indicators</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem' }}
+                      onClick={() => toggleAllCategory(cat.key, !allChecked)}
+                    >
+                      {allChecked ? 'Deselect Category' : 'Select Category'}
+                    </button>
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '1rem' }}>{cat.desc}</div>
+                  <div className="indicator-list">
+                    {catInds.map(renderIndicatorCard)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="indicator-list">
+            {indicators.map(renderIndicatorCard)}
+          </div>
+        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderStepWeightage = () => (
     <div className="wizard-step">
@@ -1103,8 +1202,17 @@ export default function NewAssessment() {
           .map(ind => (
           <div key={ind.id} className="weightage-item">
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 600 }}>{ind.name}</div>
-              <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Unit: {ind.unit}</div>
+              <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <span>{ind.name}</span>
+                {ind.department && (
+                  <span className="badge" style={{ fontSize: '0.7rem', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
+                    🏛️ {ind.department}
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.2rem' }}>
+                Unit: {ind.unit} · Default: {ind.default_weight}
+              </div>
             </div>
             <div style={{ width: '120px' }}>
               <label style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', marginBottom: '0.25rem' }}>Weight [0-10]</label>
@@ -1170,16 +1278,16 @@ export default function NewAssessment() {
           zIndex: 10000, padding: '1.5rem'
         }}>
           <div style={{
-            background: '#ffffff', borderRadius: '12px', width: '100%', maxWidth: '520px',
-            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)', overflow: 'hidden'
+            background: 'var(--bg-card)', borderRadius: '14px', width: '100%', maxWidth: '520px',
+            boxShadow: '0 20px 35px -5px rgba(120, 53, 15, 0.25)', overflow: 'hidden', border: '1.5px solid var(--border-default)'
           }}>
-            <div style={{ padding: '1.25rem 1.5rem', background: '#0f172a', color: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ padding: '1.25rem 1.5rem', background: 'var(--bg-surface)', color: 'var(--text-heading)', borderBottom: '1px solid var(--border-default)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ fontWeight: 700, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <span>📁</span> Upload Custom Spatial Dataset
               </div>
               <button
                 onClick={() => setShowUploadModal(false)}
-                style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.25rem', cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.25rem', cursor: 'pointer' }}
               >
                 ✕
               </button>
@@ -1223,7 +1331,7 @@ export default function NewAssessment() {
               </div>
 
               {uploadFileObj && (
-                <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '0.8rem' }}>
+                <div style={{ background: 'var(--bg-surface)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-default)', fontSize: '0.8rem', color: 'var(--text-heading)' }}>
                   📄 <strong>{uploadFileObj.name}</strong> ({(uploadFileObj.size / 1024).toFixed(1)} KB)
                 </div>
               )}
@@ -1258,7 +1366,7 @@ export default function NewAssessment() {
         </div>
         <button
           className="btn btn-primary"
-          style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem', background: '#0f172a' }}
+          style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
           onClick={() => setShowUploadModal(true)}
         >
           <span>➕</span> Upload Custom Dataset
@@ -1272,8 +1380,8 @@ export default function NewAssessment() {
         </div>
       )}
       
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem', background: '#f8fafc', padding: '0.85rem 1rem', borderRadius: 8, border: '1px solid #e2e8f0' }}>
-        <div style={{ fontSize: '0.84rem', color: '#475569' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem', background: 'var(--bg-surface)', padding: '0.85rem 1rem', borderRadius: 10, border: '1px solid var(--border-default)' }}>
+        <div style={{ fontSize: '0.84rem', color: 'var(--text-muted)' }}>
           Choose a spatial hazard layer for boundary intersections, or access the shared repository.
         </div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -1335,6 +1443,56 @@ export default function NewAssessment() {
             </div>
           );
         })}
+      </div>
+
+      {/* Department Coordination Mode (HVRA §6) */}
+      <div style={{ marginTop: '2rem', background: 'var(--bg-surface)', padding: '1.25rem', borderRadius: 12, border: '1.5px solid var(--border-default)' }}>
+        <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#0f172a', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span>🏛️</span> Departmental Data Coordination Mode
+        </div>
+        <p style={{ fontSize: '0.82rem', color: '#64748b', marginBottom: '1rem' }}>
+          Select how line departments (Water Resources, PWD, LSGD, Economics & Statistics, Health) input and coordinate data on the portal:
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '0.85rem' }}>
+          <div
+            onClick={() => setCoordinationMode('PARALLEL')}
+            style={{
+              padding: '1rem',
+              borderRadius: 10,
+              border: coordinationMode === 'PARALLEL' ? '2px solid var(--color-primary)' : '1px solid var(--border-default)',
+              background: coordinationMode === 'PARALLEL' ? 'var(--bg-card)' : 'transparent',
+              cursor: 'pointer',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}>
+              <input type="radio" checked={coordinationMode === 'PARALLEL'} onChange={() => setCoordinationMode('PARALLEL')} />
+              <span>Simultaneous (Parallel) Data Entry</span>
+              <span className="badge badge-success" style={{ fontSize: '0.65rem' }}>Recommended</span>
+            </div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.4rem', marginLeft: '1.5rem' }}>
+              All departments can access the portal simultaneously to populate their respective indicators without waiting.
+            </div>
+          </div>
+
+          <div
+            onClick={() => setCoordinationMode('SEQUENTIAL')}
+            style={{
+              padding: '1rem',
+              borderRadius: 10,
+              border: coordinationMode === 'SEQUENTIAL' ? '2px solid var(--color-primary)' : '1px solid var(--border-default)',
+              background: coordinationMode === 'SEQUENTIAL' ? 'var(--bg-card)' : 'transparent',
+              cursor: 'pointer',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}>
+              <input type="radio" checked={coordinationMode === 'SEQUENTIAL'} onChange={() => setCoordinationMode('SEQUENTIAL')} />
+              <span>Sequential Departmental Handover</span>
+            </div>
+            <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.4rem', marginLeft: '1.5rem' }}>
+              Formal stage-wise workflow where data is collected and signed off step-by-step from primary to downstream departments.
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -1413,6 +1571,7 @@ export default function NewAssessment() {
               <div><span className="text-muted">District:</span> <strong>{selectedDistrictObj?.name || 'District'}</strong></div>
               <div><span className="text-muted">Administrative Level:</span> <strong>{administrativeLevel === 'VILLAGE' ? 'Village Level' : 'Block / Taluka Level'}</strong></div>
               <div><span className="text-muted">Scoring Method:</span> <strong>Min-Max (0–10 Scale)</strong></div>
+              <div><span className="text-muted">Coordination Mode:</span> <strong>{coordinationMode === 'PARALLEL' ? 'Simultaneous (Parallel)' : 'Sequential Handover'}</strong></div>
             </div>
           </div>
           

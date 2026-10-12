@@ -16,6 +16,7 @@ class UserRole(models.TextChoices):
     PLATFORM_ADMIN = "PLATFORM_ADMIN", "Platform Admin"
     STATE_OFFICIAL = "STATE_OFFICIAL", "State Official"
     DISTRICT_OFFICIAL = "DISTRICT_OFFICIAL", "District Official"
+    DEPARTMENT_OFFICER = "DEPARTMENT_OFFICER", "Department Officer"
     ANALYST = "ANALYST", "Analyst"
     VIEWER = "VIEWER", "Viewer"  # Other users — view published outputs
 
@@ -29,6 +30,10 @@ class UserProfile(models.Model):
         max_length=24, choices=UserRole.choices, default=UserRole.VIEWER
     )
     organization = models.CharField(max_length=255, blank=True)
+    department = models.CharField(
+        max_length=128, blank=True, default="",
+        help_text="Government Department (e.g. Water Resources, PWD, Revenue, LSGD, Health).",
+    )
     district = models.ForeignKey(
         "administration.AdministrativeUnit",
         null=True,

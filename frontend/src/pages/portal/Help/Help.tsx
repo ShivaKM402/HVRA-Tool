@@ -29,49 +29,49 @@ export default function Help() {
 
       {/* Quick Navigation / Shortcuts */}
       <div className="card" style={{ padding: '1.5rem' }}>
-        <h3 style={{ margin: '0 0 1rem', fontSize: '1.1rem', color: '#0f172a' }}>
+        <h3 style={{ margin: '0 0 1rem', fontSize: '1.1rem', color: 'var(--text-heading)' }}>
           ⌨️ Keyboard Shortcuts & Quick Navigation
         </h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem' }}>
-          <div style={{ background: '#f8fafc', padding: '0.75rem 1rem', borderRadius: 8, border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.85rem', color: '#334155' }}>Global Command Palette</span>
-            <kbd style={{ background: '#fff', border: '1px solid #cbd5e1', padding: '0.15rem 0.4rem', borderRadius: 4, fontSize: '0.75rem' }}>Ctrl+K</kbd>
+          <div style={{ background: 'var(--bg-surface)', padding: '0.75rem 1rem', borderRadius: 8, border: '1px solid var(--border-default)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-heading)' }}>Global Command Palette</span>
+            <kbd style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', padding: '0.15rem 0.4rem', borderRadius: 4, fontSize: '0.75rem', color: 'var(--text-heading)' }}>Ctrl+K</kbd>
           </div>
-          <div style={{ background: '#f8fafc', padding: '0.75rem 1rem', borderRadius: 8, border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.85rem', color: '#334155' }}>Close Modal / Popups</span>
-            <kbd style={{ background: '#fff', border: '1px solid #cbd5e1', padding: '0.15rem 0.4rem', borderRadius: 4, fontSize: '0.75rem' }}>Esc</kbd>
+          <div style={{ background: 'var(--bg-surface)', padding: '0.75rem 1rem', borderRadius: 8, border: '1px solid var(--border-default)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-heading)' }}>Close Modal / Popups</span>
+            <kbd style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', padding: '0.15rem 0.4rem', borderRadius: 4, fontSize: '0.75rem', color: 'var(--text-heading)' }}>Esc</kbd>
           </div>
-          <div style={{ background: '#f8fafc', padding: '0.75rem 1rem', borderRadius: 8, border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.85rem', color: '#334155' }}>Print Report View</span>
-            <kbd style={{ background: '#fff', border: '1px solid #cbd5e1', padding: '0.15rem 0.4rem', borderRadius: 4, fontSize: '0.75rem' }}>Ctrl+P</kbd>
+          <div style={{ background: 'var(--bg-surface)', padding: '0.75rem 1rem', borderRadius: 8, border: '1px solid var(--border-default)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-heading)' }}>Print Report View</span>
+            <kbd style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', padding: '0.15rem 0.4rem', borderRadius: 4, fontSize: '0.75rem', color: 'var(--text-heading)' }}>Ctrl+P</kbd>
           </div>
         </div>
       </div>
 
       {/* 3 Outputs Connected Pipeline */}
       <div className="card" style={{ padding: '1.5rem' }}>
-        <h3 style={{ margin: '0 0 1rem', fontSize: '1.1rem', color: '#0f172a' }}>
+        <h3 style={{ margin: '0 0 1rem', fontSize: '1.1rem', color: 'var(--text-heading)' }}>
           🔄 The Three Connected Outputs (HVRA §1)
         </h3>
-        <p style={{ margin: '0 0 1rem', fontSize: '0.88rem', color: '#475569', lineHeight: 1.55 }}>
+        <p style={{ margin: '0 0 1rem', fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.55 }}>
           Every query entered by a district or state disaster management officer automatically yields three connected, sequential outputs:
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
-          <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: 8, border: '1px solid #e2e8f0' }}>
-            <div style={{ fontWeight: 700, color: '#1d4ed8', fontSize: '0.9rem', marginBottom: '0.3rem' }}>1. Thematic Map</div>
-            <div style={{ fontSize: '0.8rem', color: '#475569', lineHeight: 1.45 }}>
+          <div style={{ background: 'var(--bg-surface)', padding: '1rem', borderRadius: 8, border: '1px solid var(--border-default)' }}>
+            <div style={{ fontWeight: 700, color: 'var(--color-primary)', fontSize: '0.9rem', marginBottom: '0.3rem' }}>1. Thematic Map</div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.45 }}>
               Raw spatial hazard polygons, flood inundation contours, fault lines, and historical disaster events plotted over administrative boundaries.
             </div>
           </div>
-          <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: 8, border: '1px solid #e2e8f0' }}>
-            <div style={{ fontWeight: 700, color: '#1d4ed8', fontSize: '0.9rem', marginBottom: '0.3rem' }}>2. Administrative Classification</div>
-            <div style={{ fontSize: '0.8rem', color: '#475569', lineHeight: 1.45 }}>
+          <div style={{ background: 'var(--bg-surface)', padding: '1rem', borderRadius: 8, border: '1px solid var(--border-default)' }}>
+            <div style={{ fontWeight: 700, color: 'var(--color-primary)', fontSize: '0.9rem', marginBottom: '0.3rem' }}>2. Administrative Classification</div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.45 }}>
               Standardized 4-band choropleth (NH, LH, MH, HH) calculated relative to neighbouring units within the district with unit attribute tables.
             </div>
           </div>
-          <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: 8, border: '1px solid #e2e8f0' }}>
-            <div style={{ fontWeight: 700, color: '#1d4ed8', fontSize: '0.9rem', marginBottom: '0.3rem' }}>3. Chapter-wise Report</div>
-            <div style={{ fontSize: '0.8rem', color: '#475569', lineHeight: 1.45 }}>
+          <div style={{ background: 'var(--bg-surface)', padding: '1rem', borderRadius: 8, border: '1px solid var(--border-default)' }}>
+            <div style={{ fontWeight: 700, color: 'var(--color-primary)', fontSize: '0.9rem', marginBottom: '0.3rem' }}>3. Chapter-wise Report</div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.45 }}>
               Auto-compiled 11-chapter narrative with study area profiles, hazard intensity classifications, spatial maps, and action recommendations exportable to PDF/DOCX.
             </div>
           </div>

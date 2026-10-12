@@ -33,6 +33,8 @@ import type {
   HazardEventPayload,
   SubmitForReviewResponse,
   ApprovalActionResponse,
+  DepartmentSubmissionsResponse,
+  ExpertRecalculatePayload,
 } from '../types';
 
 const isProd = import.meta.env.PROD;
@@ -278,6 +280,7 @@ export interface CreateAssessmentPayload {
   state: number;
   district: number;
   administrative_level: string;
+  coordination_mode?: 'PARALLEL' | 'SEQUENTIAL';
   start_date?: string;
   end_date?: string;
   data_source?: number;
@@ -356,6 +359,45 @@ export const getAssessmentMapData = async (id: number): Promise<GeoJSONFeatureCo
 
 export const deleteAssessment = async (id: number): Promise<void> => {
   await api.delete(`/assessments/${id}/`);
+};
+
+export const getDepartmentSubmissions = async (id: number): Promise<DepartmentSubmissionsResponse> => {
+  const response = await api.get<DepartmentSubmissionsResponse>(`/assessments/${id}/department-submissions/`);
+  return response.data;
+};
+
+export const postDepartmentSubmission = async (
+  id: number,
+  payload: {
+    department: string;
+    coordination_mode?: string;
+    officer_name?: string;
+    designation?: string;
+    source_type?: string;
+    attachment_name?: string;
+    notes?: string;
+    submitted_values?: Array<{
+      indicator_id: number;
+      administrative_unit_id?: number;
+      raw_value: number;
+    }>;
+  }
+): Promise<{ message: string; department: string; status: string; department_submissions: Record<string, any> }> => {
+  const response = await api.post(`/assessments/${id}/department-submissions/`, payload);
+  return response.data;
+};
+
+export const expertRecalculateAssessment = async (
+  id: number,
+  payload: ExpertRecalculatePayload
+): Promise<{
+  message: string;
+  assessment_id: number;
+  classification_summary: Record<string, number>;
+  unit_results: Array<{ unit_id: number; unit_name: string; score: number; classification: string }>;
+}> => {
+  const response = await api.post(`/assessments/${id}/expert-recalculate/`, payload);
+  return response.data;
 };
 
 // -------------------------------------------------------

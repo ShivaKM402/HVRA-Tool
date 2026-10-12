@@ -26,4 +26,7 @@ urlpatterns = [
 
     # Reports
     path("", include("apps.reports.urls")),
+
+    # AI Copilot (Features 1, 2, 3)
+    path("", include("apps.ai_copilot.urls")),
 ]

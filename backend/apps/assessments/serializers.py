@@ -21,12 +21,16 @@ class AssessmentIndicatorSerializer(serializers.ModelSerializer):
     indicator_code = serializers.CharField(source="indicator.code", read_only=True)
     indicator_name = serializers.CharField(source="indicator.name", read_only=True)
     indicator_unit = serializers.CharField(source="indicator.unit", read_only=True)
+    department = serializers.CharField(source="indicator.department", read_only=True, default="")
+    category = serializers.CharField(source="indicator.category", read_only=True, default="")
+    category_display = serializers.CharField(source="indicator.get_category_display", read_only=True, default="")
 
     class Meta:
         model = AssessmentIndicator
         fields = [
             "id", "indicator", "indicator_code", "indicator_name",
-            "indicator_unit", "weight", "data_source",
+            "indicator_unit", "department", "category", "category_display",
+            "weight", "data_source",
         ]
 
 
@@ -42,6 +46,7 @@ class AssessmentResultSerializer(serializers.ModelSerializer):
             "indicator", "indicator_name",
             "raw_value", "normalized_value", "weight", "weighted_score",
             "final_score", "classification", "metadata", "notes",
+            "is_manually_overridden", "overridden_by", "original_raw_value", "original_score",
         ]
 
     def get_indicator_name(self, obj):
@@ -64,6 +69,7 @@ class AssessmentSerializer(serializers.ModelSerializer):
             "hazard_type",
             "state", "state_name", "district", "district_name",
             "administrative_level",
+            "coordination_mode", "department_submissions",
             "start_date", "end_date",
             "data_source", "normalization_method", "classification_method",
             "status", "error_message",
@@ -102,6 +108,7 @@ class AssessmentCreateSerializer(serializers.ModelSerializer):
             "id", "name", "description", "module_type",
             "hazard_type",
             "state", "district", "administrative_level",
+            "coordination_mode",
             "start_date", "end_date",
             "data_source", "normalization_method", "classification_method",
             "indicators",
@@ -110,6 +117,7 @@ class AssessmentCreateSerializer(serializers.ModelSerializer):
             "id": {"read_only": True},
             "module_type": {"required": False},
             "hazard_type": {"required": False, "allow_blank": True},
+            "coordination_mode": {"required": False},
             "indicators": {"required": False},
         }
 

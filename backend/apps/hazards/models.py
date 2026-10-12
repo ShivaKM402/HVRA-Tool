@@ -16,11 +16,6 @@ from django.db import models
 
 class HazardTypeChoices(models.TextChoices):
     FLOOD = "FLOOD", "Flood"
-    EARTHQUAKE = "EARTHQUAKE", "Earthquake"
-    CYCLONE = "CYCLONE", "Cyclone"
-    LANDSLIDE = "LANDSLIDE", "Landslide"
-    DROUGHT = "DROUGHT", "Drought"
-    FOREST_FIRE = "FOREST_FIRE", "Forest Fire"
 
 
 class HazardType(models.Model):
@@ -174,6 +169,15 @@ class ModuleTypeChoices(models.TextChoices):
     EXPOSURE = "EXPOSURE", "Exposure"
 
 
+class IndicatorCategoryChoices(models.TextChoices):
+    """The four broad vulnerability/exposure categories specified by KSDMA HVRA framework."""
+    SOCIO_ECONOMIC = "SOCIO_ECONOMIC", "Socio-Economic"
+    PHYSICAL = "PHYSICAL", "Physical"
+    ENVIRONMENTAL = "ENVIRONMENTAL", "Environmental"
+    OTHER = "OTHER", "Other / Coping Capacity"
+    HAZARD_PRIMARY = "HAZARD_PRIMARY", "Hazard Metric"
+
+
 class HazardIndicator(models.Model):
     """
     Definition of an indicator (hazard / vulnerability / exposure) with default
@@ -188,6 +192,20 @@ class HazardIndicator(models.Model):
     )
     hazard_type = models.CharField(
         max_length=32, choices=HazardTypeChoices.choices, blank=True
+    )
+    category = models.CharField(
+        max_length=32,
+        choices=IndicatorCategoryChoices.choices,
+        default=IndicatorCategoryChoices.OTHER,
+        db_index=True,
+        help_text="Broad dimension: Socio-Economic, Physical, Environmental, Other / Coping Capacity.",
+    )
+    department = models.CharField(
+        max_length=128,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="Responsible government department or agency holding data for this indicator.",
     )
     code = models.CharField(max_length=64, unique=True)
     name = models.CharField(max_length=255)

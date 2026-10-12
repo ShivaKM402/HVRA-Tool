@@ -24,27 +24,73 @@ def normalize_min_max(
     max_val: float,
     target_min: float = 0.0,
     target_max: float = 10.0,
+    direction: str = "direct",
 ) -> float:
     """
     Min-max normalization to [target_min, target_max].
 
-    Formula: (value - min) / (max - min) * (target_max - target_min) + target_min
+    Direct formula:   (value - min) / (max - min) * (target_max - target_min) + target_min
+    Inverted formula: (max - value) / (max - min) * (target_max - target_min) + target_min
 
     Args:
         value: Raw value to normalize
-        min_val: Minimum value in the dataset
-        max_val: Maximum value in the dataset
+        min_val: Lower reference threshold Li or dataset minimum
+        max_val: Upper reference threshold Ui or dataset maximum
         target_min: Lower bound of target range (default 0)
         target_max: Upper bound of target range (default 10)
+        direction: 'direct' (higher=worse) or 'inverted' (higher=better/resilient)
 
     Returns:
-        Normalized value in [target_min, target_max].
-        Returns target_min if max_val == min_val (no variance).
+        Normalized score clamped to [target_min, target_max].
+        Returns target_min if max_val == min_val (zero variance / zero range).
     """
     if max_val == min_val:
         return target_min
-    normalized = (value - min_val) / (max_val - min_val) * (target_max - target_min) + target_min
+    
+    if direction.lower() in ("inverted", "inverse", "reverse"):
+        normalized = (max_val - value) / (max_val - min_val) * (target_max - target_min) + target_min
+    else:
+        normalized = (value - min_val) / (max_val - min_val) * (target_max - target_min) + target_min
+        
     return round(max(target_min, min(target_max, normalized)), 4)
+
+
+def normalize_reference(
+    value: float,
+    lower_ref: float,
+    upper_ref: float,
+    direction: str = "direct",
+    target_min: float = 0.0,
+    target_max: float = 10.0,
+) -> float:
+    """
+    Normalize raw indicator data using documented reference thresholds Li and Ui.
+
+    Direct (higher value = higher hazard/vulnerability/exposure):
+        Si = 10 * (x - Li) / (Ui - Li)
+
+    Inverted (higher value = lower hazard/vulnerability, higher coping capacity):
+        Si = 10 * (Ui - x) / (Ui - Li)
+
+    Args:
+        value: Observed value x
+        lower_ref: Documented lower reference threshold Li
+        upper_ref: Documented upper reference threshold Ui
+        direction: 'direct' or 'inverted'
+        target_min: Scale lower bound (0.0)
+        target_max: Scale upper bound (10.0)
+
+    Returns:
+        Clamped score on [target_min, target_max].
+    """
+    return normalize_min_max(
+        value=value,
+        min_val=lower_ref,
+        max_val=upper_ref,
+        target_min=target_min,
+        target_max=target_max,
+        direction=direction,
+    )
 
 
 def normalize_z_score(
@@ -54,30 +100,21 @@ def normalize_z_score(
     target_min: float = 0.0,
     target_max: float = 10.0,
     clip_sigma: float = 3.0,
+    direction: str = "direct",
 ) -> float:
     """
     Z-score normalization clipped to ±clip_sigma standard deviations,
     then rescaled to [target_min, target_max].
-
-    Args:
-        value: Raw value
-        mean: Mean of the dataset
-        std: Standard deviation of the dataset
-        target_min: Lower bound of target range
-        target_max: Upper bound of target range
-        clip_sigma: Clip z-scores beyond this many std deviations
-
-    Returns:
-        Normalized value in [target_min, target_max].
     """
     if std == 0:
-        return (target_min + target_max) / 2  # All values equal
+        return (target_min + target_max) / 2
 
     z = (value - mean) / std
+    if direction.lower() in ("inverted", "inverse", "reverse"):
+        z = -z
     z_clipped = max(-clip_sigma, min(clip_sigma, z))
-    # Map [-clip_sigma, clip_sigma] → [target_min, target_max]
     normalized = (z_clipped + clip_sigma) / (2 * clip_sigma) * (target_max - target_min) + target_min
-    return round(normalized, 4)
+    return round(max(target_min, min(target_max, normalized)), 4)
 
 
 def normalize_rank(
@@ -85,20 +122,10 @@ def normalize_rank(
     sorted_values: List[float],
     target_min: float = 0.0,
     target_max: float = 10.0,
+    direction: str = "direct",
 ) -> float:
     """
     Rank-based normalization.
-
-    Assigns scores based on rank position in the sorted list.
-
-    Args:
-        value: Raw value to normalize
-        sorted_values: All values in the dataset, sorted ascending
-        target_min: Lower bound of target range
-        target_max: Upper bound of target range
-
-    Returns:
-        Normalized value based on rank.
     """
     n = len(sorted_values)
     if n == 0:
@@ -106,10 +133,10 @@ def normalize_rank(
     if n == 1:
         return (target_min + target_max) / 2
 
-    # Find rank (1-indexed)
-    rank = sorted(sorted_values).index(value) + 1 if value in sorted_values else n // 2 + 1
+    ordered = sorted(sorted_values, reverse=(direction.lower() in ("inverted", "inverse", "reverse")))
+    rank = ordered.index(value) + 1 if value in ordered else n // 2 + 1
     normalized = (rank - 1) / (n - 1) * (target_max - target_min) + target_min
-    return round(normalized, 4)
+    return round(max(target_min, min(target_max, normalized)), 4)
 
 
 def normalize_batch(
@@ -117,16 +144,26 @@ def normalize_batch(
     method: str = "min_max",
     target_min: float = 0.0,
     target_max: float = 10.0,
+    direction: str = "direct",
+    lower_ref: Optional[float] = None,
+    upper_ref: Optional[float] = None,
 ) -> dict:  # {unit_id: normalized_value}
     """
     Normalize a batch of values across all units in the assessment extent.
-    This ensures normalization is relative within the selected extent.
+
+    Supports:
+      1. Fixed reference intervals [lower_ref, upper_ref] when provided.
+      2. Dynamic batch extremes [min(x), max(x)] as fallback.
+      3. Directional inversion ('direct' vs 'inverted').
 
     Args:
         values: Dict mapping unit_id → raw_value
-        method: Normalization method ('min_max', 'z_score', 'rank')
-        target_min: Target scale minimum
-        target_max: Target scale maximum
+        method: Normalization method ('min_max', 'reference', 'z_score', 'rank')
+        target_min: Target scale minimum (default 0.0)
+        target_max: Target scale maximum (default 10.0)
+        direction: 'direct' or 'inverted'
+        lower_ref: Optional fixed lower threshold Li
+        upper_ref: Optional fixed upper threshold Ui
 
     Returns:
         Dict mapping unit_id → normalized_value
@@ -139,11 +176,29 @@ def normalize_batch(
     if not raw_vals:
         return {k: target_min for k in values}
 
-    if method == "min_max":
+    # If explicit reference thresholds are supplied, use reference normalization
+    if lower_ref is not None and upper_ref is not None:
+        return {
+            uid: normalize_reference(
+                v, lower_ref, upper_ref,
+                direction=direction,
+                target_min=target_min,
+                target_max=target_max,
+            )
+            if v is not None else target_min
+            for uid, v in values.items()
+        }
+
+    if method in ("min_max", "reference"):
         min_val = min(raw_vals)
         max_val = max(raw_vals)
         return {
-            uid: normalize_min_max(v, min_val, max_val, target_min, target_max)
+            uid: normalize_min_max(
+                v, min_val, max_val,
+                target_min=target_min,
+                target_max=target_max,
+                direction=direction,
+            )
             if v is not None else target_min
             for uid, v in values.items()
         }
@@ -153,19 +208,35 @@ def normalize_batch(
         variance = sum((v - mean) ** 2 for v in raw_vals) / len(raw_vals)
         std = math.sqrt(variance)
         return {
-            uid: normalize_z_score(v, mean, std, target_min, target_max)
+            uid: normalize_z_score(
+                v, mean, std,
+                target_min=target_min,
+                target_max=target_max,
+                direction=direction,
+            )
             if v is not None else target_min
             for uid, v in values.items()
         }
 
     elif method == "rank":
-        sorted_vals = sorted(raw_vals)
         return {
-            uid: normalize_rank(v, sorted_vals, target_min, target_max)
+            uid: normalize_rank(
+                v, raw_vals,
+                target_min=target_min,
+                target_max=target_max,
+                direction=direction,
+            )
             if v is not None else target_min
             for uid, v in values.items()
         }
 
     else:
         logger.warning(f"Unknown normalization method '{method}'. Using min_max.")
-        return normalize_batch(values, method="min_max", target_min=target_min, target_max=target_max)
+        return normalize_batch(
+            values, method="min_max",
+            target_min=target_min,
+            target_max=target_max,
+            direction=direction,
+            lower_ref=lower_ref,
+            upper_ref=upper_ref,
+        )

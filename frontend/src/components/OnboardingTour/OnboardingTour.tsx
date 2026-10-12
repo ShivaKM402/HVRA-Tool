@@ -25,7 +25,7 @@ export default function OnboardingTour({ isOpen, onClose }: OnboardingTourProps)
       content:
         'A standardized disaster management decision-support system enabling officers to generate defensible hazard, vulnerability, exposure, and composite risk assessments without GIS training.',
       highlights: [
-        'Multi-hazard coverage: Floods, Coastal hazards, Landslides, Droughts',
+        'Comprehensive Flood Risk Assessment: Modules 1–4 (Hazard, Vulnerability, Exposure, Risk)',
         'Standardized 4-band classification: NH, LH, MH, and HH',
         'Defensible mathematical scoring and relative neighbor analysis',
       ],

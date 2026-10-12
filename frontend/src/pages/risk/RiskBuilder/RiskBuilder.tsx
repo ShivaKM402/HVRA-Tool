@@ -100,11 +100,11 @@ export default function RiskBuilder() {
         LOW: 2,
       },
       sampleScores: [
-        { unit: 'Thiruvananthapuram', score: 0.84, class: 'VERY_HIGH' },
-        { unit: 'Neyyattinkara', score: 0.76, class: 'HIGH' },
-        { unit: 'Kattakkada', score: 0.71, class: 'HIGH' },
-        { unit: 'Nedumangad', score: 0.68, class: 'HIGH' },
-        { unit: 'Chirayinkeezhu', score: 0.52, class: 'MODERATE' },
+        { unit: 'Thiruvananthapuram', score: 8.4, class: 'VERY_HIGH' },
+        { unit: 'Neyyattinkara', score: 7.6, class: 'HIGH' },
+        { unit: 'Kattakkada', score: 7.1, class: 'HIGH' },
+        { unit: 'Nedumangad', score: 6.8, class: 'HIGH' },
+        { unit: 'Chirayinkeezhu', score: 5.2, class: 'MODERATE' },
       ],
     });
 
@@ -195,12 +195,12 @@ export default function RiskBuilder() {
         <div className="builder-layout">
           {/* Left Configuration Column */}
           <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <h2 style={{ margin: 0, fontSize: '1.1rem', color: '#0f172a' }}>
+            <h2 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-heading)' }}>
               1. Assessment Name & Spatial Scope
             </h2>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '0.3rem' }}>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.3rem' }}>
                 Assessment Title *
               </label>
               <input
@@ -213,7 +213,7 @@ export default function RiskBuilder() {
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '0.3rem' }}>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.3rem' }}>
                 Target Revenue District *
               </label>
               <select
@@ -228,9 +228,9 @@ export default function RiskBuilder() {
               </select>
             </div>
 
-            <hr style={{ border: 'none', borderTop: '1px solid #f1f5f9', margin: '0.5rem 0' }} />
+            <hr style={{ border: 'none', borderTop: '1px solid var(--border-default)', margin: '0.5rem 0' }} />
 
-            <h2 style={{ margin: 0, fontSize: '1.1rem', color: '#0f172a' }}>
+            <h2 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-heading)' }}>
               2. Link Domain Department Outputs
             </h2>
 
@@ -348,7 +348,7 @@ export default function RiskBuilder() {
           {/* Right Live Preview Column */}
           <div className="preview-sticky-card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <h2 style={{ margin: 0, fontSize: '1.15rem', color: '#0f172a', fontFamily: 'var(--font-heading)', fontWeight: 800 }}>
+              <h2 style={{ margin: 0, fontSize: '1.15rem', color: 'var(--text-heading)', fontFamily: 'var(--font-heading)', fontWeight: 800 }}>
                 ⚡ Risk Distribution Preview
               </h2>
               <button
@@ -362,7 +362,7 @@ export default function RiskBuilder() {
 
             {previewResult ? (
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: '0.82rem', color: '#475569' }}>
+                <div style={{ background: 'var(--bg-surface)', padding: '0.85rem', borderRadius: 8, border: '1px solid var(--border-default)', fontSize: '0.82rem', color: 'var(--text-primary)' }}>
                   <div><strong>Formula:</strong> {previewResult.formulaUsed}</div>
                   <div><strong>Weights Normalized:</strong> H: {previewResult.weightsNormalized.hazard} | V: {previewResult.weightsNormalized.vulnerability} | E: {previewResult.weightsNormalized.exposure}</div>
                 </div>
@@ -376,7 +376,7 @@ export default function RiskBuilder() {
                     <div style={{ fontSize: '0.7rem', color: '#9a3412', fontWeight: 700 }}>HIGH</div>
                     <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#9a3412' }}>{previewResult.classes.HIGH}</div>
                   </div>
-                  <div style={{ background: '#fffbeb', padding: '0.6rem', borderRadius: 6, border: '1px solid #fde68a' }}>
+                  <div style={{ background: '#fef3c7', padding: '0.6rem', borderRadius: 6, border: '1px solid #fde68a' }}>
                     <div style={{ fontSize: '0.7rem', color: '#92400e', fontWeight: 700 }}>MODERATE</div>
                     <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#92400e' }}>{previewResult.classes.MODERATE}</div>
                   </div>
@@ -387,13 +387,13 @@ export default function RiskBuilder() {
                 </div>
 
                 <div>
-                  <h4 style={{ margin: '0.5rem 0', fontSize: '0.85rem', color: '#334155' }}>
+                  <h4 style={{ margin: '0.5rem 0', fontSize: '0.85rem', color: 'var(--text-heading)' }}>
                     Sample Administrative Unit Scores
                   </h4>
                   <table style={{ width: '100%', fontSize: '0.82rem', borderCollapse: 'collapse' }}>
                     <tbody>
                       {previewResult.sampleScores.map((s: any, idx: number) => (
-                        <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <tr key={idx} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                           <td style={{ padding: '0.4rem 0', fontWeight: 600 }}>{s.unit}</td>
                           <td style={{ padding: '0.4rem 0', textAlign: 'right' }}>Score: {s.score}</td>
                           <td style={{ padding: '0.4rem 0', textAlign: 'right' }}>
@@ -408,16 +408,16 @@ export default function RiskBuilder() {
                 </div>
               </div>
             ) : (
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', background: '#f8fafc', borderRadius: 8, border: '1px dashed #cbd5e1', textAlign: 'center' }}>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', background: 'var(--bg-surface)', borderRadius: 10, border: '1.5px dashed var(--border-default)', textAlign: 'center' }}>
                 <span style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🧮</span>
-                <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.92rem' }}>Ready for Calculation</div>
-                <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.25rem', maxWidth: 280 }}>
+                <div style={{ fontWeight: 700, color: 'var(--text-heading)', fontSize: '0.92rem' }}>Ready for Calculation</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem', maxWidth: 280 }}>
                   Click &ldquo;Compute Preview&rdquo; to execute the formula in memory without saving to the database.
                 </div>
               </div>
             )}
 
-            <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '1.25rem', marginTop: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ borderTop: '1px solid var(--border-default)', paddingTop: '1.25rem', marginTop: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Link to="/dashboard" className="btn btn-secondary">
                 Cancel
               </Link>

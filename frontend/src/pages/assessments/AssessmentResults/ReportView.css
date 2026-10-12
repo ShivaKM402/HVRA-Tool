@@ -1,64 +1,66 @@
 /* =========================================================
-   HVRA Digital Platform — Formal Dossier Report View
+   HVRA Flood Portal — Google Docs Style Dossier Report View
    ========================================================= */
 
 .rpt {
   display: grid;
-  grid-template-columns: 290px minmax(0, 1fr);
-  gap: 1.5rem;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 1.25rem;
   align-items: start;
-  padding-bottom: 3rem;
-  animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  padding: 1rem 1.5rem 3rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* ---------- left column: contents ---------- */
+/* ---------- Left column: Table of Contents ---------- */
 .rpt-toc {
   position: sticky;
-  top: 1rem;
+  top: 75px;
   background: #ffffff;
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  border-radius: var(--radius-xl);
-  padding: 1.25rem 1.2rem;
-  max-height: calc(100vh - 2rem);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  padding: 1rem;
+  max-height: calc(100vh - 90px);
   overflow-y: auto;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.06);
 }
 
 .rpt-toc-title {
-  margin: 0 0 0.85rem;
+  margin: 0 0 0.75rem;
   font-family: var(--font-heading);
-  font-size: 1.05rem;
-  color: var(--color-gov-navy);
+  font-size: 0.95rem;
+  color: var(--text-heading);
   font-weight: 700;
   display: flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.4rem;
 }
 
 .rpt-toc-list {
   list-style: none;
-  margin: 0 0 1.25rem;
+  margin: 0 0 1rem;
   padding: 0;
   display: grid;
-  gap: 0.2rem;
+  gap: 0.15rem;
 }
 
 .rpt-toc-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.45rem;
   width: 100%;
   text-align: left;
   background: transparent;
   border: none;
-  border-left: 3px solid transparent;
-  padding: 0.5rem 0.65rem;
+  border-left: 2.5px solid transparent;
+  padding: 0.4rem 0.55rem;
   font-family: var(--font-sans);
-  font-size: 0.84rem;
-  color: #334155;
-  border-radius: 0 8px 8px 0;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  border-radius: 0 6px 6px 0;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.12s ease;
 }
 
 .rpt-toc-item:hover {
@@ -67,132 +69,90 @@
 }
 
 .rpt-toc-item.active {
-  background: #eff6ff;
-  border-left-color: #2563eb;
-  color: #1d4ed8;
-  font-weight: 700;
+  background: rgba(26, 115, 232, 0.08);
+  border-left-color: var(--color-primary);
+  color: var(--color-primary);
+  font-weight: 600;
 }
 
 .rpt-toc-num {
-  color: #64748b;
+  color: var(--text-muted);
   font-variant-numeric: tabular-nums;
   font-family: var(--font-mono);
-  font-size: 0.76rem;
+  font-size: 0.74rem;
 }
 
 .rpt-toc-item.active .rpt-toc-num {
-  color: #2563eb;
+  color: var(--color-primary);
 }
 
 .rpt-toc-actions {
-  display: grid;
-  gap: 0.6rem;
   border-top: 1px solid #f1f5f9;
-  padding-top: 1rem;
+  padding-top: 0.75rem;
 }
 
-.rpt-regen {
-  width: 100%;
-}
-
-.rpt-export {
-  width: 100%;
-  background: var(--color-primary-gradient);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  padding: 0.65rem 0.95rem;
-  font-family: var(--font-sans);
-  font-size: 0.85rem;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
-  transition: all 0.2s ease;
-}
-
-.rpt-export:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.45);
-}
-
-.rpt-export:disabled {
-  background: #94a3b8;
-  border-color: #94a3b8;
-  cursor: not-allowed;
-}
-
-.rpt-toc-mini {
-  display: flex;
-  gap: 0.4rem;
-  flex-wrap: wrap;
-}
-
-.rpt-mini-btn {
-  border: 1px solid #cbd5e1;
-  background: #ffffff;
-  color: #334155;
-  border-radius: 6px;
-  padding: 0.35rem 0.65rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  text-decoration: none;
-  transition: all 0.15s ease;
-}
-
-.rpt-mini-btn:hover {
-  background: #f1f5f9;
-  border-color: #94a3b8;
-}
-
-.rpt-toc-links {
-  display: flex;
-  gap: 0.45rem;
-  margin-top: 0.85rem;
-  flex-wrap: wrap;
-}
-
-/* ---------- right column: preview ---------- */
+/* ---------- Right column: Google Docs Preview ---------- */
 .rpt-preview {
   min-width: 0;
 }
 
+.report-action-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  background: #ffffff;
+  padding: 0.65rem 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-default);
+  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.06);
+}
+
+.report-action-left, .report-action-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
 .rpt-preview .printable-report-sheet {
-  max-width: 980px;
+  max-width: 960px;
   margin: 0 auto;
   background: #ffffff;
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(60, 64, 67, 0.08);
   padding: 2.5rem 3rem;
 }
 
 .rpt-preview h2[id] {
   scroll-margin-top: 5rem;
   font-family: var(--font-heading);
-  color: var(--color-gov-navy);
-  font-weight: 800;
+  color: var(--text-heading);
+  font-weight: 700;
 }
 
 .rpt-pagefoot {
   display: flex;
   justify-content: space-between;
   gap: 1rem;
-  max-width: 980px;
-  margin: 1.5rem auto 0;
-  padding: 0.85rem 1.25rem;
-  border-top: 1px solid rgba(226, 232, 240, 0.8);
-  font-size: 0.78rem;
-  color: #64748b;
+  max-width: 960px;
+  margin: 1.25rem auto 0;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--border-default);
+  font-size: 0.76rem;
+  color: var(--text-muted);
 }
 
 @media (max-width: 980px) {
-  .rpt { grid-template-columns: 1fr; }
+  .rpt { grid-template-columns: 1fr; padding: 1rem; }
   .rpt-toc { position: static; max-height: none; }
 }
 
 @media print {
-  .rpt { grid-template-columns: 1fr; }
+  .rpt { grid-template-columns: 1fr; padding: 0; }
   .rpt-toc, .report-action-bar { display: none !important; }
   .rpt-preview .printable-report-sheet { box-shadow: none; border: none; padding: 0; }
 }

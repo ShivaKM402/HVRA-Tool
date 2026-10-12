@@ -11,6 +11,7 @@ import { useToast } from '../../context/ToastContext';
 import CommandPalette from '../CommandPalette/CommandPalette';
 import OnboardingTour from '../OnboardingTour/OnboardingTour';
 import ToastStack from '../Toast/ToastStack';
+import AIPanel from '../AI/AIPanel';
 import './Layout.css';
 
 export default function Layout() {
@@ -96,65 +97,24 @@ export default function Layout() {
 
   return (
     <div className="app-layout">
-      {/* Sidebar */}
-      {/* Top Navigation Bar */}
-      <header className="top-nav-bar">
-        <div className="top-nav-brand">
-          <Link to="/dashboard" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <div className="top-nav-brand-icon">🌊</div>
-            <div>
-              <div className="top-nav-brand-name">HVRA Digital Tool</div>
-            </div>
-          </Link>
-        </div>
+      {/* Google-Style Two-Tier Clean Console Header */}
+      <header className="google-header-container">
+        {/* Tier 1: System Bar (Brand, District Context, Global Search, Actions, Profile) */}
+        <div className="google-top-bar">
+          <div className="google-top-left">
+            <Link to="/dashboard" className="google-brand">
+              <div className="google-brand-icon">🌊</div>
+              <span className="google-brand-title">HVRA Flood Portal</span>
+            </Link>
 
-        <nav className="top-nav-links">
-          <NavLink to="/dashboard" className={({ isActive }) => `top-nav-item${isActive ? ' active' : ''}`}>
-            Dashboard
-          </NavLink>
-
-          <NavLink
-            to="/new-assessment?module=HAZARD"
-            className={({ isActive }) =>
-              `top-nav-item${isActive && location.pathname === '/new-assessment' ? ' active' : ''}`
-            }
-          >
-            Assessments (HVE)
-          </NavLink>
-
-          <NavLink to="/risk-builder" className={({ isActive }) => `top-nav-item${isActive ? ' active' : ''}`}>
-            Risk
-          </NavLink>
-
-          <NavLink to="/data-library" className={({ isActive }) => `top-nav-item${isActive ? ' active' : ''}`}>
-            Data Library
-          </NavLink>
-          
-          <NavLink to="/reports" className={({ isActive }) => `top-nav-item${isActive ? ' active' : ''}`}>
-            Reports
-          </NavLink>
-          
-          {isAdmin && (
-            <NavLink to="/settings" className={({ isActive }) => `top-nav-item${isActive ? ' active' : ''}`}>
-              Settings
-            </NavLink>
-          )}
-        </nav>
-      </header>
-
-      {/* Main Content Area */}
-      <div className="main-content">
-        {/* Topbar */}
-        <header className="topbar">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             {/* Context Switcher for District */}
             <div className="district-switcher">
-              <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Territory:</span>
+              <span style={{ fontSize: '0.8rem', color: '#64748b' }}>📍</span>
               <select
                 className="district-select"
                 value={activeDistrictId || ''}
                 onChange={(e) => setActiveDistrictId(e.target.value ? parseInt(e.target.value, 10) : null)}
-                title="Switch active territory context"
+                title="Switch territory"
               >
                 <option value="">All Kerala Districts</option>
                 {districts.map((d) => (
@@ -162,33 +122,33 @@ export default function Layout() {
                 ))}
               </select>
             </div>
+          </div>
 
-            {/* Quick Command Palette Button */}
+          <div className="google-top-center">
+            {/* Quick Search Trigger */}
             <button
               className="cmd-trigger-btn"
               onClick={() => setIsCommandPaletteOpen(true)}
               title="Global search (Ctrl+K)"
             >
-              <span>🔍 Jump to...</span>
+              <span>🔍 Search assessments, taluks, indicators...</span>
               <kbd className="cmd-kbd">Ctrl+K</kbd>
             </button>
           </div>
 
-          <div className="topbar-actions">
-            {/* Help Menu */}
-            <Link to="/help" className="topbar-icon-btn" title="Help & Compliance">
-              ❓
-            </Link>
+          <div className="google-top-right">
+            {/* AI Assistant */}
+            <AIPanel />
 
-            {/* Notification Center with badge */}
+            {/* Notification Center */}
             <Link to="/notifications" className="topbar-icon-btn" title="Notification Center">
               🔔
               {unreadCount > 0 && <span className="notif-badge">{unreadCount}</span>}
             </Link>
 
             {/* Primary Action Button */}
-            <NavLink to="/new-assessment?module=HAZARD" className="btn btn-primary btn-sm">
-              + Run Assessment
+            <NavLink to="/new-assessment?module=HAZARD" className="btn btn-primary btn-sm" style={{ whiteSpace: 'nowrap' }}>
+              + New Assessment
             </NavLink>
 
             {/* Profile / Auth Menu */}
@@ -247,7 +207,7 @@ export default function Layout() {
                 )}
               </div>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', whiteSpace: 'nowrap' }}>
                 <span
                   style={{
                     fontSize: '0.72rem',
@@ -259,35 +219,83 @@ export default function Layout() {
                   }}
                   title="Operating in local prototype demo mode"
                 >
-                  ⚡ Prototype Mode
+                  ⚡ Prototype
                 </span>
-                <NavLink to="/login" className="btn btn-secondary btn-sm">
+                <NavLink to="/login" className="btn btn-secondary btn-sm" style={{ whiteSpace: 'nowrap' }}>
                   🔐 Sign In
                 </NavLink>
               </div>
             )}
-
           </div>
-        </header>
+        </div>
 
-        {/* Clickable Breadcrumb Bar (HVRA §4) */}
-        {breadcrumbs && (
-          <div className="breadcrumb-bar" aria-label="Breadcrumb">
-            {breadcrumbs.map((crumb, idx) => (
-              <span key={crumb.to} style={{ display: 'inline-flex', alignItems: 'center' }}>
-                {idx > 0 && <span className="breadcrumb-separator">/</span>}
-                {idx === breadcrumbs.length - 1 ? (
-                  <span className="breadcrumb-current">{crumb.label}</span>
-                ) : (
-                  <Link to={crumb.to} className="breadcrumb-link">
-                    {crumb.label}
-                  </Link>
-                )}
-              </span>
-            ))}
-          </div>
-        )}
+        {/* Tier 2: Navigation Bar (Module Tabs & Inline Breadcrumbs) */}
+        <div className="google-nav-bar">
+          <nav className="google-nav-links">
+            <NavLink to="/dashboard" className={({ isActive }) => `google-nav-item${isActive ? ' active' : ''}`}>
+              Dashboard
+            </NavLink>
 
+            <NavLink
+              to="/new-assessment?module=HAZARD"
+              className={({ isActive }) =>
+                `google-nav-item${isActive && location.pathname === '/new-assessment' ? ' active' : ''}`
+              }
+            >
+              Flood Assessments
+            </NavLink>
+
+            <NavLink
+              to="/assessments/86/results?tab=coordination"
+              className={({ isActive }) =>
+                `google-nav-item${isActive || (location.pathname.includes('/assessments') && location.search.includes('tab=coordination')) ? ' active' : ''}`
+              }
+              title="Department Data Coordination (Water Resources, LSGD, PWD, Health, Economics & Statistics)"
+            >
+              🏛️ Dept Coordination
+            </NavLink>
+
+            <NavLink to="/risk-builder" className={({ isActive }) => `google-nav-item${isActive ? ' active' : ''}`}>
+              Risk Builder
+            </NavLink>
+
+            <NavLink to="/data-library" className={({ isActive }) => `google-nav-item${isActive ? ' active' : ''}`}>
+              Data Library
+            </NavLink>
+            
+            <NavLink to="/reports" className={({ isActive }) => `google-nav-item${isActive ? ' active' : ''}`}>
+              Reports
+            </NavLink>
+            
+            {isAdmin && (
+              <NavLink to="/settings" className={({ isActive }) => `google-nav-item${isActive ? ' active' : ''}`}>
+                Settings
+              </NavLink>
+            )}
+          </nav>
+
+          {/* Inline Breadcrumb Trail */}
+          {breadcrumbs && (
+            <div className="google-nav-breadcrumbs" aria-label="Breadcrumb">
+              {breadcrumbs.map((crumb, idx) => (
+                <span key={crumb.to} style={{ display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
+                  {idx > 0 && <span className="breadcrumb-separator">/</span>}
+                  {idx === breadcrumbs.length - 1 ? (
+                    <span className="breadcrumb-current">{crumb.label}</span>
+                  ) : (
+                    <Link to={crumb.to} className="breadcrumb-link">
+                      {crumb.label}
+                    </Link>
+                  )}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      </header>
+
+      {/* Main Content Area */}
+      <div className="main-content">
         {/* Page Content */}
         <main className="page-content">
           <Outlet />

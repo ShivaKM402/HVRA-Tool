@@ -56,8 +56,8 @@ export default function SharedQueryView() {
           {query.description || 'Public disaster risk assessment query template for Kerala.'}
         </p>
 
-        <div style={{ background: '#f8fafc', borderRadius: 8, padding: '1rem', border: '1px solid #e2e8f0', marginBottom: '1.5rem' }}>
-          <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+        <div style={{ background: 'var(--bg-surface)', borderRadius: 10, padding: '1rem', border: '1px solid var(--border-default)', marginBottom: '1.5rem' }}>
+          <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-heading)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
             Template Parameters
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.85rem', color: '#475569' }}>

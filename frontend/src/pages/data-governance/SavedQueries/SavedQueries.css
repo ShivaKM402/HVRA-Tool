@@ -11,9 +11,9 @@
 }
 
 .saved-queries-header {
-  background: #ffffff;
+  background: var(--bg-card);
   border-radius: var(--radius-xl);
-  border: 1px solid rgba(226, 232, 240, 0.85);
+  border: 1px solid var(--border-default);
   box-shadow: var(--shadow-sm);
   padding: 1.5rem 1.75rem;
   position: relative;
@@ -27,7 +27,7 @@
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+  background: var(--color-primary-gradient);
 }
 
 .query-grid {
@@ -37,15 +37,15 @@
 }
 
 .query-card {
-  background: #ffffff;
+  background: var(--bg-card);
   border-radius: var(--radius-xl);
-  border: 1px solid rgba(226, 232, 240, 0.85);
+  border: 1px solid var(--border-default);
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  box-shadow: var(--shadow-xs);
   position: relative;
   overflow: hidden;
 }

@@ -9,7 +9,6 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Cartes
 import { checkHealth, getAssessments, getHazards, getDistricts, getDashboardSummary, getRiskDashboardSummary, deleteAssessment } from '@/services/api';
 import type { Assessment, HealthCheckResponse, HazardType, AdministrativeUnit, DashboardSummaryResponse } from '@/types';
 import KeralaMap from '@/components/Map/KeralaMap';
-import DigitalTwin3D from '@/components/Map3D/DigitalTwin3D';
 import './Dashboard.css';
 
 // ── 3-dot Card Actions Menu ──────────────────────────────────
@@ -81,7 +80,6 @@ export default function Dashboard() {
   const [hazards, setHazards] = useState<HazardType[]>([]);
   const [districts, setDistricts] = useState<AdministrativeUnit[]>([]);
   const [selectedDistrict, setSelectedDistrict] = useState<AdministrativeUnit | null>(null);
-  const [mapViewMode, setMapViewMode] = useState<'3D' | '2D'>('2D');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -225,46 +223,38 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard-wrapper">
-      {/* ── Cinematic 3D Digital Twin Hero Command Banner ── */}
-      <div className="dashboard-hero-banner" style={{ backgroundImage: "linear-gradient(180deg, rgba(8, 11, 20, 0.35) 0%, rgba(3, 7, 18, 0.65) 100%), url('/hero.jpg')" }}>
-        <div className="hero-overlay">
-          <div className="hero-content-cluster" style={{ textAlign: 'center', maxWidth: '850px', padding: '0 1rem', zIndex: 10 }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 16px', borderRadius: '9999px', background: 'rgba(56, 189, 248, 0.12)', border: '1px solid rgba(56, 189, 248, 0.35)', color: '#38bdf8', fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '1.25rem' }}>
-              <span>🌐</span> 3D Digital Twin &amp; Risk Intelligence Platform
-            </div>
-            <h1 className="hero-main-text" style={{ fontSize: '2.8rem', lineHeight: 1.15, marginBottom: '0.85rem', fontWeight: 900, letterSpacing: '-0.02em', textShadow: '0 4px 16px rgba(0,0,0,0.8)' }}>
-              HVRA Spatial Intelligence
-            </h1>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '1.2rem', flexWrap: 'wrap' }}>
-              <span style={{ background: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.4)', color: '#fca5a5', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700 }}>
-                HAZARD (H)
-              </span>
-              <span style={{ background: 'rgba(168, 85, 247, 0.2)', border: '1px solid rgba(168, 85, 247, 0.4)', color: '#d8b4fe', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700 }}>
-                VULNERABILITY (V)
-              </span>
-              <span style={{ background: 'rgba(6, 182, 212, 0.2)', border: '1px solid rgba(6, 182, 212, 0.4)', color: '#67e8f9', padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700 }}>
-                EXPOSURE (E)
-              </span>
-            </div>
-            <p style={{ color: '#cbd5e1', fontSize: '1.15rem', fontWeight: 500, marginBottom: '1.8rem', textShadow: '0 2px 8px rgba(0,0,0,0.7)' }}>
-              "Understand Risk Before It Becomes an Emergency."
-            </p>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '12px' }}>
-              <button
-                className="btn btn-primary"
-                style={{ padding: '10px 24px', fontSize: '0.92rem', fontWeight: 700, borderRadius: '10px', boxShadow: '0 4px 20px rgba(37, 99, 235, 0.5)' }}
-                onClick={() => {
-                  document.getElementById('geospatial-theater-anchor')?.scrollIntoView({ behavior: 'smooth' });
-                }}
-              >
-                ENTER 3D RISK PLATFORM ➔
-              </button>
-            </div>
-          </div>
+      {/* ── Google-Style Clean Header ── */}
+      <div className="dashboard-page-header">
+        <div className="dashboard-header-text">
+          <div className="dashboard-header-pill">🌊 Kerala State Disaster Management Authority</div>
+          <h1 className="dashboard-header-title">Flood Hazard &amp; Risk Intelligence</h1>
+          <p className="dashboard-header-desc">
+            Monitor real-time inundation zones, coordinate inter-departmental flood indicators, and generate official risk assessment dossiers.
+          </p>
         </div>
-      </div>
-      <div className="dashboard-hero-footer">
-        <h2>Spatial Command &amp; Decision Support</h2>
+        <div className="dashboard-header-actions">
+          <button
+            className="btn btn-primary btn-sm"
+            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+            onClick={() => navigate('/new-assessment?module=HAZARD')}
+          >
+            <span>+</span> Run Flood Assessment
+          </button>
+          <button
+            className="btn btn-secondary btn-sm"
+            style={{ color: '#0d9488', borderColor: '#ccfbf1', background: '#f0fdfa', fontWeight: 600 }}
+            onClick={() => navigate('/assessments/86/results?tab=coordination')}
+            title="Departmental Data Coordination (Water Resources, LSGD, PWD, Health, Economics & Statistics)"
+          >
+            🏛️ Dept Coordination
+          </button>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => navigate('/reports')}
+          >
+            📋 View Reports
+          </button>
+        </div>
       </div>
 
       <div className="dashboard">
@@ -320,7 +310,7 @@ export default function Dashboard() {
           <div className="kpi-value">{activeHazards}</div>
           <div className="kpi-label">Active Kerala Hazards</div>
           <div className="kpi-subtext">
-            <span>🌊 Flood, Landslide, Coastal &amp; Cyclonic</span>
+            <span>🌊 Riverine, Pluvial &amp; Flash Flood Risk</span>
           </div>
         </div>
 
@@ -347,56 +337,18 @@ export default function Dashboard() {
         <div className="spatial-theater-card" id="geospatial-theater-anchor">
           <div className="spatial-theater-header">
             <div className="spatial-theater-title">
-              <span style={{ fontSize: '1.3rem' }}>🌐</span>
+              <span style={{ fontSize: '1.3rem' }}>🗺️</span>
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#0f172a', fontWeight: 800 }}>
-                  3D Risk Intelligence &amp; Digital Twin Theater
+                  Geospatial Flood Risk &amp; Territory Intelligence Center
                 </h3>
                 <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                  Explore 3D terrain, Risk X-Ray, Risk DNA, and 4D climate scenario simulations
+                  State-wide administrative boundaries, flood inundation zones, and telemetry monitoring
                 </div>
               </div>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-              {/* 3D / 2D View Switcher */}
-              <div style={{ display: 'inline-flex', background: '#0f172a', padding: '3px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                <button
-                  type="button"
-                  style={{
-                    border: 'none',
-                    padding: '5px 12px',
-                    borderRadius: '6px',
-                    fontSize: '0.74rem',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    background: mapViewMode === '3D' ? '#3b82f6' : 'transparent',
-                    color: mapViewMode === '3D' ? '#ffffff' : '#94a3b8',
-                    transition: 'all 0.15s ease',
-                  }}
-                  onClick={() => setMapViewMode('3D')}
-                >
-                  🌐 3D Digital Twin
-                </button>
-                <button
-                  type="button"
-                  style={{
-                    border: 'none',
-                    padding: '5px 12px',
-                    borderRadius: '6px',
-                    fontSize: '0.74rem',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    background: mapViewMode === '2D' ? '#3b82f6' : 'transparent',
-                    color: mapViewMode === '2D' ? '#ffffff' : '#94a3b8',
-                    transition: 'all 0.15s ease',
-                  }}
-                  onClick={() => setMapViewMode('2D')}
-                >
-                  🗺️ 2D Cartographic
-                </button>
-              </div>
-
               <span className="badge badge-info" style={{ fontSize: '0.72rem' }}>
                 {selectedDistrict ? selectedDistrict.name.replace(' [DEMO]', '') : 'All Districts'}
               </span>
@@ -416,14 +368,7 @@ export default function Dashboard() {
             ))}
           </div>
 
-          {mapViewMode === '3D' ? (
-            <DigitalTwin3D
-              selectedDistrict={selectedDistrict}
-              assessmentId={districtAssessments[0]?.id || 85}
-            />
-          ) : (
-            <KeralaMap selectedDistrict={selectedDistrict} />
-          )}
+          <KeralaMap selectedDistrict={selectedDistrict} />
         </div>
 
         {/* Selected District Dossier Card */}
@@ -456,10 +401,10 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div style={{ background: '#f8fafc', borderRadius: 10, padding: '0.85rem 1rem', border: '1px solid #e2e8f0', marginBottom: '1.25rem' }}>
+            <div style={{ background: 'var(--bg-surface)', borderRadius: 10, padding: '0.85rem 1rem', border: '1px solid var(--border-default)', marginBottom: '1.25rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>Assessments Recorded:</span>
-                <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a' }}>{districtAssessments.length}</span>
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>Assessments Recorded:</span>
+                <span style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-heading)' }}>{districtAssessments.length}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>Multi-Hazard Tier:</span>
@@ -517,7 +462,7 @@ export default function Dashboard() {
               <div className="workflow-card-icon">🌊</div>
               <div className="workflow-card-name">Hazard Assessment (H)</div>
               <div className="workflow-card-desc">
-                Execute IMD precipitation exceedance, CWC river gauge thresholds, and landslide susceptibility queries.
+                Execute IMD precipitation exceedance, CWC river gauge thresholds, and flood inundation extent queries.
               </div>
             </div>
             <div className="workflow-card-btn">

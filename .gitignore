@@ -25,4 +25,5 @@ htmlcov/
 .DS_Store
 Thumbs.db
 media/
+backend/gis/tile_cache/
 

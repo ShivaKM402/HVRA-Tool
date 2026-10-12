@@ -43,6 +43,7 @@ LOCAL_APPS = [
     "apps.datasets",
     "apps.assessments",
     "apps.reports",
+    "apps.ai_copilot",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

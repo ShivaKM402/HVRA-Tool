@@ -99,6 +99,22 @@ class Assessment(models.Model):
     normalization_method = models.CharField(max_length=32, default="min_max")
     classification_method = models.CharField(max_length=32, default="threshold")
 
+    # Departmental data coordination workflow (§6.3)
+    coordination_mode = models.CharField(
+        max_length=16,
+        choices=[
+            ("PARALLEL", "Parallel (Simultaneous Entry)"),
+            ("SEQUENTIAL", "Sequential Handover"),
+        ],
+        default="PARALLEL",
+        help_text="Departmental data entry mode (simultaneous or sequential handover).",
+    )
+    department_submissions = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Tracks departmental submission status: {dept: {status, submitted_at, submitted_by}}",
+    )
+
     # Status
     status = models.CharField(
         max_length=16, choices=AssessmentStatus.choices, default=AssessmentStatus.DRAFT
@@ -236,6 +252,15 @@ class AssessmentResult(models.Model):
         blank=True,
         help_text="Stores raw calculation components (total_area, flood_prone_percentage, etc.) on the summary row."
     )
+
+    # Expert manual override audit trail (§6.1 / §6.2)
+    is_manually_overridden = models.BooleanField(
+        default=False, help_text="True if modified during authorized expert review."
+    )
+    overridden_by = models.CharField(max_length=255, blank=True)
+    original_raw_value = models.FloatField(null=True, blank=True)
+    original_score = models.FloatField(null=True, blank=True)
+
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

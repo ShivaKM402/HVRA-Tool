@@ -33,6 +33,20 @@ VULNERABILITY_RANGES = {
     "HEALTH_ACCESS_GAP": (2, 55, 1),        # index (0-100 gap)
     "NO_DISASTER_PLAN": (0.5, 40, 1),       # % units without DM plan
     "NO_EARLY_WARNING": (1, 55, 1),         # % households without EWS
+    "HOUSE_DAMAGE_PERCENT": (0.1, 7.5, 2),  # % house damages from 2018-19 floods (KSDMA Table 2)
+
+    # Flood Hazard-Specific Vulnerability (§6.1: Socio-Economic, Physical, Environmental, Other)
+    "FLD_BPL_HOUSEHOLDS": (8.0, 55.0, 1),       # % BPL in floodplains
+    "FLD_DEPENDENT_POP": (10.0, 40.0, 1),       # % dependent population
+    "FLD_MARGINAL_WORKERS": (5.0, 32.0, 1),     # % daily-wage/marginal workers
+    "FLD_KUTCHA_HOUSING": (3.0, 42.0, 1),       # % non-engineered housing
+    "FLD_DRAINAGE_DEFICIT": (12.0, 78.0, 1),    # % stormwater drainage deficit
+    "FLD_ROAD_SUBMERGENCE": (1.5, 28.0, 1),     # km low-lying submersible roads
+    "FLD_WETLAND_LOSS": (4.0, 50.0, 1),         # % wetland reclamation
+    "FLD_IMPERVIOUS_SURFACE": (15.0, 65.0, 1),  # % impervious runoff factor
+    "FLD_HEALTH_ACCESS_GAP": (5.0, 60.0, 1),    # index health access gap
+    "FLD_NO_EARLY_WARNING": (8.0, 70.0, 1),     # % households lacking EWS alert
+    "FLD_NO_DM_SHELTER": (500, 8500, 0),        # shortfall in relief shelter capacity
 }
 
 EXPOSURE_RANGES = {
@@ -42,6 +56,14 @@ EXPOSURE_RANGES = {
     "BUILTUP_EXPOSED": (3, 40, 1),             # % built-up area in zone
     "LIFELINE_LENGTH_EXPOSED": (3, 90, 1),     # km of roads/utilities in zone
     "ECONOMIC_VALUE_EXPOSED": (20, 900, 0),    # INR crore in hazard zone
+
+    # Flood Hazard-Specific Exposure (§6.2)
+    "FLD_POP_EXPOSED": (1500, 55000, 0),       # persons in inundation zone
+    "FLD_RESIDENTIAL_EXPOSED": (350, 12000, 0),# count residential buildings
+    "FLD_CRITICAL_FACILITIES": (2, 30, 0),     # count hospitals, schools, substations
+    "FLD_AGRI_CROP_EXPOSED": (120, 4800, 0),   # hectares paddy/crop land
+    "FLD_PWD_ROADS_EXPOSED": (4.0, 85.0, 1),   # km PWD & highway roads
+    "FLD_ECONOMIC_ASSETS": (15, 750, 0),       # INR crore commercial assets
 }
 
 CODE_RANGES = {"VULNERABILITY": VULNERABILITY_RANGES, "EXPOSURE": EXPOSURE_RANGES}

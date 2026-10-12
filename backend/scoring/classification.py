@@ -23,13 +23,13 @@ logger = logging.getLogger(__name__)
 
 
 # -------------------------------------------------------
-# Documented classification thresholds (from specification)
+# Documented classification thresholds (official KSDMA HVRA Atlas standards)
 # -------------------------------------------------------
 DEFAULT_THRESHOLDS = {
-    "NH": 0.0,   # No Hazard (< 4.0)
-    "LH": 4.0,   # Low Hazard (4.0 - < 6.0)
-    "MH": 6.0,   # Medium Hazard (6.0 - < 8.0)
-    "HH": 8.0,   # High Hazard (>= 8.0)
+    "NH": 0.0,   # No Hazard (< 1.5)
+    "LH": 1.5,   # Low Hazard (1.5 - < 4.0)
+    "MH": 4.0,   # Medium Hazard (4.0 - < 7.0)
+    "HH": 7.0,   # High Hazard (>= 7.0)
 }
 
 CLASSIFICATION_COLORS = {

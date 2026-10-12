@@ -2,10 +2,10 @@
 Management command: seed_all_modules_and_hazards
 
 Seeds:
-1. All Hazard Types (Flood, Landslide, Cyclone, Drought, Earthquake, Forest Fire) as active with icons/colors.
-2. Comprehensive Hazard Indicators and default weightages.
-3. Vulnerability and Exposure indicators (Modules 2 & 3) with default weightages.
-4. Spatial Hazard Layers (polygons) and historical Hazard Events for all 14 Kerala districts.
+1. Dedicated Flood Hazard Type as active with icons/colors.
+2. Comprehensive Flood Hazard Indicators and default weightages.
+3. Flood Vulnerability and Exposure indicators (Modules 2 & 3) with default weightages.
+4. Spatial Hazard Layers (polygons) and historical Hazard Events for Kerala districts.
 """
 import random
 import json
@@ -15,136 +15,144 @@ from django.db import transaction
 from apps.administration.models import AdministrativeUnit
 from apps.hazards.models import (
     HazardType, HazardIndicator, IndicatorWeightageRule,
-    HazardLayer, HazardEvent, ModuleTypeChoices,
+    HazardLayer, HazardEvent, ModuleTypeChoices, IndicatorCategoryChoices,
 )
 from scoring.demo_data import CODE_RANGES
 
 
+# Dedicated Flood Hazard Configuration (Flood only per HVRA requirement)
 HAZARDS_CONFIG = [
     {
         "code": "FLOOD",
         "name": "Flood",
         "icon": "🌊",
         "color": "#3B82F6",
-        "description": "Riverine, pluvial, and flash flood hazard mapping across catchments.",
+        "is_active": True,
+        "description": "Riverine, pluvial, and flash flood hazard mapping across Kerala catchments.",
         "indicators": [
-            ("TOTAL_AREA", "Total Administrative Area", "sq.km", 2.0, "Total geographic area of the block unit."),
-            ("FLOOD_PRONE_AREA", "Flood-prone Area (%)", "%", 8.0, "Percentage of block area situated within flood inundation zones."),
-            ("HISTORICAL_FLOOD_EVENTS", "Historical Flood Events", "count", 8.0, "Total recorded flood occurrences in the historical disaster catalogue."),
-            ("FLOOD_FREQUENCY", "Flood Frequency", "events/yr", 6.0, "Annualized frequency of flood occurrences."),
+            ("TOTAL_AREA", "Total Administrative Area", "sq.km", 2.0, "Total geographic area of the block unit.", IndicatorCategoryChoices.HAZARD_PRIMARY, "Revenue & Disaster Management (KSDMA)"),
+            ("FLOOD_PRONE_AREA", "Flood-prone Area (%)", "%", 8.5, "Percentage of block area situated within flood inundation zones.", IndicatorCategoryChoices.HAZARD_PRIMARY, "Water Resources Department (Irrigation)"),
+            ("HISTORICAL_FLOOD_EVENTS", "Historical Flood Events", "count", 8.0, "Total recorded flood occurrences in the historical disaster catalogue.", IndicatorCategoryChoices.HAZARD_PRIMARY, "Revenue & Disaster Management (KSDMA)"),
+            ("FLOOD_FREQUENCY", "Flood Frequency", "events/yr", 7.0, "Annualized frequency of flood occurrences.", IndicatorCategoryChoices.HAZARD_PRIMARY, "Water Resources Department (Irrigation)"),
         ]
     },
-    {
-        "code": "LANDSLIDE",
-        "name": "Landslide",
-        "icon": "⛰️",
-        "color": "#D97706",
-        "description": "Slope stability, debris flow, and rockfall susceptibility in hilly terrains.",
-        "indicators": [
-            ("LS_TOTAL_AREA", "Total Administrative Area", "sq.km", 2.0, "Total geographic area of the block unit."),
-            ("SLOPE_INSTABILITY_AREA", "High Slope Instability Area (%)", "%", 8.5, "Percentage of area with slopes exceeding 25 degrees situated in high-risk zones."),
-            ("HISTORICAL_LANDSLIDES", "Historical Landslide Incidents", "count", 7.5, "Recorded slope failure and landslide incidents in the past 15 years."),
-            ("RAINFALL_THRESHOLD_SUSCEPTIBILITY", "Monsoon Rainfall Susceptibility", "index (0-10)", 7.0, "Vulnerability index based on 72-hour extreme precipitation thresholds."),
-        ]
-    },
-    {
-        "code": "CYCLONE",
-        "name": "Cyclone",
-        "icon": "🌀",
-        "color": "#06B6D4",
-        "description": "Cyclonic storm surge, high-velocity winds, and coastal inundation hazards.",
-        "indicators": [
-            ("CYC_TOTAL_AREA", "Total Administrative Area", "sq.km", 2.0, "Total geographic area of the block unit."),
-            ("COASTAL_SURGE_PRONE_AREA", "Storm Surge Inundation Zone (%)", "%", 9.0, "Coastal land area susceptible to astronomical surge and wave run-up."),
-            ("WIND_HAZARD_ZONE", "Peak Wind Velocity Exposure", "m/s", 8.0, "NDMA Wind Hazard zoning rating (50 m/s basic wind speed category)."),
-            ("HISTORICAL_CYCLONE_TRACKS", "Past Cyclone Impact Tracks", "count", 6.5, "Frequency of cyclonic tracks crossing within 50km of the unit."),
-        ]
-    },
-    {
-        "code": "DROUGHT",
-        "name": "Drought",
-        "icon": "☀️",
-        "color": "#EA580C",
-        "description": "Meteorological, hydrological, and agricultural drought risk assessment.",
-        "indicators": [
-            ("DR_TOTAL_AREA", "Total Administrative Area", "sq.km", 2.0, "Total geographic area of the block unit."),
-            ("RAINFALL_DEFICIT_INDEX", "Monsoon Rainfall Deficit (%)", "%", 8.5, "Percentage deviation from Long Period Average (LPA) precipitation."),
-            ("SOIL_MOISTURE_DEFICIT", "Soil Moisture Stress Index", "index", 7.5, "Root zone soil moisture deficit index over the agricultural growing season."),
-            ("GROUNDWATER_DEPLETION", "Groundwater Table Depletion", "m/yr", 7.0, "Rate of pre-monsoon to post-monsoon water table decline."),
-        ]
-    },
-    {
-        "code": "EARTHQUAKE",
-        "name": "Earthquake",
-        "icon": "🌋",
-        "color": "#8B5CF6",
-        "description": "Seismic hazard assessment based on fault proximity, soil liquefaction, and peak ground acceleration.",
-        "indicators": [
-            ("EQ_TOTAL_AREA", "Total Administrative Area", "sq.km", 2.0, "Total geographic area of the block unit."),
-            ("SEISMIC_ZONE_FACTOR", "Seismic Zone Factor (IS 1893)", "zone", 8.0, "Seismic zone vulnerability rating based on Indian Standard code."),
-            ("SOIL_LIQUEFACTION_POTENTIAL", "Soil Liquefaction Susceptibility (%)", "%", 7.5, "Area underlain by saturated loose sands prone to cyclic liquefaction."),
-            ("FAULT_PROXIMITY_DENSITY", "Active Geological Fault Proximity", "km", 7.0, "Proximity distance and lineament density of active tectonic faults."),
-        ]
-    },
-    {
-        "code": "FOREST_FIRE",
-        "name": "Forest Fire",
-        "icon": "🔥",
-        "color": "#DC2626",
-        "description": "Wildfire and forest burn risk mapping based on dry vegetation fuel loads and ignition sources.",
-        "indicators": [
-            ("FF_TOTAL_AREA", "Total Administrative Area", "sq.km", 2.0, "Total geographic area of the block unit."),
-            ("FOREST_COVER_RATIO", "Dense Forest Cover Ratio (%)", "%", 7.5, "Percentage of block covered by flammable dry deciduous and moist forest."),
-            ("HISTORICAL_FIRE_POINTS", "MODIS/VIIRS Active Fire Detections", "count", 8.5, "Recorded satellite thermal anomaly detections in dry seasons."),
-            ("DRY_SEASON_TEMPERATURE", "Summer Land Surface Temperature", "°C", 6.5, "Mean peak temperature during February-May pre-monsoon dry period."),
-        ]
-    }
 ]
 
 
 # ------------------------------------------------------------------
-# Vulnerability (Module 2) and Exposure (Module 3) indicator libraries.
-# These mirror the illustrative indicator lists in the HVRA concept note
-# (Sections 5.1 and 6.1). All default weights are PROTOTYPE values.
+# Flood-Specific Vulnerability Indicators (Module 2, §6.1)
+# Organized strictly under 4 mandatory categories:
+# 1. Socio-Economic Vulnerability
+# 2. Physical Vulnerability
+# 3. Environmental Vulnerability
+# 4. Other / Coping Capacity Vulnerability
 # ------------------------------------------------------------------
-VULNERABILITY_INDICATORS = [
-    # (code, name, unit, default_weight, description)
+FLOOD_VULNERABILITY_INDICATORS = [
+    # 1. Socio-Economic Vulnerability
+    ("FLD_BPL_HOUSEHOLDS", "BPL Households in Floodplains", "%", 8.0,
+     "Share of households living below poverty line in vulnerable river basins and lowlands.",
+     IndicatorCategoryChoices.SOCIO_ECONOMIC, "Department of Economics & Statistics"),
+    ("FLD_DEPENDENT_POP", "Dependent Population (Under 5 / Over 60)", "%", 7.0,
+     "Share of elderly and infants requiring emergency evacuation assistance during floods.",
+     IndicatorCategoryChoices.SOCIO_ECONOMIC, "Department of Economics & Statistics"),
+    ("FLD_MARGINAL_WORKERS", "Marginal Daily-Wage Workers", "%", 6.0,
+     "Workforce proportion dependent on daily agricultural/informal labor vulnerable to income disruption.",
+     IndicatorCategoryChoices.SOCIO_ECONOMIC, "Labour & Skills Department"),
+
+    # 2. Physical Vulnerability
+    ("FLD_KUTCHA_HOUSING", "Kutcha & Semi-permanent Housing Stock", "%", 8.5,
+     "Percentage of residential structures built with non-flood-resilient building materials.",
+     IndicatorCategoryChoices.PHYSICAL, "Local Self Government (LSGD / Panchayats)"),
+    ("FLD_DRAINAGE_DEFICIT", "Stormwater Drainage Inadequacy Ratio", "%", 8.0,
+     "Proportion of urban/semi-urban drainage channels experiencing silting or insufficient cross-section.",
+     IndicatorCategoryChoices.PHYSICAL, "Public Works Department (PWD)"),
+    ("FLD_ROAD_SUBMERGENCE", "Low-lying Submersible Road Length", "km", 7.0,
+     "Length of road access links at risk of waterlogging and cut-off during monsoon inundation.",
+     IndicatorCategoryChoices.PHYSICAL, "Public Works Department (PWD)"),
+
+    # 3. Environmental Vulnerability
+    ("FLD_WETLAND_LOSS", "Wetland & Flood Basin Reclamation", "%", 7.5,
+     "Reduction of natural wetlands and paddy polders acting as flood buffering sinks.",
+     IndicatorCategoryChoices.ENVIRONMENTAL, "Environment & Climate Change Department"),
+    ("FLD_IMPERVIOUS_SURFACE", "Impervious Surface Runoff Factor", "%", 6.5,
+     "High runoff generation fraction resulting from paved settlements.",
+     IndicatorCategoryChoices.ENVIRONMENTAL, "Town & Country Planning / LSGD"),
+
+    # 4. Other / Coping Capacity Vulnerability
+    ("FLD_HEALTH_ACCESS_GAP", "Emergency Health Center Access Gap", "index", 6.5,
+     "Accessibility deficit to nearest tertiary healthcare and primary health centers during high water.",
+     IndicatorCategoryChoices.OTHER, "Health & Family Welfare Department"),
+    ("FLD_NO_EARLY_WARNING", "Households without Flood EWS Alert Coverage", "%", 7.0,
+     "Share of population outside direct SMS/siren community early warning networks.",
+     IndicatorCategoryChoices.OTHER, "Revenue & Disaster Management (KSDMA)"),
+    ("FLD_NO_DM_SHELTER", "Flood Relief Shelter Capacity Shortfall", "persons", 6.0,
+     "Capacity deficit of designated multipurpose cyclone/flood relief shelters.",
+     IndicatorCategoryChoices.OTHER, "Revenue & Disaster Management (KSDMA)"),
+]
+
+# ------------------------------------------------------------------
+# Flood-Specific Exposure Indicators (Module 3, §6.2)
+# ------------------------------------------------------------------
+FLOOD_EXPOSURE_INDICATORS = [
+    ("FLD_POP_EXPOSED", "Resident Population within Inundation Zone", "persons", 9.0,
+     "Estimated resident population living inside the modelled flood inundation envelope.",
+     IndicatorCategoryChoices.OTHER, "Department of Economics & Statistics"),
+    ("FLD_RESIDENTIAL_EXPOSED", "Residential Buildings in Floodplain", "count", 8.5,
+     "Count of residential structures situated below high flood level contour.",
+     IndicatorCategoryChoices.PHYSICAL, "Local Self Government (LSGD / Panchayats)"),
+    ("FLD_CRITICAL_FACILITIES", "Critical Facilities Exposed (Hospitals/Schools/Substations)", "count", 8.5,
+     "Hospitals, emergency relief camps, water intake wells, and electric substations inside flood zone.",
+     IndicatorCategoryChoices.PHYSICAL, "Health / PWD / KSEB"),
+    ("FLD_AGRI_CROP_EXPOSED", "Agricultural Land & Paddy Crops in Floodplain", "hectares", 7.5,
+     "Productive agricultural land and seasonal crops inundated during high water.",
+     IndicatorCategoryChoices.ENVIRONMENTAL, "Agriculture Development & Farmers Welfare"),
+    ("FLD_PWD_ROADS_EXPOSED", "PWD Highways & Major Roads in Hazard Zone", "km", 7.5,
+     "Kilometres of state highways, major district roads, and rail lines intersecting flood zone.",
+     IndicatorCategoryChoices.PHYSICAL, "Public Works Department (PWD)"),
+    ("FLD_ECONOMIC_ASSETS", "Commercial & Industrial Assets Exposed", "INR crore", 7.0,
+     "Market valuation of commercial inventory and infrastructure in flood-prone blocks.",
+     IndicatorCategoryChoices.SOCIO_ECONOMIC, "Department of Economics & Statistics"),
+]
+
+# ------------------------------------------------------------------
+# Baseline indicator library preserved for backward compatibility
+# ------------------------------------------------------------------
+BASELINE_VULNERABILITY_INDICATORS = [
     ("POP_DENSITY", "Population Density", "persons/sq.km", 7.0,
-     "Resident population per square kilometre."),
+     "Resident population per square kilometre.", IndicatorCategoryChoices.SOCIO_ECONOMIC, "Department of Economics & Statistics"),
     ("DEPENDENT_POPULATION", "Dependent Population (Under 5 / Over 60)", "%", 6.5,
-     "Share of population below 5 or above 60 years of age."),
+     "Share of population below 5 or above 60 years of age.", IndicatorCategoryChoices.SOCIO_ECONOMIC, "Department of Economics & Statistics"),
     ("DIFFERENTLY_ABLED", "Differently-abled Population", "%", 5.5,
-     "Share of population with reported disability."),
+     "Share of population with reported disability.", IndicatorCategoryChoices.SOCIO_ECONOMIC, "Department of Economics & Statistics"),
     ("BPL_HOUSEHOLDS", "BPL Households", "%", 8.0,
-     "Share of households below the poverty line (SECC)."),
+     "Share of households below the poverty line (SECC).", IndicatorCategoryChoices.SOCIO_ECONOMIC, "Department of Economics & Statistics"),
     ("LOW_LITERACY", "Population without Formal Literacy", "%", 6.0,
-     "Share of population without formal literacy (inverse of literacy rate)."),
+     "Share of population without formal literacy (inverse of literacy rate).", IndicatorCategoryChoices.SOCIO_ECONOMIC, "Department of Economics & Statistics"),
     ("MARGINAL_WORKERS", "Marginal Workers", "%", 5.5,
-     "Share of workers with marginal employment status."),
+     "Share of workers with marginal employment status.", IndicatorCategoryChoices.SOCIO_ECONOMIC, "Labour & Skills Department"),
     ("KUTCHA_HOUSING", "Kutcha / Semi-permanent Housing", "%", 7.5,
-     "Share of housing stock built with kutcha or semi-permanent materials."),
+     "Share of housing stock built with kutcha or semi-permanent materials.", IndicatorCategoryChoices.PHYSICAL, "Local Self Government (LSGD / Panchayats)"),
     ("HEALTH_ACCESS_GAP", "Health Facility Access Gap", "index", 6.5,
-     "Composite gap index of road & health-facility accessibility."),
+     "Composite gap index of road & health-facility accessibility.", IndicatorCategoryChoices.OTHER, "Health & Family Welfare Department"),
     ("NO_DISASTER_PLAN", "Units without Disaster Management Plan", "%", 6.0,
-     "Share of unit area not covered by a documented DM plan."),
+     "Share of unit area not covered by a documented DM plan.", IndicatorCategoryChoices.OTHER, "Revenue & Disaster Management (KSDMA)"),
     ("NO_EARLY_WARNING", "Households without Early Warning Coverage", "%", 6.5,
-     "Share of households without access to an early-warning dissemination system."),
+     "Share of households without access to an early-warning dissemination system.", IndicatorCategoryChoices.OTHER, "Revenue & Disaster Management (KSDMA)"),
 ]
 
-EXPOSURE_INDICATORS = [
-    # (code, name, unit, default_weight, description)
+BASELINE_EXPOSURE_INDICATORS = [
     ("POP_IN_HAZARD_ZONE", "Population within Hazard-prone Area", "persons", 8.5,
-     "Estimated resident population located inside the hazard-prone area."),
+     "Estimated resident population located inside the hazard-prone area.", IndicatorCategoryChoices.OTHER, "Department of Economics & Statistics"),
     ("CRITICAL_FACILITIES_EXPOSED", "Critical Facilities within Hazard Zone", "count", 7.5,
-     "Hospitals, schools, shelters and power/water assets located in the hazard zone."),
+     "Hospitals, schools, shelters and power/water assets located in the hazard zone.", IndicatorCategoryChoices.PHYSICAL, "Health / PWD / KSEB"),
     ("AGRI_ASSETS_EXPOSED", "Agricultural Land within Hazard Zone", "%", 7.0,
-     "Share of agricultural land lying inside the hazard zone."),
+     "Share of agricultural land lying inside the hazard zone.", IndicatorCategoryChoices.ENVIRONMENTAL, "Agriculture Development & Farmers Welfare"),
     ("BUILTUP_EXPOSED", "Built-up Area within Hazard Zone", "%", 7.0,
-     "Share of built-up / settlement area inside the hazard zone."),
+     "Share of built-up / settlement area inside the hazard zone.", IndicatorCategoryChoices.PHYSICAL, "Local Self Government (LSGD / Panchayats)"),
     ("LIFELINE_LENGTH_EXPOSED", "Lifeline Networks within Hazard Zone", "km", 6.5,
-     "Length of roads, bridges and utility networks intersecting the hazard zone."),
+     "Length of roads, bridges and utility networks intersecting the hazard zone.", IndicatorCategoryChoices.PHYSICAL, "Public Works Department (PWD)"),
     ("ECONOMIC_VALUE_EXPOSED", "Economic Asset Value within Hazard Zone", "INR crore", 7.5,
-     "Estimated value of assets exposed inside the hazard zone."),
+     "Estimated value of assets exposed inside the hazard zone.", IndicatorCategoryChoices.SOCIO_ECONOMIC, "Department of Economics & Statistics"),
 ]
 
 
@@ -175,6 +183,12 @@ class Command(BaseCommand):
         self.stdout.write("Seeding Hazard Types & Indicators...")
 
         with transaction.atomic():
+            # Purge non-flood hazards, indicators, layers, and events
+            HazardType.objects.exclude(code="FLOOD").delete()
+            HazardIndicator.objects.filter(hazard_type__isnull=False).exclude(hazard_type="FLOOD").delete()
+            HazardLayer.objects.exclude(hazard_type="FLOOD").delete()
+            HazardEvent.objects.exclude(hazard_type="FLOOD").delete()
+
             # 1. Update/Create Hazard Types & Indicators
             for hz in HAZARDS_CONFIG:
                 hazard_obj, _ = HazardType.objects.update_or_create(
@@ -184,24 +198,34 @@ class Command(BaseCommand):
                         "icon": hz["icon"],
                         "color": hz["color"],
                         "description": hz["description"],
-                        "is_active": True,
+                        "is_active": hz.get("is_active", False),
                     }
                 )
 
                 order = 1
-                for code, name, unit, def_weight, desc in hz["indicators"]:
+                for ind_spec in hz["indicators"]:
+                    if len(ind_spec) == 7:
+                        code, name, unit, def_weight, desc, cat, dept = ind_spec
+                    else:
+                        code, name, unit, def_weight, desc = ind_spec
+                        cat = IndicatorCategoryChoices.HAZARD_PRIMARY
+                        dept = "Revenue & Disaster Management (KSDMA)"
+
                     ind_obj, _ = HazardIndicator.objects.update_or_create(
                         code=code,
                         hazard_type=hz["code"],
                         defaults={
                             "name": name,
                             "unit": unit,
+                            "category": cat,
+                            "department": dept,
                             "default_weight": def_weight,
                             "min_weight": 0.0,
                             "max_weight": 10.0,
                             "is_active": True,
                             "order": order,
                             "description": desc,
+                            "module_type": ModuleTypeChoices.HAZARD,
                         }
                     )
                     order += 1
@@ -214,7 +238,7 @@ class Command(BaseCommand):
                             ("Medium Hazard", 20.0, 45.0, 6.5),
                             ("High Hazard", 45.0, None, 9.5),
                         ]
-                    elif "EVENT" in code or "INCIDENT" in code or "LANDSLIDE" in code:
+                    elif "EVENT" in code or "INCIDENT" in code:
                         rules = [
                             ("No Hazard", 0.0, 1.0, 0.0),
                             ("Low Hazard", 1.0, 4.0, 3.0),
@@ -236,21 +260,27 @@ class Command(BaseCommand):
                             defaults={"label": label, "score": score, "is_prototype_threshold": True}
                         )
 
-            self.stdout.write(self.style.SUCCESS("All Hazard Types & Indicators seeded."))
+            self.stdout.write(self.style.SUCCESS("Hazard Types & Hazard Indicators seeded (Flood active)."))
 
-            # 1b. Seed Vulnerability & Exposure indicators (Modules 2 & 3)
+            # 1b. Seed Flood Vulnerability, Flood Exposure & Baseline indicators (Modules 2 & 3)
             module_indicator_specs = [
-                (ModuleTypeChoices.VULNERABILITY, VULNERABILITY_INDICATORS),
-                (ModuleTypeChoices.EXPOSURE, EXPOSURE_INDICATORS),
+                # Flood-specific indicators (§6.1 and §6.2)
+                (ModuleTypeChoices.VULNERABILITY, "FLOOD", FLOOD_VULNERABILITY_INDICATORS),
+                (ModuleTypeChoices.EXPOSURE, "FLOOD", FLOOD_EXPOSURE_INDICATORS),
+                # Baseline indicators for backward compatibility
+                (ModuleTypeChoices.VULNERABILITY, "", BASELINE_VULNERABILITY_INDICATORS),
+                (ModuleTypeChoices.EXPOSURE, "", BASELINE_EXPOSURE_INDICATORS),
             ]
-            for module_type, spec_list in module_indicator_specs:
+            for module_type, h_code, spec_list in module_indicator_specs:
                 order = 1
-                for code, name, unit, def_weight, desc in spec_list:
+                for code, name, unit, def_weight, desc, cat, dept in spec_list:
                     ind_obj, created = HazardIndicator.objects.update_or_create(
                         code=code,
                         defaults={
                             "name": name,
                             "unit": unit,
+                            "category": cat,
+                            "department": dept,
                             "default_weight": def_weight,
                             "min_weight": 0.0,
                             "max_weight": 10.0,
@@ -258,7 +288,7 @@ class Command(BaseCommand):
                             "order": order,
                             "description": desc,
                             "module_type": module_type,
-                            "hazard_type": "",
+                            "hazard_type": h_code,
                         }
                     )
                     order += 1
@@ -288,7 +318,7 @@ class Command(BaseCommand):
                             }
                         )
                 self.stdout.write(self.style.SUCCESS(
-                    f"{module_type} indicators seeded ({len(spec_list)} indicators)."
+                    f"{module_type} ({h_code or 'Baseline'}) indicators seeded ({len(spec_list)} indicators)."
                 ))
 
             # 2. Seed Hazard Layers & Historical Events for all Kerala Districts

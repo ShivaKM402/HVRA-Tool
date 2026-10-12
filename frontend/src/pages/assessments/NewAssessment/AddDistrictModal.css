@@ -23,11 +23,12 @@
 
 /* Modal card */
 .adm-modal {
-  background: #ffffff;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-default);
   border-radius: 20px;
   width: 100%;
   max-width: 520px;
-  box-shadow: 0 32px 64px rgba(0, 0, 0, 0.22), 0 0 0 1px rgba(0,0,0,0.06);
+  box-shadow: 0 32px 64px rgba(120, 53, 15, 0.25), 0 0 0 1px var(--border-default);
   overflow: hidden;
   animation: adm-slide-up 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -43,7 +44,7 @@
   align-items: flex-start;
   gap: 0.75rem;
   padding: 1.5rem 1.5rem 1.25rem;
-  background: linear-gradient(135deg, #1a3a5c 0%, #0f172a 100%);
+  background: linear-gradient(135deg, #381a04 0%, #1c1108 100%);
   color: #fff;
 }
 
@@ -163,17 +164,17 @@
 .adm-input-wrap {
   display: flex;
   align-items: center;
-  border: 2px solid #e2e8f0;
+  border: 1.5px solid var(--border-default);
   border-radius: 12px;
   overflow: hidden;
   transition: border-color 0.2s, box-shadow 0.2s;
-  background: #f8fafc;
+  background: var(--bg-surface);
 }
 
 .adm-input-wrap:focus-within {
-  border-color: #1a3a5c;
-  box-shadow: 0 0 0 3px rgba(26, 58, 92, 0.12);
-  background: #fff;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.15);
+  background: var(--bg-card);
 }
 
 .adm-input-icon {

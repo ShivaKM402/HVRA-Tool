@@ -297,6 +297,94 @@ def _save_results(assessment, blocks_qs, scoring_results, classifications, gis_r
             )
 
 
+def _recalculate_assessment_scores(assessment):
+    """
+    Recalculate indicator weighted scores, composite scores, and classifications
+    for an assessment after expert overrides or departmental submissions.
+    Preserves existing metadata and flags overridden records.
+    """
+    from apps.assessments.models import AssessmentIndicator, AssessmentResult
+    from scoring.classification import classify_batch
+
+    weights_map = {
+        ai.indicator_id: ai.weight
+        for ai in AssessmentIndicator.objects.filter(assessment=assessment)
+    }
+    total_weight = sum(weights_map.values())
+    if total_weight <= 0:
+        total_weight = 1.0
+
+    unit_ids = list(
+        AssessmentResult.objects.filter(
+            assessment=assessment, indicator__isnull=True
+        ).values_list("administrative_unit_id", flat=True)
+    )
+
+    all_ind_results = list(
+        AssessmentResult.objects.filter(
+            assessment=assessment, indicator__isnull=False
+        )
+    )
+    raw_by_ind = {}
+    for r in all_ind_results:
+        if r.raw_value is not None:
+            raw_by_ind.setdefault(r.indicator_id, []).append(r.raw_value)
+
+    unit_composite_scores = {}
+
+    for unit_id in unit_ids:
+        ind_results = [r for r in all_ind_results if r.administrative_unit_id == unit_id]
+
+        weighted_contributions = 0.0
+        for r in ind_results:
+            w = weights_map.get(r.indicator_id, r.weight or 5.0)
+            r.weight = w
+            if r.raw_value is not None:
+                vals = raw_by_ind.get(r.indicator_id, [])
+                min_v = min(vals) if vals else 0.0
+                max_v = max(vals) if vals else 10.0
+                if max_v > min_v:
+                    r.normalized_value = round((r.raw_value - min_v) / (max_v - min_v) * 10.0, 4)
+                else:
+                    unit_str = getattr(r.indicator, "unit", "") or ""
+                    code_str = getattr(r.indicator, "code", "") or ""
+                    if "%" in unit_str or "percent" in unit_str.lower():
+                        r.normalized_value = round(min(10.0, max(0.0, float(r.raw_value) / 10.0)), 4)
+                    else:
+                        from scoring.demo_data import VULNERABILITY_RANGES, EXPOSURE_RANGES
+                        ref_range = VULNERABILITY_RANGES.get(code_str) or EXPOSURE_RANGES.get(code_str)
+                        if ref_range:
+                            low_ref, high_ref, _ = ref_range
+                            span = max(high_ref - low_ref, 1.0)
+                            r.normalized_value = round(min(10.0, max(0.0, (float(r.raw_value) - low_ref) / span * 10.0)), 4)
+                        else:
+                            r.normalized_value = round(min(10.0, max(0.0, float(r.raw_value))), 4)
+            elif r.normalized_value is None:
+                r.normalized_value = 0.0
+
+            norm_val = r.normalized_value or 0.0
+            r.weighted_score = round(norm_val * (w / total_weight), 4)
+            r.save(update_fields=["weight", "weighted_score", "normalized_value"])
+            weighted_contributions += norm_val * w
+
+        comp_score = round(max(0.0, min(10.0, weighted_contributions / total_weight)), 4)
+        unit_composite_scores[unit_id] = comp_score
+
+    # Reclassify units
+    classifications = classify_batch(
+        unit_composite_scores, method=assessment.classification_method or "threshold"
+    )
+
+    for unit_id, score in unit_composite_scores.items():
+        comp_res = AssessmentResult.objects.filter(
+            assessment=assessment, administrative_unit_id=unit_id, indicator__isnull=True
+        ).first()
+        if comp_res:
+            comp_res.final_score = score
+            comp_res.classification = classifications.get(unit_id, "NH")
+            comp_res.save(update_fields=["final_score", "classification"])
+
+
 class AssessmentViewSet(viewsets.ModelViewSet):
     queryset = Assessment.objects.select_related("state", "district").prefetch_related("indicators").all()
     filter_backends = [filters.OrderingFilter]
@@ -327,13 +415,14 @@ class AssessmentViewSet(viewsets.ModelViewSet):
     # writes require login; Task Force approvals are admin-only.
     # ------------------------------------------------------------------
     def get_permissions(self):
-        if self.action in ("approve", "reject"):
-            return [IsPlatformAdmin()]
+        if self.action == "department_submissions" and self.request.method == "GET":
+            return [permissions.AllowAny()]
         # Viewer is read-only (HVRA §2): anything that writes or runs the
         # scoring engine needs a contributing role.
         if self.action in (
             "create", "update", "partial_update", "destroy",
             "process", "submit_for_review", "preview",
+            "department_submissions", "expert_recalculate",
         ):
             return [CanContributeData()]
         return [permissions.AllowAny()]
@@ -512,6 +601,306 @@ class AssessmentViewSet(viewsets.ModelViewSet):
             "module_type": module_type,
             "hazard_type": hazard_type or "",
             "districts": rows,
+        })
+
+    # ------------------------------------------------------------------
+    # Departmental Data Management & Coordination (HVRA Section 6)
+    # ------------------------------------------------------------------
+    @action(detail=True, methods=["get", "post"], url_path="department-submissions")
+    def department_submissions(self, request, pk=None):
+        """
+        Departmental Data Management & Coordination (HVRA Section 6).
+        GET: Returns department-wise status, indicator breakdown, submission history,
+             and data gap identification under Parallel or Sequential mode.
+        POST: Allows a designated department officer or analyst to submit data
+              for their department's indicators.
+        """
+        assessment = self.get_object()
+
+        if request.method == "POST":
+            payload = request.data or {}
+            dept_name = payload.get("department", "").strip()
+            if not dept_name:
+                return Response(
+                    {"message": "Department name is required."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # Optional update of coordination mode
+            new_mode = payload.get("coordination_mode")
+            if new_mode in ("PARALLEL", "SEQUENTIAL"):
+                assessment.coordination_mode = new_mode
+
+            submissions = copy.deepcopy(assessment.department_submissions or {})
+            dept_sub = submissions.get(dept_name, {})
+            dept_sub["status"] = "SUBMITTED"
+            dept_sub["submitted_at"] = timezone.now().isoformat()
+            
+            officer_name = payload.get("officer_name") or getattr(request.user, "username", "Department Officer")
+            dept_sub["submitted_by"] = officer_name
+            dept_sub["officer_name"] = officer_name
+            dept_sub["designation"] = payload.get("designation", "")
+            dept_sub["source_type"] = payload.get("source_type", "Official Department Records")
+            dept_sub["attachment_name"] = payload.get("attachment_name", "")
+            dept_sub["notes"] = payload.get("notes", "")
+
+            # Apply submitted indicator values if provided
+            submitted_values = payload.get("submitted_values", [])
+            dept_sub["submitted_values"] = submitted_values
+
+            admin_unit_ids = list(
+                AssessmentResult.objects.filter(
+                    assessment=assessment, indicator__isnull=True
+                ).values_list("administrative_unit_id", flat=True)
+            )
+
+            for val in submitted_values:
+                ind_id = val.get("indicator_id")
+                unit_id = val.get("administrative_unit_id")
+                raw_val = val.get("raw_value")
+                if ind_id and raw_val is not None:
+                    try:
+                        raw_float = float(raw_val)
+                    except (ValueError, TypeError):
+                        continue
+
+                    qs = AssessmentResult.objects.filter(
+                        assessment=assessment, indicator_id=ind_id
+                    )
+                    if unit_id:
+                        qs = qs.filter(administrative_unit_id=unit_id)
+
+                    if qs.exists():
+                        for res in qs:
+                            if res.original_raw_value is None:
+                                res.original_raw_value = res.raw_value
+                            res.raw_value = raw_float
+                            res.is_manually_overridden = True
+                            res.overridden_by = officer_name
+                            res.notes = f"Updated by {dept_name} ({dept_sub.get('source_type')})"
+                            res.save()
+                    elif admin_unit_ids:
+                        for u_id in admin_unit_ids:
+                            AssessmentResult.objects.create(
+                                assessment=assessment,
+                                administrative_unit_id=u_id,
+                                indicator_id=ind_id,
+                                raw_value=raw_float,
+                                original_raw_value=raw_float,
+                                is_manually_overridden=True,
+                                overridden_by=officer_name,
+                                notes=f"Recorded by {dept_name}",
+                            )
+
+            submissions[dept_name] = dept_sub
+            assessment.department_submissions = submissions
+            assessment.save(update_fields=["coordination_mode", "department_submissions"])
+
+            # Recalculate assessment scores
+            _recalculate_assessment_scores(assessment)
+
+            return Response({
+                "message": f"Data submitted successfully for {dept_name}.",
+                "department": dept_name,
+                "status": "SUBMITTED",
+                "department_submissions": assessment.department_submissions,
+            })
+
+        # GET method: Group indicators by department
+        # Collect administrative units for this assessment
+        comp_results = list(
+            assessment.results.filter(indicator__isnull=True)
+            .select_related("administrative_unit")
+            .order_by("administrative_unit__name")
+        )
+        unit_list = [
+            {"id": r.administrative_unit.id, "name": r.administrative_unit.name}
+            for r in comp_results
+        ]
+
+        indicators = list(assessment.indicators.select_related("indicator").all())
+        dept_map = {}
+        for ai in indicators:
+            dept = ai.indicator.department or "General / Inter-Departmental"
+            if dept not in dept_map:
+                dept_map[dept] = []
+            
+            res_qs = list(
+                AssessmentResult.objects.filter(
+                    assessment=assessment, indicator_id=ai.indicator.id
+                ).values("administrative_unit_id", "raw_value")
+            )
+            unit_values = {
+                r["administrative_unit_id"]: r["raw_value"]
+                for r in res_qs if r["raw_value"] is not None
+            }
+            vals = list(unit_values.values())
+            cur_val = round(sum(vals) / len(vals), 2) if vals else None
+
+            dept_map[dept].append({
+                "indicator_id": ai.indicator.id,
+                "code": ai.indicator.code,
+                "name": ai.indicator.name,
+                "unit": ai.indicator.unit,
+                "category": ai.indicator.category,
+                "category_display": ai.indicator.get_category_display(),
+                "weight": ai.weight,
+                "default_weight": ai.indicator.default_weight,
+                "current_value": cur_val,
+                "unit_values": unit_values,
+            })
+
+        PRIORITY_DEPTS = [
+            "Water Resources Department (Irrigation)",
+            "Local Self Government (LSGD / Panchayats)",
+            "Public Works Department (PWD)",
+            "Health & Family Welfare Department",
+            "Department of Economics & Statistics",
+            "Revenue & Disaster Management (KSDMA)",
+        ]
+        sorted_dept_keys = sorted(
+            dept_map.keys(),
+            key=lambda d: PRIORITY_DEPTS.index(d) if d in PRIORITY_DEPTS else 999
+        )
+
+        stored_subs = assessment.department_submissions or {}
+        dept_list = []
+        all_submitted = True
+        submitted_count = 0
+
+        for idx, d_name in enumerate(sorted_dept_keys):
+            ind_list = dept_map[d_name]
+            sub_info = stored_subs.get(d_name, {})
+            is_submitted = sub_info.get("status") == "SUBMITTED"
+            if is_submitted:
+                submitted_count += 1
+            else:
+                all_submitted = False
+
+            # Check if previous departments have submitted (for SEQUENTIAL mode)
+            can_submit = True
+            if assessment.coordination_mode == "SEQUENTIAL" and idx > 0:
+                prev_dept = sorted_dept_keys[idx - 1]
+                prev_sub = stored_subs.get(prev_dept, {})
+                if prev_sub.get("status") != "SUBMITTED":
+                    can_submit = False
+
+            # Check data gaps (indicators with no results or zero values)
+            data_gaps = []
+            for ind in ind_list:
+                has_res = AssessmentResult.objects.filter(
+                    assessment=assessment, indicator_id=ind["indicator_id"]
+                ).exists()
+                if not has_res and not is_submitted:
+                    data_gaps.append(ind["code"])
+
+            dept_list.append({
+                "department": d_name,
+                "total_indicators": len(ind_list),
+                "indicators": ind_list,
+                "status": "SUBMITTED" if is_submitted else "PENDING",
+                "submitted_at": sub_info.get("submitted_at"),
+                "submitted_by": sub_info.get("submitted_by"),
+                "officer_name": sub_info.get("officer_name", sub_info.get("submitted_by", "")),
+                "designation": sub_info.get("designation", ""),
+                "source_type": sub_info.get("source_type", ""),
+                "attachment_name": sub_info.get("attachment_name", ""),
+                "submitted_values": sub_info.get("submitted_values", []),
+                "notes": sub_info.get("notes", ""),
+                "can_submit": can_submit,
+                "data_gaps": data_gaps,
+            })
+
+        return Response({
+            "assessment_id": assessment.id,
+            "assessment_name": assessment.name,
+            "module_type": assessment.module_type,
+            "hazard_type": assessment.hazard_type,
+            "coordination_mode": assessment.coordination_mode,
+            "total_departments": len(dept_list),
+            "submitted_departments": submitted_count,
+            "all_submitted": all_submitted,
+            "administrative_units": unit_list,
+            "departments": dept_list,
+        })
+
+    # ------------------------------------------------------------------
+    # Expert Review & Inline Recalibration (HVRA Section 6)
+    # ------------------------------------------------------------------
+    @action(detail=True, methods=["post"], url_path="expert-recalculate")
+    def expert_recalculate(self, request, pk=None):
+        """
+        Authorised expert review allowing manual modification of indicator values/weights
+        and automatic recalculation of assessment outputs.
+        """
+        assessment = self.get_object()
+        payload = request.data or {}
+
+        weight_overrides = payload.get("weight_overrides", {})
+        value_overrides = payload.get("value_overrides", [])
+
+        with transaction.atomic():
+            # 1. Apply weight overrides to AssessmentIndicator
+            for ind_id, new_weight in weight_overrides.items():
+                try:
+                    w_val = max(0.0, min(10.0, float(new_weight)))
+                    ai = AssessmentIndicator.objects.filter(
+                        assessment=assessment, indicator_id=int(ind_id)
+                    ).first()
+                    if ai:
+                        ai.weight = w_val
+                        ai.save(update_fields=["weight"])
+                except (ValueError, TypeError):
+                    continue
+
+            # 2. Apply value overrides to AssessmentResult
+            for v_override in value_overrides:
+                ind_id = v_override.get("indicator_id")
+                unit_id = v_override.get("administrative_unit_id")
+                new_raw = v_override.get("new_raw_value")
+                reason = v_override.get("reason", "Expert calibration adjustment")
+                if ind_id and unit_id and new_raw is not None:
+                    try:
+                        res = AssessmentResult.objects.get(
+                            assessment=assessment,
+                            indicator_id=int(ind_id),
+                            administrative_unit_id=int(unit_id),
+                        )
+                        if res.original_raw_value is None:
+                            res.original_raw_value = res.raw_value
+                        if res.original_score is None:
+                            res.original_score = res.weighted_score
+                        res.raw_value = float(new_raw)
+                        res.is_manually_overridden = True
+                        res.overridden_by = getattr(request.user, "username", "Domain Expert")
+                        res.notes = reason
+                        res.save()
+                    except AssessmentResult.DoesNotExist:
+                        pass
+
+            # 3. Recalculate scores
+            _recalculate_assessment_scores(assessment)
+
+        # Build refreshed summary response
+        composite_results = assessment.results.filter(indicator__isnull=True).select_related("administrative_unit")
+        by_class = {}
+        unit_scores = []
+        for r in composite_results:
+            cls = r.classification or "NH"
+            by_class[cls] = by_class.get(cls, 0) + 1
+            unit_scores.append({
+                "unit_id": r.administrative_unit.id,
+                "unit_name": r.administrative_unit.name,
+                "score": r.final_score,
+                "classification": cls,
+            })
+        unit_scores.sort(key=lambda x: (x["score"] or -1), reverse=True)
+
+        return Response({
+            "message": "Assessment recalculation completed successfully with expert overrides.",
+            "assessment_id": assessment.id,
+            "classification_summary": by_class,
+            "unit_results": unit_scores,
         })
 
     # ------------------------------------------------------------------
@@ -787,7 +1176,20 @@ class AssessmentViewSet(viewsets.ModelViewSet):
         max_score_block = None
 
         for r in composite_results:
-            cls = r.classification or "NH"
+            score_val = r.final_score
+            # Apply KSDMA HVRA thresholds (HH >= 7.0, MH 4.0-6.9, LH 1.5-3.9, NH < 1.5)
+            if score_val is not None:
+                if score_val >= 7.0:
+                    cls = "HH"
+                elif score_val >= 4.0:
+                    cls = "MH"
+                elif score_val >= 1.5:
+                    cls = "LH"
+                else:
+                    cls = "NH"
+            else:
+                cls = r.classification or "NH"
+
             classification_summary[cls] = classification_summary.get(cls, 0) + 1
             meta = r.metadata or {}
             block_data = {
@@ -1053,21 +1455,23 @@ def _compute_hazard_module(assessment, indicator_configs=None):
     else:
         gis_results = process_flood_assessment(blocks, flood_layers, events)
 
-    # Ensure every block has realistic, differentiated demo values
-    for b_id, gdata in gis_results.items():
-        pct_key = "flood_prone_percentage" if gdata.get("flood_prone_percentage", 0.0) else "hazard_prone_percentage"
-        if gdata.get(pct_key, 0.0) == 0.0:
-            seed_val = (b_id * 19 + len(hazard_type) * 7) % 85 + 10
-            gdata[pct_key] = float(seed_val)
-            total_a = float(gdata.get("total_area_sqkm") or 120.0)
-            gdata["total_area_sqkm"] = total_a
-            gdata["hazard_prone_area_sqkm"] = round(total_a * (seed_val / 100.0), 2)
-            gdata["flood_prone_percentage"] = float(seed_val)
-            gdata["flood_prone_area_sqkm"] = gdata["hazard_prone_area_sqkm"]
-        if gdata.get("event_count", 0) == 0:
-            seed_ev = (b_id * 11 + 3) % 11 + 1
-            gdata["event_count"] = seed_ev
-            gdata["event_frequency"] = round(seed_ev / 10.0, 2)
+    # Fallback to realistic prototype demo values only when no spatial layers or events are linked
+    has_real_spatial_inputs = bool(flood_layers or events or (line_layers_qs.exists() and line_layers))
+    if not has_real_spatial_inputs:
+        for b_id, gdata in gis_results.items():
+            pct_key = "flood_prone_percentage" if gdata.get("flood_prone_percentage", 0.0) else "hazard_prone_percentage"
+            if gdata.get(pct_key, 0.0) == 0.0:
+                seed_val = (b_id * 19 + len(hazard_type) * 7) % 85 + 10
+                gdata[pct_key] = float(seed_val)
+                total_a = float(gdata.get("total_area_sqkm") or 120.0)
+                gdata["total_area_sqkm"] = total_a
+                gdata["hazard_prone_area_sqkm"] = round(total_a * (seed_val / 100.0), 2)
+                gdata["flood_prone_percentage"] = float(seed_val)
+                gdata["flood_prone_area_sqkm"] = gdata["hazard_prone_area_sqkm"]
+            if gdata.get("event_count", 0) == 0:
+                seed_ev = (b_id * 11 + 3) % 11 + 1
+                gdata["event_count"] = seed_ev
+                gdata["event_frequency"] = round(seed_ev / 10.0, 2)
 
     configs = indicator_configs or _indicator_configs(assessment, hazard_type=hazard_type)
     scoring_results = compute_assessment_scores(

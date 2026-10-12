@@ -44,79 +44,23 @@ CLIMATE_CONTEXTS = [
         "source_url": "",
         "vintage": "2023",
     },
-    {
-        "hazard_type": "LANDSLIDE",
-        "title": "Hill-slope saturation",
-        "statement": (
-            "Multi-day rainfall accumulation in the Western Ghats beyond 250 mm in "
-            "48 hours markedly raises the probability of shallow translational "
-            "landslides in midland and highland blocks."
-        ),
-        "source": "Climate Context Library — prototype entry [DEMO]",
-        "source_url": "",
-        "vintage": "2023",
-    },
-    {
-        "hazard_type": "CYCLONE",
-        "title": "Cyclogenesis in the Arabian Sea",
-        "statement": (
-            "Warmer near-shore waters have shortened the historical cyclone "
-            "recurrence interval along the Kerala coast, increasing storm-surge and "
-            "high-wind exposure for coastal districts."
-        ),
-        "source": "Climate Context Library — prototype entry [DEMO]",
-        "source_url": "",
-        "vintage": "2023",
-    },
-    {
-        "hazard_type": "DROUGHT",
-        "title": "Southwest monsoon deficit cycles",
-        "statement": (
-            "Erratic monsoon onset and withdrawal shift the state's water balance, "
-            "with rain-shadow districts experiencing recurring seasonal rainfall "
-            "deficits and groundwater depletion."
-        ),
-        "source": "Climate Context Library — prototype entry [DEMO]",
-        "source_url": "",
-        "vintage": "2023",
-    },
-    {
-        "hazard_type": "EARTHQUAKE",
-        "title": "Seismotectonic context",
-        "statement": (
-            "Kerala lies in IS 1893 seismic zones II–III. Historical instrumented "
-            "seismicity is low-moderate, but lineament reactivation studies "
-            "recommend fault-proximity screening for critical infrastructure."
-        ),
-        "source": "Climate Context Library — prototype entry [DEMO]",
-        "source_url": "",
-        "vintage": "2023",
-    },
 ]
 
 # ------------------------------------------------------------------
 # Recommendations Library — typed, prioritised mitigation actions.
-# ----------------------------------------------------------------...
+# ------------------------------------------------------------------
 RECOMMENDATIONS = [
     # --- Hazard (Module 1) ---
     ("HAZARD", "", "", "HIGH",
      "Enforce hazard-informed land-use zoning and building-permit regulation in high-hazard units."),
     ("HAZARD", "", "HH", "HIGH",
-     "Prioritise structural mitigation (embankments, slope stabilisation, drainage augmentation) in High Hazard (HH) units."),
+     "Prioritise structural mitigation (embankments, flood dykes, drainage augmentation) in High Hazard (HH) units."),
     ("HAZARD", "", "MH", "MEDIUM",
-     "Instrument Moderate Hazard (MH) units with real-time hydrometeorological sensors feeding the early-warning pipeline."),
+     "Instrument Moderate Hazard (MH) units with real-time hydrometeorological river sensors feeding the early-warning pipeline."),
     ("HAZARD", "", "LH", "MEDIUM",
      "Update local-level disaster management plans for Low Hazard (LH) units and strengthen community awareness."),
     ("HAZARD", "FLOOD", "", "MEDIUM",
      "Maintain and de-silt critical drainage corridors and rejuvenate natural flood-alleviation wetlands."),
-    ("HAZARD", "LANDSLIDE", "", "MEDIUM",
-     "Harden road cuts and highland slopes, and relocate exposed settlements above landslide run-out zones."),
-    ("HAZARD", "CYCLONE", "", "MEDIUM",
-     "Map storm-surge inundation along the coast and harden cyclone shelters to NDMA wind specifications."),
-    ("HAZARD", "EARTHQUAKE", "", "MEDIUM",
-     "Screen critical facilities against active fault proximity and apply IS 1893 seismic detailing."),
-    ("HAZARD", "DROUGHT", "", "MEDIUM",
-     "Scale up farm-level water harvesting and micro-irrigation across rain-shadow blocks."),
 
     # --- Vulnerability (Module 2) ---
     ("VULNERABILITY", "", "", "HIGH",
@@ -156,6 +100,8 @@ class Command(BaseCommand):
     help = "Seed the Climate Context and Recommendations libraries (DEMO content)."
 
     def handle(self, *args, **options):
+        ClimateContext.objects.exclude(hazard_type__in=["", "FLOOD"]).delete()
+        Recommendation.objects.exclude(hazard_type__in=["", "FLOOD"]).delete()
         climate_count = 0
         for entry in CLIMATE_CONTEXTS:
             _, created = ClimateContext.objects.update_or_create(

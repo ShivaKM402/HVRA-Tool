@@ -81,7 +81,11 @@ export interface WeightageRule {
 export interface HazardIndicator {
   id: number;
   module_type: string;
+  module_code?: string;
   hazard_type: string;
+  category?: 'SOCIO_ECONOMIC' | 'PHYSICAL' | 'ENVIRONMENTAL' | 'OTHER' | 'HAZARD_PRIMARY' | string;
+  category_display?: string;
+  department?: string;
   code: string;
   name: string;
   description: string;
@@ -119,6 +123,7 @@ export type ModuleType = 'HAZARD' | 'VULNERABILITY' | 'EXPOSURE' | 'COMPOSITE_RI
 export type HazardClassification = 'NH' | 'LH' | 'MH' | 'HH';
 export type RiskClass = 'VERY_HIGH' | 'HIGH' | 'MODERATE' | 'LOW';
 export type ApprovalStatus = 'PENDING' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
+export type CoordinationMode = 'PARALLEL' | 'SEQUENTIAL';
 
 /** Task Force review fields shared by assessments and risk assessments (HVRA §8.2). */
 export interface ApprovalFields {
@@ -137,6 +142,9 @@ export interface AssessmentIndicatorConfig {
   indicator_code: string;
   indicator_name: string;
   indicator_unit: string;
+  department?: string;
+  category?: string;
+  category_display?: string;
   weight: number;
   data_source: number | null;
 }
@@ -153,6 +161,8 @@ export interface Assessment {
   district: number;
   district_name: string;
   administrative_level: string;
+  coordination_mode?: CoordinationMode;
+  department_submissions?: Record<string, any>;
   start_date: string | null;
   end_date: string | null;
   data_source: number | null;
@@ -188,6 +198,11 @@ export interface AssessmentResult {
   final_score: number | null;
   classification: HazardClassification | '';
   notes: string;
+  metadata?: Record<string, any>;
+  is_manually_overridden?: boolean;
+  overridden_by?: string;
+  original_raw_value?: number | null;
+  original_score?: number | null;
 }
 
 export interface AssessmentResultsResponse {
@@ -201,6 +216,59 @@ export interface AssessmentResultsResponse {
   max_score?: number;
   average_score?: number;
   results: AssessmentResult[];
+}
+
+export interface DepartmentIndicatorItem {
+  indicator_id: number;
+  code: string;
+  name: string;
+  unit: string;
+  category: string;
+  category_display: string;
+  weight: number;
+  default_weight: number;
+  current_value?: number | null;
+  unit_values?: Record<number, number>;
+}
+
+export interface DepartmentItem {
+  department: string;
+  total_indicators: number;
+  indicators: DepartmentIndicatorItem[];
+  status: 'SUBMITTED' | 'PENDING';
+  submitted_at: string | null;
+  submitted_by: string | null;
+  officer_name?: string;
+  designation?: string;
+  source_type?: string;
+  attachment_name?: string;
+  submitted_values?: Array<{ indicator_id: number; raw_value: number; administrative_unit_id?: number }>;
+  notes: string;
+  can_submit: boolean;
+  data_gaps: string[];
+}
+
+export interface DepartmentSubmissionsResponse {
+  assessment_id: number;
+  assessment_name: string;
+  module_type: string;
+  hazard_type: string;
+  coordination_mode: CoordinationMode;
+  total_departments: number;
+  submitted_departments: number;
+  all_submitted: boolean;
+  administrative_units?: Array<{ id: number; name: string }>;
+  departments: DepartmentItem[];
+}
+
+export interface ExpertRecalculatePayload {
+  weight_overrides?: Record<string | number, number>;
+  value_overrides?: Array<{
+    indicator_id: number;
+    administrative_unit_id: number;
+    new_raw_value: number;
+    reason?: string;
+  }>;
 }
 
 // -------------------------------------------------------

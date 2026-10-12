@@ -187,112 +187,81 @@ export default function ReportView() {
         <div className="rpt-toc-actions">
           <button
             type="button"
-            className="btn btn-secondary rpt-regen"
+            className="btn btn-secondary btn-sm rpt-regen"
             onClick={handleRegenerate}
             disabled={regenerating}
+            style={{ width: '100%', fontSize: '0.8rem' }}
           >
-            {regenerating ? 'Regenerating…' : '↻ Auto-regenerate'}
+            {regenerating ? 'Regenerating…' : '↻ Refresh Report'}
           </button>
-          <button
-            type="button"
-            className="rpt-export"
-            onClick={handleDownloadDocx}
-            disabled={downloadingFormat !== null}
-          >
-            {downloadingFormat === 'docx' ? 'Generating…' : 'Export as DOCX / PDF'}
-          </button>
-          <div className="rpt-toc-mini">
-            <button className="rpt-mini-btn" onClick={handleDownloadDocx} disabled={downloadingFormat !== null}>
-              DOCX
-            </button>
-            <button className="rpt-mini-btn" onClick={handleDownloadPdf} disabled={downloadingFormat !== null}>
-              PDF
-            </button>
-            <button className="rpt-mini-btn" onClick={handleDownloadCsv} disabled={downloadingFormat !== null}>
-              CSV
-            </button>
-            <button className="rpt-mini-btn" onClick={() => window.print()}>
-              Print
-            </button>
-          </div>
-        </div>
-
-        <div className="rpt-toc-links">
-          <Link to={`/assessments/${id}/results`} className="rpt-mini-btn">
-            ← Map results
-          </Link>
-          <Link to="/reports" className="rpt-mini-btn">
-            All reports
-          </Link>
         </div>
       </aside>
 
       {/* ==========================================================
-          Right: live report preview
+          Right: live report preview (Google Docs Layout)
           ========================================================== */}
       <div className="rpt-preview" ref={previewRef}>
-      {/* Top Action Bar (hidden on print) */}
-      <div className="report-action-bar" style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem',
-        background: '#f8fafc', padding: '0.75rem 1.25rem', borderRadius: '8px', border: '1px solid #e2e8f0'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <Link to={`/assessments/${id}/results`} className="btn btn-secondary" style={{ fontSize: '0.85rem' }}>
-            ← Back to Map Results
+      {/* Top Action Bar (Google Docs Style) */}
+      <div className="report-action-bar">
+        <div className="report-action-left">
+          <Link to={`/assessments/${id}/results`} className="btn btn-secondary btn-sm">
+            ← Back to Results
           </Link>
-          <Link to="/reports" className="btn btn-secondary" style={{ fontSize: '0.85rem' }}>
-            📚 All Reports
+          <Link
+            to={`/assessments/${id}/results?tab=coordination`}
+            className="btn btn-secondary btn-sm"
+            style={{ color: '#0d9488', borderColor: '#ccfbf1', background: '#f0fdfa' }}
+            title="Departmental Data Coordination"
+          >
+            🏛️ Department Coordination
           </Link>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <div className="report-action-right">
           <button
-            className="btn btn-primary"
-            style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem', background: '#2563eb' }}
-            onClick={handleDownloadDocx}
-            disabled={downloadingFormat !== null}
-          >
-            📄 {downloadingFormat === 'docx' ? 'Generating DOCX...' : 'Download Word (DOCX)'}
-          </button>
-          <button
-            className="btn btn-primary"
-            style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem', background: '#dc2626' }}
+            className="btn btn-primary btn-sm"
             onClick={handleDownloadPdf}
             disabled={downloadingFormat !== null}
           >
             📥 {downloadingFormat === 'pdf' ? 'Generating PDF...' : 'Download PDF'}
           </button>
           <button
-            className="btn btn-secondary"
-            style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-            onClick={handleDownloadCsv}
+            className="btn btn-secondary btn-sm"
+            onClick={handleDownloadDocx}
             disabled={downloadingFormat !== null}
           >
-            📊 {downloadingFormat === 'csv' ? 'Exporting...' : 'Export CSV'}
+            📄 {downloadingFormat === 'docx' ? 'Generating...' : 'Word (DOCX)'}
           </button>
           <button
-            className="btn btn-secondary"
-            style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+            className="btn btn-secondary btn-sm"
+            onClick={handleDownloadCsv}
+            disabled={downloadingFormat !== null}
+            title="Download CSV Results"
+          >
+            📊 {downloadingFormat === 'csv' ? 'CSV…' : 'CSV'}
+          </button>
+          <button
+            className="btn btn-secondary btn-sm"
             onClick={() => window.print()}
+            title="Print Report"
           >
             🖨️ Print
           </button>
           <button
-            className="btn btn-secondary"
-            style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#dc2626', background: '#fef2f2', borderColor: '#fecaca' }}
+            className="btn btn-secondary btn-sm"
+            style={{ color: '#dc2626', background: '#fef2f2', borderColor: '#fecaca' }}
             onClick={handleDeleteReport}
             title="Permanently Delete Report"
           >
-            🗑️ Delete Report
+            🗑️ Delete
           </button>
         </div>
       </div>
 
-      {/* Main Printable Document Sheet */}
+      {/* Main Printable Document Sheet (Google Docs Style Paper) */}
       <div className="printable-report-sheet" style={{
-        background: '#fff', padding: '3.5rem 4.5rem',
-        boxShadow: '0 4px 12px -2px rgba(0,0,0,0.08)', borderRadius: '8px', border: '1px solid #e2e8f0'
+        background: '#fff', padding: '2rem 2.5rem',
+        boxShadow: '0 1px 3px rgba(60,64,67,0.1)', borderRadius: '10px', border: '1px solid #e2e8f0'
       }}>
         
         {/* Report Header */}

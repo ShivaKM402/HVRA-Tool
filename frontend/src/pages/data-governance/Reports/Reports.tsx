@@ -278,7 +278,7 @@ export default function Reports() {
         </div>
 
         {/* Filters */}
-        <div className="card-body" style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', padding: '1rem 1.5rem' }}>
+        <div className="card-body" style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-default)', padding: '1rem 1.5rem' }}>
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
             <div style={{ flex: 1, minWidth: '240px' }}>
               <input
@@ -295,12 +295,8 @@ export default function Reports() {
                 value={hazardFilter}
                 onChange={(e) => setHazardFilter(e.target.value)}
               >
-                <option value="">All Hazard Types</option>
+                <option value="">All Hazards (Flood)</option>
                 <option value="FLOOD">🌊 Flood</option>
-                <option value="LANDSLIDE">⛰️ Landslide</option>
-                <option value="CYCLONE">🌀 Cyclone</option>
-                <option value="DROUGHT">☀️ Drought</option>
-                <option value="EARTHQUAKE">🌋 Earthquake</option>
               </select>
             </div>
             {searchQuery || hazardFilter ? (
@@ -340,7 +336,7 @@ export default function Reports() {
           ) : (
             <div className="table-responsive">
               <table className="data-table" style={{ width: '100%', margin: 0 }}>
-                <thead style={{ background: '#f8fafc' }}>
+                <thead style={{ background: 'var(--bg-surface)' }}>
                   <tr>
                     <th style={{ textAlign: 'left', padding: '0.85rem 1.25rem' }}>Assessment Title</th>
                     <th style={{ textAlign: 'left', padding: '0.85rem 1rem' }}>Location</th>
@@ -390,6 +386,14 @@ export default function Reports() {
                       </td>
                       <td style={{ textAlign: 'right', padding: '1rem 1.25rem' }}>
                         <div style={{ display: 'inline-flex', gap: '0.4rem', alignItems: 'center' }}>
+                          <Link
+                            to={`/assessments/${a.id}/results?tab=coordination`}
+                            className="btn btn-secondary"
+                            style={{ fontSize: '0.78rem', padding: '0.3rem 0.6rem', color: '#0d9488', borderColor: '#ccfbf1', background: '#f0fdfa', fontWeight: 600 }}
+                            title="View Department Coordination (Water Resources, LSGD, PWD, Health, Economics & Statistics)"
+                          >
+                            🏛️ Depts
+                          </Link>
                           <Link to={`/assessments/${a.id}/report`} className="btn btn-secondary" style={{ fontSize: '0.78rem', padding: '0.3rem 0.6rem' }} title="View Structured Report">
                             👁️ View
                           </Link>
@@ -458,7 +462,7 @@ export default function Reports() {
           ) : (
             <div className="table-responsive">
               <table className="data-table" style={{ width: '100%', margin: 0 }}>
-                <thead style={{ background: '#f8fafc' }}>
+                <thead style={{ background: 'var(--bg-surface)' }}>
                   <tr>
                     <th style={{ textAlign: 'left', padding: '0.85rem 1.25rem' }}>Risk Scenario</th>
                     <th style={{ textAlign: 'left', padding: '0.85rem 1rem' }}>Location</th>
@@ -602,7 +606,7 @@ export default function Reports() {
           ) : (
             <div className="table-responsive">
               <table className="data-table" style={{ width: '100%', margin: 0 }}>
-                <thead style={{ background: '#f8fafc' }}>
+                <thead style={{ background: 'var(--bg-surface)' }}>
                   <tr>
                     <th style={{ textAlign: 'left', padding: '0.85rem 1.25rem' }}>Query</th>
                     <th style={{ textAlign: 'left', padding: '0.85rem 1rem' }}>Module</th>

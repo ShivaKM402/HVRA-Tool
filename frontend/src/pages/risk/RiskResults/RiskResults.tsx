@@ -174,9 +174,9 @@ export default function RiskResults() {
         <div className="card-body">
           {/* Summary KPIs */}
           <div className="grid-5" style={{ gap: '1rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' }}>
-            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-              <div style={{ color: '#64748b', fontSize: '0.8rem', fontWeight: 600 }}>Total Units</div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 700, color: '#0f172a' }}>{resultsData.total_units}</div>
+            <div style={{ background: 'var(--bg-surface)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-default)', textAlign: 'center' }}>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 600 }}>Total Units</div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-heading)' }}>{resultsData.total_units}</div>
             </div>
             <div style={{ background: '#fef2f2', padding: '1rem', borderRadius: '8px', border: '1px solid #fecaca', textAlign: 'center' }}>
               <div style={{ color: '#7f1d1d', fontSize: '0.8rem', fontWeight: 600 }}>Very High Risk</div>
@@ -197,17 +197,17 @@ export default function RiskResults() {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
-            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: '#64748b', fontWeight: 600 }}>Minimum Risk Score:</span>
-              <strong style={{ fontSize: '1.1rem' }}>{resultsData.min_score?.toFixed(2) || 0}</strong>
+            <div style={{ background: 'var(--bg-surface)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-default)', display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Minimum Risk Score:</span>
+              <strong style={{ fontSize: '1.1rem', color: 'var(--text-heading)' }}>{resultsData.min_score?.toFixed(2) || 0}</strong>
             </div>
-            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: '#64748b', fontWeight: 600 }}>Average Risk Score:</span>
-              <strong style={{ fontSize: '1.1rem' }}>{resultsData.average_score?.toFixed(2) || 0}</strong>
+            <div style={{ background: 'var(--bg-surface)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-default)', display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Average Risk Score:</span>
+              <strong style={{ fontSize: '1.1rem', color: 'var(--text-heading)' }}>{resultsData.average_score?.toFixed(2) || 0}</strong>
             </div>
-            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: '#64748b', fontWeight: 600 }}>Highest Risk Score:</span>
-              <strong style={{ fontSize: '1.1rem' }}>{resultsData.max_score?.toFixed(2) || 0}</strong>
+            <div style={{ background: 'var(--bg-surface)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-default)', display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Highest Risk Score:</span>
+              <strong style={{ fontSize: '1.1rem', color: 'var(--text-heading)' }}>{resultsData.max_score?.toFixed(2) || 0}</strong>
             </div>
           </div>
         </div>

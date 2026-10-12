@@ -126,7 +126,25 @@ export default function ResultsTable({ results, selectedBlockId, onBlockSelect }
                     if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
                   }}
                 >
-                  <td style={{ fontWeight: 500, padding: '0.8rem 1rem' }}>{r.unit_name}</td>
+                  <td style={{ fontWeight: 500, padding: '0.8rem 1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <span>{r.unit_name}</span>
+                      {r.is_manually_overridden && (
+                        <span
+                          className="badge"
+                          style={{
+                            background: '#fef3c7',
+                            color: '#b45309',
+                            fontSize: '0.68rem',
+                            padding: '0.1rem 0.35rem',
+                          }}
+                          title={`Adjusted by ${r.overridden_by || 'Expert'}: ${r.notes || 'Manual override'}`}
+                        >
+                          ⚙️ Adjusted
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td style={{ textAlign: 'right', padding: '0.8rem 1rem' }}>{fp}%</td>
                   <td style={{ textAlign: 'right', padding: '0.8rem 1rem' }}>{ev}</td>
                   <td style={{ textAlign: 'right', padding: '0.8rem 1rem' }}>{fq}</td>

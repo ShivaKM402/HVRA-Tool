@@ -195,8 +195,8 @@ export default function Settings() {
         </div>
 
         {showCreate && (
-          <div className="card-body" style={{ borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
-            <h4 style={{ margin: '0 0 0.75rem', fontSize: '0.95rem' }}>New Platform User</h4>
+          <div className="card-body" style={{ borderBottom: '1px solid var(--border-default)', background: 'var(--bg-surface)' }}>
+            <h4 style={{ margin: '0 0 0.75rem', fontSize: '0.95rem', color: 'var(--text-heading)' }}>New Platform User</h4>
             <form onSubmit={handleCreate} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
               <input className="form-control" placeholder="Username *" value={form.username}
                 onChange={(e) => setForm({ ...form, username: e.target.value })} required />
@@ -341,7 +341,7 @@ export default function Settings() {
                       </td>
                     </tr>
                     {editingTerritory === u.id && (
-                      <tr style={{ background: '#f8fafc' }}>
+                      <tr style={{ background: 'var(--bg-surface)' }}>
                         <td colSpan={7} style={{ padding: '0.85rem 1.25rem' }}>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'flex-end' }}>
                             <div>
@@ -405,9 +405,9 @@ export default function Settings() {
         <div className="card-body">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '0.75rem' }}>
             {roles.map((r) => (
-              <div key={r.code} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '0.85rem' }}>
-                <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#0f172a' }}>{r.label}</div>
-                <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '0.25rem', fontFamily: 'monospace' }}>{r.code}</div>
+              <div key={r.code} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: 10, padding: '0.85rem' }}>
+                <div style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text-heading)' }}>{r.label}</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.25rem', fontFamily: 'monospace' }}>{r.code}</div>
               </div>
             ))}
           </div>

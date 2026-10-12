@@ -13,7 +13,7 @@ A query-driven GIS-based tool for administrative-level hazard assessment.
 
 **Kerala Hazard, Vulnerability, Exposure and Risk Assessment (HVRA) Platform**
 
-An end-to-end spatial decision support system providing query-driven administrative-level hazard scoring, composite risk matrix modeling ($Risk = H \times V \times E$), 3D digital twin visualization, multi-stage approval governance, and publication-grade PDF/DOCX reporting with embedded 220-DPI choropleth maps.
+An end-to-end spatial decision support system providing query-driven administrative-level hazard scoring, composite risk matrix modeling ($Risk = H \times V \times Amount$), KSDMA HVRA thematic atlas integration, multi-stage approval governance, and publication-grade PDF/DOCX reporting with embedded 220-DPI choropleth maps.
 
 ---
 

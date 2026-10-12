@@ -92,7 +92,7 @@ export default function RiskReportView() {
       <div className="report-action-bar" style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem',
-        background: '#f8fafc', padding: '1rem 1.5rem', borderRadius: '8px', border: '1px solid #e2e8f0'
+        background: 'var(--bg-surface)', padding: '1rem 1.5rem', borderRadius: '10px', border: '1px solid var(--border-default)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <Link to={`/risk-assessments/${id}/results`} className="btn btn-secondary" style={{ fontSize: '0.85rem' }}>
@@ -130,22 +130,22 @@ export default function RiskReportView() {
         </div>
       </div>
 
-      {/* Report Document */}
-      <div className="report-document card" style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' }}>
-        <div style={{ background: '#0f172a', color: '#fff', padding: '2rem 2.5rem' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', letterSpacing: '0.1em' }}>
+        {/* Report Document */}
+        <div className="report-document card" style={{ border: '1px solid var(--border-default)', borderRadius: '14px', overflow: 'hidden' }}>
+        <div style={{ background: 'linear-gradient(135deg, #381a04 0%, #1c1108 100%)', color: '#fff9f0', padding: '2rem 2.5rem' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#fde68a', letterSpacing: '0.1em' }}>
             HAZARD, VULNERABILITY & RISK ASSESSMENT TOOL (HVRA)
           </div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, margin: '0.5rem 0 0.25rem' }}>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, margin: '0.5rem 0 0.25rem', color: '#fff9f0' }}>
             {metadata?.name || 'Composite Risk Assessment Report'}
           </h1>
-          <div style={{ fontSize: '0.95rem', color: '#cbd5e1' }}>
+          <div style={{ fontSize: '0.95rem', color: '#fef3c7' }}>
             Composite Risk (Module 4) · {isMultiplicative ? 'Risk = H × V × E' : 'Weighted Sum'}
           </div>
         </div>
 
         {/* Metadata */}
-        <div className="report-meta" style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', padding: '1.25rem 2.5rem' }}>
+        <div className="report-meta" style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-default)', padding: '1.25rem 2.5rem' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', fontSize: '0.85rem', color: '#334155' }}>
             <div><strong style={{ color: '#475569' }}>State:</strong> {metadata?.state || 'Kerala'}</div>
             <div><strong style={{ color: '#475569' }}>District:</strong> {metadata?.district || 'District'}</div>
@@ -227,7 +227,7 @@ export default function RiskReportView() {
             </h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.75rem' }}>
               {CLASS_ORDER.map(cls => (
-                <div key={cls} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', textAlign: 'center', padding: '1rem' }}>
+                <div key={cls} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: '10px', textAlign: 'center', padding: '1rem' }}>
                   <div style={{ fontSize: '1.6rem', fontWeight: 800, color: RISK_COLORS[cls] }}>
                     {classification_summary?.[cls] || 0}
                   </div>
@@ -247,7 +247,7 @@ export default function RiskReportView() {
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
                 <thead>
-                  <tr style={{ background: '#1e293b', color: '#fff' }}>
+                  <tr style={{ background: 'var(--bg-surface)', color: 'var(--text-heading)', borderBottom: '1px solid var(--border-default)' }}>
                     <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left' }}>Block Unit</th>
                     <th style={{ padding: '0.6rem 0.5rem', textAlign: 'right' }}>Hazard</th>
                     <th style={{ padding: '0.6rem 0.5rem', textAlign: 'right' }}>Vulnerability</th>
@@ -258,7 +258,7 @@ export default function RiskReportView() {
                 </thead>
                 <tbody>
                   {(block_results || []).map((b: any, idx: number) => (
-                    <tr key={idx} style={{ background: idx % 2 === 1 ? '#f8fafc' : '#fff', borderBottom: '1px solid #f1f5f9' }}>
+                    <tr key={idx} style={{ background: idx % 2 === 1 ? 'var(--bg-surface)' : 'var(--bg-card)', borderBottom: '1px solid var(--border-subtle)' }}>
                       <td style={{ padding: '0.5rem 0.75rem', fontWeight: 600, color: '#0f172a' }}>{b.unit_name}</td>
                       <td style={{ padding: '0.5rem 0.5rem', textAlign: 'right' }}>{b.hazard_score !== null && b.hazard_score !== undefined ? b.hazard_score.toFixed(2) : '—'}</td>
                       <td style={{ padding: '0.5rem 0.5rem', textAlign: 'right' }}>{b.vulnerability_score !== null && b.vulnerability_score !== undefined ? b.vulnerability_score.toFixed(2) : '—'}</td>

@@ -95,8 +95,7 @@ class HazardEvent(models.Model):
         ordering = ["-event_date"]
 
     def __str__(self):
-        demo_tag = " [DEMO]" if self.is_demo else ""
-        return f"{self.hazard_type} on {self.event_date} at ({self.latitude:.4f}, {self.longitude:.4f}){demo_tag}"
+        return f"{self.hazard_type} on {self.event_date} at ({self.latitude:.4f}, {self.longitude:.4f})"
 
     @property
     def geometry(self):
@@ -152,8 +151,7 @@ class HazardLayer(models.Model):
         verbose_name = "Hazard Layer"
 
     def __str__(self):
-        demo_tag = " [DEMO]" if self.is_demo else ""
-        return f"{self.name} ({self.hazard_type}){demo_tag}"
+        return f"{self.name} ({self.hazard_type})"
 
     @property
     def geometry(self):

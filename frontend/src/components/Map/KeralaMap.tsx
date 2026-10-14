@@ -154,7 +154,7 @@ export default function KeralaMap({ districtKey, selectedDistrict, hideDropdown:
     const props = feature.properties as BlockProperties;
     const name  = props.name || 'Block';
     const area  = props.area_sqkm ? `${props.area_sqkm.toFixed(2)} sq km` : 'N/A';
-    const dist  = props.district || `${cleanName || 'District'} [DEMO]`;
+    const dist  = props.district || cleanName || 'District';
     layer.bindPopup(
       `<div style="font-family:Inter,sans-serif;min-width:180px">
         <div style="font-size:14px;font-weight:700;color:#0f172a;border-bottom:2px solid #3b82f6;padding-bottom:4px;margin-bottom:8px">${name}</div>
@@ -162,7 +162,6 @@ export default function KeralaMap({ districtKey, selectedDistrict, hideDropdown:
           <div><strong style="color:#64748b">District:</strong> ${dist}</div>
           <div><strong style="color:#64748b">Area:</strong> ${area}</div>
         </div>
-        <div style="margin-top:8px;font-size:10px;font-weight:700;color:#d97706;background:#fffbeb;border:1px solid #fef3c7;padding:3px 8px;border-radius:4px;display:inline-block">⚠️ DEMO DATA</div>
       </div>`,
       { maxWidth: 260 }
     );
@@ -245,8 +244,8 @@ export default function KeralaMap({ districtKey, selectedDistrict, hideDropdown:
               {[
                 ['Block Name', selectedBlock.name],
                 ['Block Code', selectedBlock.code],
-                ['District',   selectedBlock.district || `${cleanName} [DEMO]`],
-                ['State',      selectedBlock.state     || 'Kerala [DEMO]'],
+                ['District',   selectedBlock.district || cleanName || 'District'],
+                ['State',      selectedBlock.state     || 'Kerala'],
                 ['Area',       selectedBlock.area_sqkm ? `${selectedBlock.area_sqkm.toFixed(2)} sq km` : 'N/A'],
               ].map(([label, value]) => (
                 <div key={label}>

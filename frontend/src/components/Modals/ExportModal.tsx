@@ -4,6 +4,7 @@
  */
 import { useState } from 'react';
 import { useToast } from '../../context/ToastContext';
+import './Modals.css';
 
 interface ExportModalProps {
   isOpen: boolean;

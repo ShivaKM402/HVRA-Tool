@@ -12,11 +12,11 @@ import type { Assessment, AssessmentResultsResponse, AssessmentResult } from '@/
 import ResultsMap from '@/components/Map/ResultsMap';
 import ResultsTable from './ResultsTable';
 import ReportView from './ReportView';
-import DepartmentCoordinationTab from './DepartmentCoordinationTab';
 import ExpertRecalibrationModal from './ExpertRecalibrationModal';
 import UnitDetailModal from '@/components/Modals/UnitDetailModal';
 import ExportModal from '@/components/Modals/ExportModal';
 import ReviewModal from '@/components/Modals/ReviewModal';
+import { useAuth } from '@/context/AuthContext';
 import './AssessmentResults.css';
 
 const CLASSIFICATION_COLORS: Record<string, string> = {
@@ -27,19 +27,15 @@ const CLASSIFICATION_COLORS: Record<string, string> = {
 };
 
 export default function AssessmentResults() {
+  const { canDelete } = useAuth();
   const { id } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
-  // Active step: 'map' | 'classification' | 'coordination' | 'report'
+  // Active step: 'map' | 'classification' | 'report'
   const stepParam = searchParams.get('tab') || searchParams.get('step') || 'map';
-  const [activeStep, setActiveStep] = useState<'map' | 'classification' | 'coordination' | 'report'>(
-    stepParam === 'report'
-      ? 'report'
-      : stepParam === 'coordination'
-      ? 'coordination'
-      : stepParam === 'classification'
-      ? 'classification'
-      : 'map'
+  const [activeStep, setActiveStep] = useState<'map' | 'classification' | 'report'>(
+    stepParam === 'report' ? 'report' : stepParam === 'classification' ? 'classification' : 'map'
   );
 
   const [assessment, setAssessment] = useState<Assessment | null>(null);
@@ -56,7 +52,6 @@ export default function AssessmentResults() {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [isExpertModalOpen, setIsExpertModalOpen] = useState(false);
-  const navigate = useNavigate();
 
   const handleDeleteThisAssessment = async () => {
     if (!assessment) return;
@@ -87,12 +82,16 @@ export default function AssessmentResults() {
   };
 
   useEffect(() => {
-    if (stepParam === 'map' || stepParam === 'classification' || stepParam === 'coordination' || stepParam === 'report') {
+    if (stepParam === 'coordination') {
+      navigate(`/department-coordination?assessmentId=${id}`, { replace: true });
+      return;
+    }
+    if (stepParam === 'map' || stepParam === 'classification' || stepParam === 'report') {
       setActiveStep(stepParam);
     }
-  }, [stepParam]);
+  }, [stepParam, id, navigate]);
 
-  const setStep = (step: 'map' | 'classification' | 'coordination' | 'report') => {
+  const setStep = (step: 'map' | 'classification' | 'report') => {
     setActiveStep(step);
     setSearchParams({ tab: step });
   };
@@ -157,14 +156,18 @@ export default function AssessmentResults() {
 
   return (
     <div className="results-shell">
-      {/* Top Breadcrumb & Status Bar */}
+      {/* Top Header Card */}
       <div className="results-header-card">
         <div className="results-meta-row">
           <div>
             <div className="results-breadcrumb-text">
               <Link to="/dashboard">Dashboard</Link> /{' '}
               <Link to={`/new-assessment?module=${assessment.module_type}`}>
-                {assessment.module_type} Assessment
+                {assessment.module_type === 'HAZARD'
+                  ? 'Flood Assessment'
+                  : assessment.module_type === 'COMPOSITE_RISK'
+                  ? 'Risk Assessment'
+                  : `${assessment.module_type} Assessment`}
               </Link>{' '}
               / <span>{assessment.district_name || 'District'}</span>
             </div>
@@ -186,20 +189,24 @@ export default function AssessmentResults() {
           </div>
 
           <div className="results-action-group">
-            <button
-              className="btn btn-secondary btn-sm"
-              onClick={() => setIsExpertModalOpen(true)}
-              style={{ background: '#f8fafc', borderColor: '#cbd5e1', color: '#1e40af', fontWeight: 600 }}
-              title="Authorised Expert Review & Recalibration (HVRA §6)"
-            >
-              ⚡ Expert Recalibrate
-            </button>
-            <button
-              className="btn btn-secondary btn-sm"
-              onClick={() => setIsExportModalOpen(true)}
-            >
-              📥 Export Dossier
-            </button>
+            {activeStep === 'classification' && (
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => setIsExpertModalOpen(true)}
+                style={{ background: '#f8fafc', borderColor: '#cbd5e1', color: '#1e40af', fontWeight: 600 }}
+                title="Authorised Expert Review & Recalibration (HVRA §6)"
+              >
+                ⚡ Expert Recalibrate
+              </button>
+            )}
+            {activeStep === 'report' && (
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => setIsExportModalOpen(true)}
+              >
+                📥 Export Dossier
+              </button>
+            )}
             {assessment.approval_status !== 'APPROVED' && (
               <button
                 className="btn btn-primary btn-sm"
@@ -208,21 +215,23 @@ export default function AssessmentResults() {
                 🏛️ Submit for Review
               </button>
             )}
-            <button
-              className="btn btn-secondary btn-sm"
-              onClick={handleDeleteThisAssessment}
-              style={{ color: '#dc2626', borderColor: '#fecaca', background: '#fef2f2' }}
-              title="Permanently Delete Assessment"
-            >
-              🗑️ Delete
-            </button>
+            {canDelete && (
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={handleDeleteThisAssessment}
+                style={{ color: '#dc2626', borderColor: '#fecaca', background: '#fef2f2' }}
+                title="Permanently Delete Assessment"
+              >
+                🗑️ Delete
+              </button>
+            )}
             <Link to="/dashboard" className="btn btn-secondary btn-sm">
               Dashboard Home
             </Link>
           </div>
         </div>
 
-        {/* 4-Step Google-Style Tab Stepper */}
+        {/* Clean 3-Step Journey Navigation */}
         <div className="journey-indicator-bar" role="tablist" aria-label="Assessment Journey Steps">
           <button
             role="tab"
@@ -233,7 +242,6 @@ export default function AssessmentResults() {
             <span className="step-num">1</span>
             <div className="step-text">
               <div className="step-title">Inundation Map</div>
-              <div className="step-sub">Spatial flood footprint</div>
             </div>
           </button>
 
@@ -246,20 +254,6 @@ export default function AssessmentResults() {
             <span className="step-num">2</span>
             <div className="step-text">
               <div className="step-title">Risk Classification</div>
-              <div className="step-sub">Panchayat &amp; Taluk severity</div>
-            </div>
-          </button>
-
-          <button
-            role="tab"
-            aria-selected={activeStep === 'coordination'}
-            className={`journey-step ${activeStep === 'coordination' ? 'active' : ''}`}
-            onClick={() => setStep('coordination')}
-          >
-            <span className="step-num">3</span>
-            <div className="step-text">
-              <div className="step-title">Department Coordination</div>
-              <div className="step-sub">Data collection &amp; tracking</div>
             </div>
           </button>
 
@@ -269,10 +263,9 @@ export default function AssessmentResults() {
             className={`journey-step ${activeStep === 'report' ? 'active' : ''}`}
             onClick={() => setStep('report')}
           >
-            <span className="step-num">4</span>
+            <span className="step-num">3</span>
             <div className="step-text">
               <div className="step-title">Official Report</div>
-              <div className="step-sub">Dossier narrative &amp; PDF</div>
             </div>
           </button>
         </div>
@@ -329,7 +322,7 @@ export default function AssessmentResults() {
                 Each administrative unit is shaded into 4 colorblind-safe bands (NH, LH, MH, HH) relative to neighbouring units in {assessment.district_name || 'the district'}. Click any unit on the map or table for deep attribution.
               </p>
             </div>
-            <button className="btn btn-primary" onClick={() => setStep('coordination')}>
+            <button className="btn btn-primary" onClick={() => navigate(`/department-coordination?assessmentId=${id}`)}>
               Proceed to Coordination →
             </button>
           </div>
@@ -431,53 +424,10 @@ export default function AssessmentResults() {
 
           <div className="step-footer-cta">
             <button className="btn btn-secondary" onClick={() => setStep('map')}>
-              ← Back to Thematic Map
-            </button>
-            <button className="btn btn-primary" onClick={() => setStep('coordination')}>
-              Proceed to Department Coordination →
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* STEP 3: DEPARTMENT COORDINATION */}
-      {activeStep === 'coordination' && (
-        <div className="step-content-view">
-          <div className="step-guidance-banner">
-            <div>
-              <h3 style={{ margin: 0, fontSize: '1rem', color: '#0f172a' }}>
-                Step 3: Departmental Data Management & Inter-Agency Coordination (HVRA §6)
-              </h3>
-              <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: '#475569' }}>
-                Track data completeness across responsible line departments (Water Resources, LSGD, Revenue, PWD, Health, Agriculture, KSEB). Toggle between Simultaneous (Parallel) entry and Sequential handover workflows.
-              </p>
-            </div>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button
-                className="btn btn-secondary btn-sm"
-                onClick={() => setIsExpertModalOpen(true)}
-              >
-                ⚡ Expert Recalibrate
-              </button>
-              <button className="btn btn-primary" onClick={() => setStep('report')}>
-                Proceed to Report →
-              </button>
-            </div>
-          </div>
-
-          <div className="card" style={{ padding: '1.25rem' }}>
-            <DepartmentCoordinationTab
-              assessmentId={assessment.id}
-              onRefresh={refreshAssessmentData}
-            />
-          </div>
-
-          <div className="step-footer-cta">
-            <button className="btn btn-secondary" onClick={() => setStep('classification')}>
-              ← Back to Classification Map
+              ← Back to Inundation Map
             </button>
             <button className="btn btn-primary" onClick={() => setStep('report')}>
-              Proceed to Chapter-wise Report →
+              Proceed to Official Report →
             </button>
           </div>
         </div>
@@ -511,8 +461,8 @@ export default function AssessmentResults() {
           <ReportView />
 
           <div className="step-footer-cta">
-            <button className="btn btn-secondary" onClick={() => setStep('coordination')}>
-              ← Back to Department Coordination
+            <button className="btn btn-secondary" onClick={() => setStep('classification')}>
+              ← Back to Risk Classification Map
             </button>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               <Link to="/dashboard" className="btn btn-secondary">

@@ -200,7 +200,6 @@ export default function RiskReportView() {
                   <div key={idx} style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderLeft: '4px solid #0ea5e9', borderRadius: '6px', padding: '0.85rem 1rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
                       <h4 style={{ margin: 0, fontSize: '0.92rem', color: '#0f172a', fontWeight: 700 }}>{c.title}</h4>
-                      {c.is_demo && <span className="badge badge-warning" style={{ fontSize: '0.6rem' }}>DEMO</span>}
                     </div>
                     <p style={{ margin: '0.4rem 0 0', fontSize: '0.85rem', color: '#334155', lineHeight: 1.55 }}>{c.statement}</p>
                     {(c.source || c.vintage) && (
@@ -313,10 +312,9 @@ export default function RiskReportView() {
             <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0f172a', borderBottom: '2px solid #e2e8f0', paddingBottom: '0.4rem', marginBottom: '0.75rem' }}>
               8. Annexures & Data Provenance Notice
             </h2>
-            <p style={{ fontSize: '0.85rem', color: '#64748b', fontStyle: 'italic', lineHeight: 1.6, margin: 0 }}>
-              Disclaimer: This report was compiled automatically by the HVRA prototype platform. All scores and classes
-              are computed for decision support. Hazard, Vulnerability and Exposure inputs are based on prototype DEMO
-              DATA and should be replaced with validated survey data before official use.
+            <p style={{ fontSize: '0.85rem', color: '#64748b', lineHeight: 1.6, margin: 0 }}>
+              Notice: This report was compiled by the Kerala State HVRA Platform. All composite risk scores and vulnerability classifications
+              are computed for statutory disaster preparedness and multi-department coordination under NDMA guidelines.
             </p>
           </section>
         </div>

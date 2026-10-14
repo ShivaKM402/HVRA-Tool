@@ -7,6 +7,7 @@ import { Outlet, NavLink, useLocation, useNavigate, useSearchParams, Link } from
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useDistrict } from '../../context/DistrictContext';
+import { useHazard } from '../../context/HazardContext';
 import { useToast } from '../../context/ToastContext';
 import CommandPalette from '../CommandPalette/CommandPalette';
 import OnboardingTour from '../OnboardingTour/OnboardingTour';
@@ -20,12 +21,24 @@ export default function Layout() {
   const [searchParams] = useSearchParams();
   const { user, isAuthenticated, isAdmin, logout } = useAuth();
   const { districts, activeDistrictId, setActiveDistrictId } = useDistrict();
+  const { activeHazard, activeHazardMeta, clearHazard } = useHazard();
   const { unreadCount } = useToast();
 
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isOnboardingTourOpen, setIsOnboardingTourOpen] = useState(false);
 
+  // If no hazard is selected and the user attempts to view an inner module directly, route them to /dashboard (the 4-column selection first page)
+  useEffect(() => {
+    if (
+      !activeHazard &&
+      location.pathname !== '/dashboard' &&
+      !location.pathname.startsWith('/login') &&
+      !location.pathname.startsWith('/register')
+    ) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [activeHazard, location.pathname, navigate]);
 
   // Global Ctrl+K / Cmd+K listener
   useEffect(() => {
@@ -49,15 +62,16 @@ export default function Layout() {
     const path = location.pathname;
     if (path === '/dashboard') return null;
 
+    const prefix = activeHazardMeta ? `${activeHazardMeta.shortName} Portal` : 'Dashboard';
     const crumbs: { label: string; to: string }[] = [
-      { label: 'Dashboard', to: '/dashboard' },
+      { label: prefix, to: activeHazard ? `/dashboard?hazard=${activeHazard}` : '/dashboard' },
     ];
 
     if (path.startsWith('/new-assessment')) {
       const m = searchParams.get('module') || 'HAZARD';
-      crumbs.push({ label: `${m} Assessment (Query Builder)`, to: `${path}?module=${m}` });
+      crumbs.push({ label: `${m} Assessment (Query Builder)`, to: `${path}?module=${m}${activeHazard ? `&hazard=${activeHazard}` : ''}` });
     } else if (path.startsWith('/assessments') || path.startsWith('/risk-assessments')) {
-      crumbs.push({ label: 'Assessments', to: '/reports' });
+      crumbs.push({ label: 'Assessments', to: `/reports${activeHazard ? `?hazard=${activeHazard}` : ''}` });
       if (path.includes('/results')) {
         const tab = searchParams.get('tab') || 'map';
         crumbs.push({ label: `Results (${tab.toUpperCase()})`, to: `${path}?tab=${tab}` });
@@ -66,16 +80,20 @@ export default function Layout() {
       } else if (path.includes('/processing')) {
         crumbs.push({ label: 'Processing State', to: path });
       }
+    } else if (path.startsWith('/issues')) {
+      crumbs.push({ label: 'Field Incidents & 3-Tier Workflow', to: '/issues' });
+    } else if (path === '/department-coordination' || path.includes('/coordination')) {
+      crumbs.push({ label: `${activeHazardMeta ? activeHazardMeta.shortName : ''} Dept Tasks`, to: `/department-coordination${activeHazard ? `?hazard=${activeHazard}` : ''}` });
     } else if (path === '/review-queue') {
       crumbs.push({ label: 'Task Force Review Queue', to: '/review-queue' });
     } else if (path === '/saved-queries') {
       crumbs.push({ label: 'Saved Queries & Templates', to: '/saved-queries' });
     } else if (path === '/risk-builder') {
-      crumbs.push({ label: 'Composite Risk Builder', to: '/risk-builder' });
+      crumbs.push({ label: 'Composite Risk Builder', to: `/risk-builder${activeHazard ? `?hazard=${activeHazard}` : ''}` });
     } else if (path === '/data-library') {
-      crumbs.push({ label: 'Data Library & Catalog', to: '/data-library' });
+      crumbs.push({ label: 'Data Library & Catalog', to: `/data-library${activeHazard ? `?hazard=${activeHazard}` : ''}` });
     } else if (path === '/reports') {
-      crumbs.push({ label: 'Reports Gallery', to: '/reports' });
+      crumbs.push({ label: 'Reports Gallery', to: `/reports${activeHazard ? `?hazard=${activeHazard}` : ''}` });
     } else if (path === '/dashboard/compare') {
       crumbs.push({ label: 'Compare Dashboards', to: '/dashboard/compare' });
     } else if (path === '/admin-units') {
@@ -86,6 +104,8 @@ export default function Layout() {
       crumbs.push({ label: 'User Profile', to: '/profile' });
     } else if (path === '/notifications') {
       crumbs.push({ label: 'Notification Center', to: '/notifications' });
+    } else if (path === '/libraries') {
+      crumbs.push({ label: `${activeHazardMeta ? activeHazardMeta.shortName : ''} Indicators`, to: `/libraries${activeHazard ? `?hazard=${activeHazard}` : ''}` });
     } else if (path === '/help') {
       crumbs.push({ label: 'Help & Compliance', to: '/help' });
     }
@@ -99,13 +119,52 @@ export default function Layout() {
     <div className="app-layout">
       {/* Google-Style Two-Tier Clean Console Header */}
       <header className="google-header-container">
-        {/* Tier 1: System Bar (Brand, District Context, Global Search, Actions, Profile) */}
+        {/* Tier 1: System Bar */}
         <div className="google-top-bar">
           <div className="google-top-left">
-            <Link to="/dashboard" className="google-brand">
-              <div className="google-brand-icon">🌊</div>
-              <span className="google-brand-title">HVRA Flood Portal</span>
+            <Link to={activeHazard ? `/dashboard?hazard=${activeHazard}` : '/dashboard'} className="google-brand">
+              <div
+                className="google-brand-icon"
+                style={{
+                  background: activeHazardMeta ? activeHazardMeta.color : undefined,
+                }}
+              >
+                {activeHazardMeta ? activeHazardMeta.icon : '🏛️'}
+              </div>
+              <span className="google-brand-title">
+                {activeHazardMeta ? `HVRA ${activeHazardMeta.shortName} Portal` : 'Kerala Multi-Hazard HVRA'}
+              </span>
             </Link>
+
+            {/* When a hazard is selected, show prominent [⬅ Change Hazard (4 Columns)] button */}
+            {activeHazard && (
+              <button
+                onClick={() => {
+                  clearHazard();
+                  navigate('/dashboard');
+                }}
+                className="btn-hazard-firstpage-switch"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  background: '#eff6ff',
+                  border: '1.5px solid #bfdbfe',
+                  borderRadius: '8px',
+                  padding: '0.28rem 0.75rem',
+                  fontSize: '0.78rem',
+                  fontWeight: 800,
+                  color: '#1d4ed8',
+                  cursor: 'pointer',
+                  marginLeft: '0.5rem',
+                  boxShadow: '0 1px 3px rgba(37,99,235,0.1)',
+                  transition: 'all 0.15s ease',
+                }}
+                title="Return to the 4-column hazard selection first page"
+              >
+                <span>⬅</span> Change Hazard (4 Columns)
+              </button>
+            )}
 
             {/* Context Switcher for District */}
             <div className="district-switcher">
@@ -125,31 +184,64 @@ export default function Layout() {
           </div>
 
           <div className="google-top-center">
-            {/* Quick Search Trigger */}
-            <button
-              className="cmd-trigger-btn"
-              onClick={() => setIsCommandPaletteOpen(true)}
-              title="Global search (Ctrl+K)"
-            >
-              <span>🔍 Search assessments, taluks, indicators...</span>
-              <kbd className="cmd-kbd">Ctrl+K</kbd>
-            </button>
+            {activeHazard ? (
+              /* Quick Search Trigger */
+              <button
+                className="cmd-trigger-btn"
+                onClick={() => setIsCommandPaletteOpen(true)}
+                title="Global search (Ctrl+K)"
+              >
+                <span>🔍 Search {activeHazardMeta?.shortName} assessments, taluks, indicators...</span>
+                <kbd className="cmd-kbd">Ctrl+K</kbd>
+              </button>
+            ) : (
+              /* Informative Banner Pill on First Page */
+              <div
+                style={{
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  color: '#1e3a8a',
+                  background: '#eff6ff',
+                  border: '1px solid #bfdbfe',
+                  padding: '0.35rem 1.1rem',
+                  borderRadius: '999px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  boxShadow: '0 1px 2px rgba(37,99,235,0.06)',
+                }}
+              >
+                <span>✨</span> First Page: Select 1 of the 4 Hazard Boxes Below
+              </div>
+            )}
           </div>
 
           <div className="google-top-right">
-            {/* AI Assistant */}
-            <AIPanel />
+            {activeHazard && (
+              <>
+                {/* AI Assistant */}
+                <AIPanel />
 
-            {/* Notification Center */}
-            <Link to="/notifications" className="topbar-icon-btn" title="Notification Center">
-              🔔
-              {unreadCount > 0 && <span className="notif-badge">{unreadCount}</span>}
-            </Link>
+                {/* Notification Center */}
+                <Link to="/notifications" className="topbar-icon-btn" title="Notification Center">
+                  🔔
+                  {unreadCount > 0 && <span className="notif-badge">{unreadCount}</span>}
+                </Link>
 
-            {/* Primary Action Button */}
-            <NavLink to="/new-assessment?module=HAZARD" className="btn btn-primary btn-sm" style={{ whiteSpace: 'nowrap' }}>
-              + New Assessment
-            </NavLink>
+                {/* Primary Action Button for active hazard */}
+                <NavLink
+                  to={`/new-assessment?module=HAZARD&hazard=${activeHazard}`}
+                  className="btn btn-primary btn-sm"
+                  style={{
+                    whiteSpace: 'nowrap',
+                    background: activeHazardMeta?.color,
+                    borderColor: activeHazardMeta?.color,
+                  }}
+                >
+                  + New {activeHazardMeta?.shortName} Assessment
+                </NavLink>
+              </>
+            )}
 
             {/* Profile / Auth Menu */}
             {isAuthenticated && user ? (
@@ -186,7 +278,14 @@ export default function Layout() {
                         className="dropdown-item"
                         onClick={() => setProfileMenuOpen(false)}
                       >
-                        👤 View Profile & Jurisdiction
+                        👤 View Profile &amp; Jurisdiction
+                      </Link>
+                      <Link
+                        to="/issues"
+                        className="dropdown-item"
+                        onClick={() => setProfileMenuOpen(false)}
+                      >
+                        🚨 Field Incidents &amp; 3-Tier Workflow
                       </Link>
                       <Link
                         to="/review-queue"
@@ -194,6 +293,13 @@ export default function Layout() {
                         onClick={() => setProfileMenuOpen(false)}
                       >
                         🏛️ Task Force Review Queue
+                      </Link>
+                      <Link
+                        to={`/libraries${activeHazard ? `?hazard=${activeHazard}` : ''}`}
+                        className="dropdown-item"
+                        onClick={() => setProfileMenuOpen(false)}
+                      >
+                        📊 Indicators &amp; Agency Library
                       </Link>
                       <button
                         className="dropdown-item"
@@ -208,19 +314,6 @@ export default function Layout() {
               </div>
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', whiteSpace: 'nowrap' }}>
-                <span
-                  style={{
-                    fontSize: '0.72rem',
-                    padding: '0.2rem 0.5rem',
-                    borderRadius: '4px',
-                    backgroundColor: '#e2e8f0',
-                    color: '#475569',
-                    fontWeight: 600,
-                  }}
-                  title="Operating in local prototype demo mode"
-                >
-                  ⚡ Prototype
-                </span>
                 <NavLink to="/login" className="btn btn-secondary btn-sm" style={{ whiteSpace: 'nowrap' }}>
                   🔐 Sign In
                 </NavLink>
@@ -229,69 +322,101 @@ export default function Layout() {
           </div>
         </div>
 
-        {/* Tier 2: Navigation Bar (Module Tabs & Inline Breadcrumbs) */}
-        <div className="google-nav-bar">
-          <nav className="google-nav-links">
-            <NavLink to="/dashboard" className={({ isActive }) => `google-nav-item${isActive ? ' active' : ''}`}>
-              Dashboard
-            </NavLink>
-
-            <NavLink
-              to="/new-assessment?module=HAZARD"
-              className={({ isActive }) =>
-                `google-nav-item${isActive && location.pathname === '/new-assessment' ? ' active' : ''}`
-              }
-            >
-              Flood Assessments
-            </NavLink>
-
-            <NavLink
-              to="/assessments/86/results?tab=coordination"
-              className={({ isActive }) =>
-                `google-nav-item${isActive || (location.pathname.includes('/assessments') && location.search.includes('tab=coordination')) ? ' active' : ''}`
-              }
-              title="Department Data Coordination (Water Resources, LSGD, PWD, Health, Economics & Statistics)"
-            >
-              🏛️ Dept Coordination
-            </NavLink>
-
-            <NavLink to="/risk-builder" className={({ isActive }) => `google-nav-item${isActive ? ' active' : ''}`}>
-              Risk Builder
-            </NavLink>
-
-            <NavLink to="/data-library" className={({ isActive }) => `google-nav-item${isActive ? ' active' : ''}`}>
-              Data Library
-            </NavLink>
-            
-            <NavLink to="/reports" className={({ isActive }) => `google-nav-item${isActive ? ' active' : ''}`}>
-              Reports
-            </NavLink>
-            
-            {isAdmin && (
-              <NavLink to="/settings" className={({ isActive }) => `google-nav-item${isActive ? ' active' : ''}`}>
-                Settings
+        {/* Tier 2: Navigation Bar (ONLY shown when a hazard is active!) */}
+        {activeHazard && (
+          <div className="google-nav-bar">
+            <nav className="google-nav-links">
+              <NavLink
+                to={`/dashboard?hazard=${activeHazard}`}
+                className={({ isActive }) => `google-nav-item${isActive && location.pathname === '/dashboard' ? ' active' : ''}`}
+              >
+                {activeHazardMeta?.icon} {activeHazardMeta?.shortName} Dashboard
               </NavLink>
-            )}
-          </nav>
 
-          {/* Inline Breadcrumb Trail */}
-          {breadcrumbs && (
-            <div className="google-nav-breadcrumbs" aria-label="Breadcrumb">
-              {breadcrumbs.map((crumb, idx) => (
-                <span key={crumb.to} style={{ display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
-                  {idx > 0 && <span className="breadcrumb-separator">/</span>}
-                  {idx === breadcrumbs.length - 1 ? (
-                    <span className="breadcrumb-current">{crumb.label}</span>
-                  ) : (
-                    <Link to={crumb.to} className="breadcrumb-link">
-                      {crumb.label}
-                    </Link>
-                  )}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
+              <NavLink
+                to={`/new-assessment?module=HAZARD&hazard=${activeHazard}`}
+                className={({ isActive }) =>
+                  `google-nav-item${isActive && location.pathname === '/new-assessment' ? ' active' : ''}`
+                }
+              >
+                📋 {activeHazardMeta?.shortName} Assessments
+              </NavLink>
+
+              <NavLink
+                to={`/issues?hazard=${activeHazard}`}
+                className={({ isActive }) =>
+                  `google-nav-item${isActive || location.pathname.startsWith('/issues') ? ' active' : ''}`
+                }
+                title={`${activeHazardMeta?.shortName} Field Incidents & 3-Tier Approval Hub`}
+              >
+                🚨 {activeHazardMeta?.shortName} Incidents
+              </NavLink>
+
+              <NavLink
+                to={`/department-coordination?hazard=${activeHazard}`}
+                className={({ isActive }) =>
+                  `google-nav-item${isActive || location.pathname.includes('/department-coordination') || location.pathname.includes('/coordination') ? ' active' : ''}`
+                }
+                title={`${activeHazardMeta?.shortName} Department Data Coordination & Tasks`}
+              >
+                🏛️ {activeHazardMeta?.shortName} Dept Tasks
+              </NavLink>
+
+              <NavLink
+                to={`/risk-builder?hazard=${activeHazard}`}
+                className={({ isActive }) => `google-nav-item${isActive && location.pathname === '/risk-builder' ? ' active' : ''}`}
+              >
+                🎛️ Risk Builder
+              </NavLink>
+
+              <NavLink
+                to={`/libraries?hazard=${activeHazard}`}
+                className={({ isActive }) => `google-nav-item${isActive && location.pathname === '/libraries' ? ' active' : ''}`}
+                title={`${activeHazardMeta?.shortName} Indicators & Agency Library`}
+              >
+                📊 {activeHazardMeta?.shortName} Indicators
+              </NavLink>
+
+              <NavLink
+                to={`/data-library?hazard=${activeHazard}`}
+                className={({ isActive }) => `google-nav-item${isActive && location.pathname === '/data-library' ? ' active' : ''}`}
+              >
+                📁 {activeHazardMeta?.shortName} Data
+              </NavLink>
+
+              <NavLink
+                to={`/reports?hazard=${activeHazard}`}
+                className={({ isActive }) => `google-nav-item${isActive && location.pathname === '/reports' ? ' active' : ''}`}
+              >
+                📑 {activeHazardMeta?.shortName} Reports
+              </NavLink>
+
+              {isAdmin && (
+                <NavLink to="/settings" className={({ isActive }) => `google-nav-item${isActive ? ' active' : ''}`}>
+                  ⚙️ Settings
+                </NavLink>
+              )}
+            </nav>
+
+            {/* Inline Breadcrumb Trail */}
+            {breadcrumbs && (
+              <div className="google-nav-breadcrumbs" aria-label="Breadcrumb">
+                {breadcrumbs.map((crumb, idx) => (
+                  <span key={crumb.to} style={{ display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
+                    {idx > 0 && <span className="breadcrumb-separator">/</span>}
+                    {idx === breadcrumbs.length - 1 ? (
+                      <span className="breadcrumb-current">{crumb.label}</span>
+                    ) : (
+                      <Link to={crumb.to} className="breadcrumb-link">
+                        {crumb.label}
+                      </Link>
+                    )}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </header>
 
       {/* Main Content Area */}

@@ -59,6 +59,7 @@ export default function ReviewQueue() {
       created_by: a.created_by_name || 'District Officer',
       submitted_at: a.submitted_at || a.created_at,
       reviewer_name: a.reviewer_name,
+      department_submissions: (a as any).department_submissions || {},
       isRisk: false,
     })),
     ...riskAssessments.map((r) => ({
@@ -287,9 +288,38 @@ export default function ReviewQueue() {
                   return (
                     <tr key={`${item.isRisk ? 'risk' : 'std'}-${item.id}`}>
                       <td>
-                        <Link to={targetReportUrl} style={{ fontWeight: 600, color: '#1e293b', textDecoration: 'none' }}>
-                          {item.name}
-                        </Link>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                          <Link to={targetReportUrl} style={{ fontWeight: 600, color: '#1e293b', textDecoration: 'none' }}>
+                            {item.name}
+                          </Link>
+                          {/* Department Review Cards (Requirements Item 6) */}
+                          {(item as any).department_submissions && Object.keys((item as any).department_submissions).length > 0 && (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.2rem' }}>
+                              {Object.entries((item as any).department_submissions).map(([dName, sub]: [string, any]) => (
+                                <div
+                                  key={dName}
+                                  style={{
+                                    fontSize: '0.68rem',
+                                    padding: '0.15rem 0.45rem',
+                                    borderRadius: '4px',
+                                    background: sub.status === 'SUBMITTED' ? '#ecfdf5' : '#fffbeb',
+                                    border: sub.status === 'SUBMITTED' ? '1px solid #a7f3d0' : '1px solid #fde68a',
+                                    color: sub.status === 'SUBMITTED' ? '#065f46' : '#92400e',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.3rem',
+                                  }}
+                                  title={`${dName}: ${sub.officer_name || sub.submitted_by || 'Officer'} | ${sub.notes || 'Endorsed'}${sub.attachment_name ? ` (Evidence: ${sub.attachment_name})` : ''}`}
+                                >
+                                  <span>{sub.status === 'SUBMITTED' ? '✓' : '⏳'}</span>
+                                  <strong>{dName.split(' ')[0]}:</strong>
+                                  <span>{sub.status === 'SUBMITTED' ? 'Verified' : 'Pending'}</span>
+                                  {sub.attachment_name && <span title={sub.attachment_name}>📎</span>}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </td>
                       <td>
                         <span className="badge badge-info" style={{ fontSize: '0.75rem' }}>
@@ -318,6 +348,13 @@ export default function ReviewQueue() {
                       </td>
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end' }}>
+                          <Link
+                            to={`/department-coordination?assessmentId=${item.id}`}
+                            className="btn btn-secondary btn-sm"
+                            title="Inspect Department Coordination & Verification"
+                          >
+                            🏛️ Coordination
+                          </Link>
                           <Link to={targetReportUrl} className="btn btn-secondary btn-sm" title="Inspect Dossier">
                             Inspect 👁️
                           </Link>

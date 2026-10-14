@@ -228,6 +228,9 @@ export interface DepartmentIndicatorItem {
   weight: number;
   default_weight: number;
   current_value?: number | null;
+  original_value?: number | null;
+  is_overridden?: boolean;
+  overridden_by?: string;
   unit_values?: Record<number, number>;
 }
 
@@ -387,6 +390,9 @@ export type UserRole =
   | 'PLATFORM_ADMIN'
   | 'STATE_OFFICIAL'
   | 'DISTRICT_OFFICIAL'
+  | 'MANAGER'
+  | 'SENIOR_OFFICER'
+  | 'DEPARTMENT_OFFICER'
   | 'ANALYST'
   | 'VIEWER';
 
@@ -395,12 +401,20 @@ export interface UserProfile {
   role_code: UserRole;
   role_label: string;
   organization: string;
+  department?: string;
   state: number | null;
   state_name: string | null;
   district: number | null;
   district_name: string | null;
   territory_restricted: boolean;
   is_admin: boolean;
+  is_senior_officer?: boolean;
+  is_manager?: boolean;
+  is_field_officer?: boolean;
+  is_ddma_coordinator?: boolean;
+  can_approve_cross_department?: boolean;
+  can_approve_hvra?: boolean;
+  can_review_issues?: boolean;
 }
 
 export interface User {
@@ -604,3 +618,190 @@ export interface PaginatedResponse<T> {
   previous: string | null;
   results: T[];
 }
+
+// -------------------------------------------------------
+// 3-Tier Issue Reporting & HVRA Publishing Pipeline Types
+// -------------------------------------------------------
+export type IssueStatus =
+  | 'DRAFT'
+  | 'SUBMITTED'
+  | 'REVISION_REQUESTED_BY_SENIOR'
+  | 'SENIOR_APPROVED'
+  | 'REVISION_REQUESTED_BY_MANAGER'
+  | 'MANAGER_APPROVED'
+  | 'DRAFT_ASSESSMENT_GENERATED'
+  | 'HVRA_PUBLISHED'
+  | 'REJECTED';
+
+export type IssueSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+
+export interface IssueTemplateFieldOption {
+  value: string;
+  label: string;
+}
+
+export interface IssueTemplateField {
+  id: string;
+  label: string;
+  type: 'text' | 'number' | 'select' | 'multiselect' | 'boolean';
+  placeholder?: string;
+  required?: boolean;
+  unit?: string;
+  min?: number;
+  max?: number;
+  step?: number;
+  options?: IssueTemplateFieldOption[];
+}
+
+export interface IssueTemplate {
+  id: number;
+  hazard_type: string;
+  name: string;
+  version: string;
+  description: string;
+  is_active: boolean;
+  fields_schema: IssueTemplateField[];
+  updated_at: string;
+}
+
+export interface IssueAttachment {
+  id: number;
+  issue: number;
+  file: string;
+  caption: string;
+  file_type: 'PHOTO' | 'DOCUMENT' | 'SENSOR_LOG';
+  uploaded_by: number;
+  uploaded_by_name: string;
+  created_at: string;
+}
+
+export interface IssueWorkflowLog {
+  id: number;
+  action: string;
+  from_status: string;
+  to_status: string;
+  actor: number | null;
+  actor_name: string;
+  actor_role: string;
+  comments: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface IssueReportListItem {
+  id: number;
+  incident_number: string;
+  title: string;
+  hazard_type: string;
+  severity: IssueSeverity;
+  severity_label: string;
+  department: string;
+  district: number;
+  district_name: string;
+  location_name: string;
+  status: IssueStatus;
+  status_label: string;
+  reported_by: number;
+  reported_by_name: string;
+  incident_datetime: string;
+  created_at: string;
+  updated_at: string;
+  has_derived_assessment: boolean;
+}
+
+export interface DerivedAssessmentInfo {
+  id: number;
+  name: string;
+  module_type: string;
+  status: string;
+  approval_status: string;
+  is_published: boolean;
+  published_at?: string | null;
+  version: number;
+}
+
+export interface IssueUserPermissions {
+  can_submit: boolean;
+  can_senior_review: boolean;
+  can_manager_review: boolean;
+  can_generate_assessment: boolean;
+}
+
+export interface IssueReportDetail extends IssueReportListItem {
+  description: string;
+  reported_by_dept: string;
+  latitude: number;
+  longitude: number;
+  gps_accuracy_meters?: number | null;
+  state: number;
+  state_name: string;
+  block?: number | null;
+  block_name?: string | null;
+  village?: number | null;
+  village_name?: string | null;
+  template?: number | null;
+  template_detail?: IssueTemplate;
+  hazard_data: Record<string, any>;
+  latest_feedback: string;
+  rejection_reason: string;
+  current_assignee?: number | null;
+  is_cross_departmental: boolean;
+  coordinated_by?: number | null;
+  submitted_at?: string | null;
+  senior_reviewer?: number | null;
+  senior_reviewed_at?: string | null;
+  senior_remarks: string;
+  manager_approver?: number | null;
+  manager_reviewed_at?: string | null;
+  manager_remarks: string;
+  is_demo: boolean;
+  attachments: IssueAttachment[];
+  workflow_logs: IssueWorkflowLog[];
+  derived_assessment_info?: DerivedAssessmentInfo | null;
+  user_permissions: IssueUserPermissions;
+}
+
+export interface WorkflowAssignmentRule {
+  id: number;
+  name: string;
+  department: string;
+  hazard_type: string;
+  state?: number | null;
+  district?: number | null;
+  district_name?: string;
+  senior_reviewer?: number | null;
+  senior_reviewer_name?: string;
+  manager_approver?: number | null;
+  manager_approver_name?: string;
+  cross_dept_coordinator?: number | null;
+  coordinator_name?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateIssuePayload {
+  hazard_type: string;
+  template?: number | null;
+  title: string;
+  description: string;
+  incident_datetime: string;
+  severity: IssueSeverity;
+  department?: string;
+  latitude: number;
+  longitude: number;
+  gps_accuracy_meters?: number | null;
+  location_name: string;
+  state: number;
+  district: number;
+  block?: number | null;
+  village?: number | null;
+  hazard_data?: Record<string, any>;
+  is_cross_departmental?: boolean;
+}
+
+export interface ReviewActionPayload {
+  action: 'APPROVE' | 'REQUEST_REVISION';
+  remarks: string;
+}
+

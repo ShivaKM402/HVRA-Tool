@@ -120,6 +120,6 @@ class CreateDistrictSerializer(serializers.Serializer):
             parent=state,
             centroid_lat=validated_data.get('centroid_lat'),
             centroid_lon=validated_data.get('centroid_lon'),
-            is_demo=True,
+            is_demo=False,
         )
         return district

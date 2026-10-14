@@ -63,6 +63,10 @@ class UserProfileSerializer(serializers.ModelSerializer):
     role = serializers.CharField(source="get_role_display", read_only=True)
     role_code = serializers.CharField(source="role", read_only=True)
     is_admin = serializers.BooleanField(read_only=True)
+    is_senior_officer = serializers.BooleanField(read_only=True)
+    is_manager = serializers.BooleanField(read_only=True)
+    is_field_officer = serializers.BooleanField(read_only=True)
+    is_ddma_coordinator = serializers.BooleanField(read_only=True)
     state_name = serializers.CharField(source="state.name", read_only=True, default=None)
     district_name = serializers.CharField(source="district.name", read_only=True, default=None)
     territory_restricted = serializers.BooleanField(read_only=True)
@@ -70,9 +74,11 @@ class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
         fields = [
-            "role", "role_code", "role_label", "organization",
+            "role", "role_code", "role_label", "organization", "department",
             "state", "state_name", "district", "district_name",
             "territory_restricted", "is_admin",
+            "is_senior_officer", "is_manager", "is_field_officer", "is_ddma_coordinator",
+            "can_approve_cross_department", "can_approve_hvra", "can_review_issues",
         ]
 
 
@@ -94,6 +100,7 @@ class UserAdminSerializer(serializers.ModelSerializer):
     role_code = serializers.CharField(source="profile.role", read_only=True)
     role_label = serializers.CharField(source="profile.get_role_display", read_only=True)
     organization = serializers.CharField(source="profile.organization", required=False, allow_blank=True)
+    department = serializers.CharField(source="profile.department", required=False, allow_blank=True)
     district = serializers.PrimaryKeyRelatedField(
         source="profile.district",
         queryset=AdministrativeUnit.objects.filter(level="DISTRICT"),

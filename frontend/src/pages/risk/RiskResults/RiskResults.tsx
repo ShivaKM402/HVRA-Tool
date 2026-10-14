@@ -12,6 +12,7 @@ import {
 import type { RiskAssessment, RiskResultsResponse, ApprovalStatus } from '@/types';
 import ResultsMap from '@/components/Map/ResultsMap';
 import ApprovalPanel from '@/components/ApprovalPanel/ApprovalPanel';
+import { useAuth } from '@/context/AuthContext';
 
 const RISK_COLORS: Record<string, string> = {
   VERY_HIGH: '#7f1d1d',
@@ -30,6 +31,7 @@ const RISK_LABELS: Record<string, string> = {
 const CLASS_ORDER = ['VERY_HIGH', 'HIGH', 'MODERATE', 'LOW'] as const;
 
 export default function RiskResults() {
+  const { canDelete } = useAuth();
   const { id } = useParams();
   const navigate = useNavigate();
   const [risk, setRisk] = useState<RiskAssessment | null>(null);
@@ -157,7 +159,6 @@ export default function RiskResults() {
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <div className="badge badge-warning" style={{ fontSize: '0.85rem' }}>⚠️ DEMO DATA</div>
             <button className="btn btn-secondary" style={{ fontSize: '0.85rem', padding: '0.4rem 0.9rem' }} disabled={downloading !== null} onClick={() => handleDownload('docx')}>
               {downloading === 'docx' ? 'Generating...' : '⬇️ DOCX'}
             </button>
@@ -167,7 +168,9 @@ export default function RiskResults() {
             <Link to={`/risk-assessments/${risk.id}/report`} className="btn btn-primary" style={{ fontSize: '0.85rem', padding: '0.4rem 1rem' }}>
               📄 View Report
             </Link>
-            <DeleteButton onClick={handleDeleteRiskScenario} title="Delete Risk Scenario" />
+            {canDelete && (
+              <DeleteButton onClick={handleDeleteRiskScenario} title="Delete Risk Scenario" />
+            )}
           </div>
         </div>
 

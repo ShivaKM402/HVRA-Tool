@@ -16,6 +16,9 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   /** Platform Administrators and staff can manage users/libraries and approve assessments. */
   isAdmin: boolean;
+  /** Only District and State Administrators can delete assessments. Employees cannot delete. */
+  canDelete: boolean;
+  isEmployee: boolean;
   login: (username: string, password: string) => Promise<User>;
   register: (payload: Parameters<typeof api.register>[0]) => Promise<User>;
   logout: () => Promise<void>;
@@ -73,10 +76,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
+  const roleCode = user?.profile?.role_code;
   const isAdmin = Boolean(
     user?.is_staff ||
-    user?.profile?.role_code === 'PLATFORM_ADMIN' ||
+    roleCode === 'PLATFORM_ADMIN' ||
     user?.profile?.is_admin
+  );
+
+  const isEmployee = Boolean(
+    roleCode === 'DEPARTMENT_OFFICER' ||
+    roleCode === 'SENIOR_OFFICER' ||
+    roleCode === 'VIEWER'
+  );
+
+  // Employees can NEVER delete. Only District/State Admins or staff can delete.
+  const canDelete = Boolean(
+    !isEmployee && (
+      isAdmin ||
+      roleCode === 'DISTRICT_OFFICIAL' ||
+      user?.is_staff
+    )
   );
 
   return (
@@ -87,6 +106,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         isAuthenticated: Boolean(user),
         isAdmin,
+        canDelete,
+        isEmployee,
         login,
         register,
         logout,

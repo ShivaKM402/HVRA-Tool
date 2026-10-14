@@ -26,15 +26,12 @@ def health_check(request):
         {
             "status": "ok",
             "service": "HVRA Digital Tool API",
-            "version": "1.0.0-prototype",
-            "prototype": True,
+            "version": "1.0.0",
+            "prototype": False,
             "database": db_status,
             "database_engine": "SQLite",
             "python_version": sys.version,
             "django_version": django.get_version(),
-            "note": (
-                "This is a prototype system. "
-                "All demo data is clearly labelled as DEMO DATA."
-            ),
+            "note": "Operational Kerala State Multi-Hazard HVRA Platform.",
         }
     )

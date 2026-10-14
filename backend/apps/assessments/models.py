@@ -150,6 +150,30 @@ class Assessment(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     completed_at = models.DateTimeField(null=True, blank=True)
 
+    # Originating field incident linkage & versioning (Roadmap Phase 1)
+    originating_issue = models.ForeignKey(
+        "issues.IssueReport",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="derived_assessments",
+        help_text="Originating field incident report that triggered this assessment.",
+    )
+    version = models.PositiveIntegerField(
+        default=1, help_text="Assessment version number for publication history."
+    )
+    is_published = models.BooleanField(
+        default=False, help_text="True when verified, authorized, and published as statutory report."
+    )
+    published_at = models.DateTimeField(null=True, blank=True)
+    published_by = models.ForeignKey(
+        "auth.User",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="published_assessments",
+    )
+
     # Full configuration snapshot for auditability
     configuration_snapshot = models.JSONField(
         default=dict,

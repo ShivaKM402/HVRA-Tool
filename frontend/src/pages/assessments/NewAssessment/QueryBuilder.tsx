@@ -166,7 +166,7 @@ export default function QueryBuilder(props: QueryBuilderProps) {
     moduleType === 'HAZARD' ? !!selectedHazardCode : true,
     !!selectedStateId && !!selectedDistrictId,
     enabledIndicators.size > 0,
-    useCustomUpload ? !!uploadFileObj : !!selectedDataSourceId,
+    useCustomUpload ? !!uploadFileObj : true,
   ];
   const activeStep = stepDone.findIndex((d) => !d);
 

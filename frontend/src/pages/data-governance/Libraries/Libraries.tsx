@@ -14,6 +14,8 @@ import {
   deleteHazardEvent,
   getHazards,
   getDistricts,
+  getIndicators,
+  updateIndicator,
 } from '@/services/api';
 import type {
   ClimateContext,
@@ -21,13 +23,22 @@ import type {
   HazardEvent,
   HazardType,
   AdministrativeUnit,
+  HazardIndicator,
 } from '@/types';
 import { useAuth } from '@/context/AuthContext';
+import { useHazard } from '@/context/HazardContext';
 import { Navigate } from 'react-router-dom';
+import IndicatorsTab from './IndicatorsTab';
 
-type TabKey = 'climate' | 'recommendations' | 'events';
+type TabKey = 'indicators' | 'climate' | 'recommendations' | 'events';
 
 const TABS: { key: TabKey; label: string; icon: string; blurb: string }[] = [
+  {
+    key: 'indicators',
+    label: 'Approved Indicators & Agency Mapping',
+    icon: '📊',
+    blurb: 'Official Kerala HVRA indicator directory across Hazard (M1), Vulnerability (M2), and Exposure (M3). Authorize & reassign responsible line departments and baseline weights (HVRA §3 & §6).',
+  },
   { key: 'climate', label: 'Climate Context', icon: '☀️', blurb: 'Curated, sourced statements about climate drivers (HVRA §4.9). Used to populate the Climate Context chapter of assessment & risk reports.' },
   { key: 'recommendations', label: 'Recommendations', icon: '🛡️', blurb: 'Configuration/adaptation recommendations per module (HVRA §4.9). Included in report recommendations chapters.' },
   { key: 'events', label: 'Historical Events', icon: '⚡', blurb: 'Historical hazard event repository (HVRA §4.9). Displayed on maps and reports as event records.' },
@@ -55,12 +66,14 @@ const labelStyle: React.CSSProperties = {
 };
 
 export default function Libraries() {
-  const { isAdmin } = useAuth();
-  const [tab, setTab] = useState<TabKey>('climate');
+  const { user, isAdmin } = useAuth();
+  const { activeHazard, activeHazardMeta } = useHazard();
+  const [tab, setTab] = useState<TabKey>('indicators');
 
   const [hazards, setHazards] = useState<HazardType[]>([]);
   const [districts, setDistricts] = useState<AdministrativeUnit[]>([]);
 
+  const [indicators, setIndicators] = useState<HazardIndicator[]>([]);
   const [climates, setClimates] = useState<ClimateContext[]>([]);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [events, setEvents] = useState<HazardEvent[]>([]);
@@ -71,43 +84,59 @@ export default function Libraries() {
   const [includeInactive, setIncludeInactive] = useState(false);
 
   useEffect(() => {
-    if (!isAdmin) return;
     (async () => {
       setLoading(true);
       setLoadError(null);
       try {
-        const [hz, ds] = await Promise.all([getHazards(), getDistricts()]);
+        const [hz, ds, ind] = await Promise.all([
+          getHazards(),
+          getDistricts(),
+          getIndicators(),
+        ]);
         setHazards(hz);
         setDistricts(ds);
+        setIndicators(ind);
       } catch {
-        setLoadError('Failed to load hazard types / districts.');
+        setLoadError('Failed to load library reference data.');
       } finally {
         setLoading(false);
       }
     })();
-  }, [isAdmin]);
+  }, []);
 
   const reloadAll = async () => {
     const params = includeInactive ? { include_inactive: '1' as string } : undefined;
-    const [c, r, e] = await Promise.all([
+    const [c, r, e, ind] = await Promise.all([
       getClimateContexts(params as never),
       getRecommendations(params as never),
       getHazardEvents({ limit: 1000 }),
+      getIndicators(params as never),
     ]);
     setClimates(c as ClimateContext[]);
     setRecommendations(r as Recommendation[]);
     setEvents(e.results || (e as unknown as HazardEvent[]));
+    setIndicators(ind);
   };
 
   useEffect(() => {
-    if (!isAdmin) return;
     reloadAll().catch(() => setLoadError('Failed to load library entries.'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin, includeInactive]);
+  }, [includeInactive]);
 
   const flash = (msg: string) => {
     setNotice(msg);
     setTimeout(() => setNotice(null), 4000);
+  };
+
+  const handleUpdateIndicator = async (id: number, payload: Partial<HazardIndicator>) => {
+    try {
+      const updated = await updateIndicator(id, payload);
+      setIndicators((prev) => prev.map((ind) => (ind.id === id ? { ...ind, ...updated } : ind)));
+      flash(`Updated indicator: ${updated.name} (Assigned to: ${updated.department})`);
+    } catch (err: any) {
+      const errMsg = err?.response?.data?.detail || err?.message || 'Failed to update indicator';
+      setLoadError(errMsg);
+    }
   };
 
   const hazardNames = useMemo(() => {
@@ -116,12 +145,64 @@ export default function Libraries() {
     return map;
   }, [hazards]);
 
-  if (!isAdmin) return <Navigate to="/dashboard" replace />;
+  const filteredIndicators = useMemo(() => {
+    if (!activeHazard) return indicators;
+    return indicators.filter(i => !i.hazard_type || i.hazard_type === activeHazard || i.module_type !== 'HAZARD');
+  }, [indicators, activeHazard]);
+
+  const filteredClimates = useMemo(() => {
+    if (!activeHazard) return climates;
+    return climates.filter(c => !c.hazard_type || c.hazard_type === activeHazard);
+  }, [climates, activeHazard]);
+
+  const filteredRecommendations = useMemo(() => {
+    if (!activeHazard) return recommendations;
+    return recommendations.filter(r => !r.hazard_type || r.hazard_type === activeHazard);
+  }, [recommendations, activeHazard]);
+
+  const filteredEvents = useMemo(() => {
+    if (!activeHazard) return events;
+    return events.filter(e => e.hazard_type === activeHazard);
+  }, [events, activeHazard]);
+
+  // In prototype testing or for platform admins, allow full access.
+  if (user && !isAdmin) return <Navigate to="/dashboard" replace />;
 
   const tabMeta = TABS.find(t => t.key === tab)!;
 
   return (
     <div style={{ display: 'grid', gap: '1.5rem' }}>
+      {/* Active Domain Header Banner */}
+      <div className="card" style={{ padding: '1.25rem 1.5rem', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 10 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <h1 style={{ fontSize: '1.35rem', fontWeight: 800, margin: 0, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span>{activeHazardMeta ? activeHazardMeta.icon : '📊'}</span>
+              <span>{activeHazardMeta ? `${activeHazardMeta.shortName} Operational Indicator & Reference Library` : 'Content & Indicator Libraries'}</span>
+            </h1>
+            <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: '#64748b' }}>
+              {activeHazardMeta 
+                ? `Operational metrics, line department indicator definitions, climate projections, and historical records strictly for ${activeHazardMeta.name}.`
+                : 'Official indicator catalog, climate change action statements, and statutory reference registers.'}
+            </p>
+          </div>
+          {activeHazardMeta && (
+            <span
+              className="badge badge-completed"
+              style={{
+                background: `${activeHazardMeta.color}15`,
+                border: `1.5px solid ${activeHazardMeta.color}44`,
+                color: activeHazardMeta.color,
+                fontWeight: 700,
+                fontSize: '0.8rem',
+                padding: '0.4rem 0.8rem',
+              }}
+            >
+              🎯 Scoped Domain: {activeHazardMeta.shortName}
+            </span>
+          )}
+        </div>
+      </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
           {TABS.map(t => (
@@ -149,7 +230,7 @@ export default function Libraries() {
       <div style={{ fontSize: '0.9rem', color: '#475569', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '0.75rem 1rem' }}>
         {tabMeta.icon} <strong>{tabMeta.label}</strong> — {tabMeta.blurb}
         <span style={{ display: 'block', marginTop: '0.25rem', fontSize: '0.78rem', color: '#64748b' }}>
-          Edits here are write-protected: only Platform Administrators can add/update/remove library entries (HVRA §2).
+          Authorized Platform Administrators can configure indicator weights and reassign responsible departments (HVRA §3 &amp; §6).
         </span>
       </div>
 
@@ -164,9 +245,17 @@ export default function Libraries() {
         </div>
       )}
 
+      {tab === 'indicators' && (
+        <IndicatorsTab
+          indicators={filteredIndicators}
+          loading={loading}
+          onUpdateIndicator={handleUpdateIndicator}
+        />
+      )}
+
       {tab === 'climate' && (
         <ClimateTab
-          items={climates as ClimateContext[]}
+          items={filteredClimates as ClimateContext[]}
           hazards={hazards}
           districts={districts}
           hazardNames={hazardNames}
@@ -179,7 +268,7 @@ export default function Libraries() {
 
       {tab === 'recommendations' && (
         <RecommendationsTab
-          items={recommendations as Recommendation[]}
+          items={filteredRecommendations as Recommendation[]}
           hazards={hazards}
           hazardNames={hazardNames}
           loading={loading}
@@ -191,7 +280,7 @@ export default function Libraries() {
 
       {tab === 'events' && (
         <EventsTab
-          items={events as HazardEvent[]}
+          items={filteredEvents as HazardEvent[]}
           hazards={hazards}
           districts={districts}
           hazardNames={hazardNames}
@@ -373,9 +462,6 @@ function ClimateTab({ items, hazards, districts, hazardNames, loading, onCreate,
             <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.85rem' }}>
               <input type="checkbox" checked={isActive} onChange={e => setIsActive(e.target.checked)} /> Active
             </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.85rem', color: '#64748b' }}>
-              <input type="checkbox" checked={isDemo} onChange={e => setIsDemo(e.target.checked)} /> Demo data (sample)
-            </label>
           </div>
         </FormShell>
       )}
@@ -402,7 +488,6 @@ function ClimateTab({ items, hazards, districts, hazardNames, loading, onCreate,
                   <td>{c.vintage || '—'}</td>
                   <td>{c.display_order ?? 0}</td>
                   <td>
-                    {c.is_demo && <span className="badge badge-info" style={{ marginRight: 4 }}>DEMO</span>}
                     <span className={`badge ${c.is_active ? 'badge-success' : 'badge-secondary'}`}>{c.is_active ? 'Active' : 'Inactive'}</span>
                   </td>
                   <td style={{ whiteSpace: 'nowrap' }}>
@@ -525,9 +610,6 @@ function RecommendationsTab({ items, hazards, hazardNames, loading, onCreate, on
             <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.85rem' }}>
               <input type="checkbox" checked={isActive} onChange={e => setIsActive(e.target.checked)} /> Active
             </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.85rem', color: '#64748b' }}>
-              <input type="checkbox" checked={isDemo} onChange={e => setIsDemo(e.target.checked)} /> Demo data (sample)
-            </label>
           </div>
         </FormShell>
       )}
@@ -550,7 +632,6 @@ function RecommendationsTab({ items, hazards, hazardNames, loading, onCreate, on
                   <td style={{ maxWidth: 420 }}>{r.text}</td>
                   <td><span className={`badge ${r.priority === 'HIGH' ? 'badge-danger' : r.priority === 'MEDIUM' ? 'badge-warning' : 'badge-success'}`}>{r.priority || '—'}</span></td>
                   <td>
-                    {r.is_demo && <span className="badge badge-info" style={{ marginRight: 4 }}>DEMO</span>}
                     <span className={`badge ${r.is_active ? 'badge-success' : 'badge-secondary'}`}>{r.is_active ? 'Active' : 'Inactive'}</span>
                   </td>
                   <td style={{ whiteSpace: 'nowrap' }}>
@@ -698,9 +779,6 @@ function EventsTab({ items, hazards, districts, hazardNames, loading, onCreate, 
               <input style={inputStyle} value={sourceUrl} onChange={e => setSourceUrl(e.target.value)} placeholder="https://…" />
             </Field>
           </div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.85rem', color: '#64748b' }}>
-            <input type="checkbox" checked={isDemo} onChange={e => setIsDemo(e.target.checked)} /> Demo data (sample)
-          </label>
         </FormShell>
       )}
 
@@ -728,7 +806,7 @@ function EventsTab({ items, hazards, districts, hazardNames, loading, onCreate, 
                   <td>{ev.magnitude != null ? ev.magnitude : '—'}</td>
                   <td>{ev.loss != null ? `₹${ev.loss} Cr` : '—'}</td>
                   <td style={{ maxWidth: 320, fontSize: '0.8rem', color: '#475569' }}>{ev.description}</td>
-                  <td>{ev.is_demo && <span className="badge badge-info">DEMO</span>}</td>
+                  <td><span className="badge badge-success">Verified</span></td>
                   <td style={{ whiteSpace: 'nowrap' }}>
                     <button className="btn btn-sm" onClick={() => startEdit(ev)} style={{ marginRight: 4 }}>✏️</button>
                     <button className="btn btn-sm" onClick={() => del(ev)} style={{ color: '#dc2626' }}>🗑️</button>

@@ -16,7 +16,9 @@ class UserRole(models.TextChoices):
     PLATFORM_ADMIN = "PLATFORM_ADMIN", "Platform Admin"
     STATE_OFFICIAL = "STATE_OFFICIAL", "State Official"
     DISTRICT_OFFICIAL = "DISTRICT_OFFICIAL", "District Official"
-    DEPARTMENT_OFFICER = "DEPARTMENT_OFFICER", "Department Officer"
+    MANAGER = "MANAGER", "Manager / Approving Authority"
+    SENIOR_OFFICER = "SENIOR_OFFICER", "Senior Department Officer"
+    DEPARTMENT_OFFICER = "DEPARTMENT_OFFICER", "Department Officer (Employee)"
     ANALYST = "ANALYST", "Analyst"
     VIEWER = "VIEWER", "Viewer"  # Other users — view published outputs
 
@@ -50,6 +52,18 @@ class UserProfile(models.Model):
         related_name="state_officer_profiles",
         help_text="Territory state for STATE_OFFICIAL users (blank = all states).",
     )
+    can_approve_cross_department = models.BooleanField(
+        default=False,
+        help_text="True if officer can coordinate and review cross-department incidents.",
+    )
+    can_approve_hvra = models.BooleanField(
+        default=False,
+        help_text="Explicit authority to sign off incidents and generate HVRA assessments.",
+    )
+    can_review_issues = models.BooleanField(
+        default=False,
+        help_text="Explicit authority to review field incident submissions for own department.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -70,6 +84,40 @@ class UserProfile(models.Model):
             self.role == UserRole.PLATFORM_ADMIN
             or self.user.is_staff
             or self.user.is_superuser
+        )
+
+    @property
+    def is_field_officer(self):
+        return self.role in (UserRole.DEPARTMENT_OFFICER, UserRole.ANALYST)
+
+    @property
+    def is_senior_officer(self):
+        return (
+            self.role in (UserRole.SENIOR_OFFICER, UserRole.PLATFORM_ADMIN)
+            or self.can_review_issues
+        )
+
+    @property
+    def is_manager(self):
+        return (
+            self.role in (
+                UserRole.MANAGER,
+                UserRole.PLATFORM_ADMIN,
+                UserRole.STATE_OFFICIAL,
+                UserRole.DISTRICT_OFFICIAL,
+            )
+            or self.can_approve_hvra
+        )
+
+    @property
+    def is_ddma_coordinator(self):
+        return (
+            self.role in (
+                UserRole.DISTRICT_OFFICIAL,
+                UserRole.STATE_OFFICIAL,
+                UserRole.PLATFORM_ADMIN,
+            )
+            or self.can_approve_cross_department
         )
 
     # ------------------------------------------------------------------

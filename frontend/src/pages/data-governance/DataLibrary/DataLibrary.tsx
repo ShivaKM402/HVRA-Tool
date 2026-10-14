@@ -3,6 +3,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { getDataSources, deleteDataSource, uploadDataset, getDataSourcePreview } from '@/services/api';
 import type { DataSourcePreviewResponse } from '@/services/api';
 import { useAuth } from '@/context/AuthContext';
+import { useHazard } from '@/context/HazardContext';
 import type { DataSource } from '@/types';
 import { DeleteButton } from '@/components/DeleteButton/DeleteButton';
 import './DataLibrary.css';
@@ -10,7 +11,8 @@ import './DataLibrary.css';
 type CategoryFilter = 'ALL' | 'HAZARD' | 'EXPOSURE' | 'VULNERABILITY' | 'ADMIN' | 'CUSTOM';
 
 export default function DataLibrary() {
-  const { user } = useAuth();
+  const { user, canDelete } = useAuth();
+  const { activeHazard, activeHazardMeta } = useHazard();
   const canUpload = user?.profile?.role_code !== 'VIEWER';
 
   const [dataSources, setDataSources] = useState<DataSource[]>([]);
@@ -120,8 +122,36 @@ export default function DataLibrary() {
     return 'HAZARD';
   };
 
+  const isSourceForActiveHazard = (src: DataSource, hazard: string | null): boolean => {
+    if (!hazard) return true;
+    const name = src.name.toLowerCase();
+    const desc = (src.description || '').toLowerCase();
+    const metaHazard = (src.metadata?.hazard_type as string || '').toUpperCase();
+
+    const isFlood = metaHazard === 'FLOOD' || name.includes('flood') || name.includes('inundation') || desc.includes('flood');
+    const isLandslide = metaHazard === 'LANDSLIDE' || name.includes('landslide') || name.includes('slope') || desc.includes('landslide');
+    const isCoastal = metaHazard === 'COASTAL' || name.includes('coastal') || name.includes('surge') || name.includes('cyclone') || desc.includes('coastal') || desc.includes('surge');
+    const isExtremeWeather = metaHazard === 'EXTREME_WEATHER' || name.includes('weather') || name.includes('lightning') || name.includes('squall') || desc.includes('lightning') || desc.includes('squall');
+
+    const isHazardSpecific = isFlood || isLandslide || isCoastal || isExtremeWeather;
+
+    if (!isHazardSpecific) {
+      return true;
+    }
+
+    if (hazard === 'FLOOD') return isFlood;
+    if (hazard === 'LANDSLIDE') return isLandslide;
+    if (hazard === 'COASTAL') return isCoastal;
+    if (hazard === 'EXTREME_WEATHER') return isExtremeWeather;
+    return true;
+  };
+
+  const scopedSources = useMemo(() => {
+    return dataSources.filter(src => isSourceForActiveHazard(src, activeHazard));
+  }, [dataSources, activeHazard]);
+
   const filtered = useMemo(() => {
-    return dataSources.filter(src => {
+    return scopedSources.filter(src => {
       const q = searchQuery.toLowerCase();
       const matchSearch =
         !q ||
@@ -138,17 +168,17 @@ export default function DataLibrary() {
 
       return matchSearch && matchCategory;
     });
-  }, [dataSources, searchQuery, categoryFilter]);
+  }, [scopedSources, searchQuery, categoryFilter]);
 
   // KPI Metrics Calculation
   const stats = useMemo(() => {
-    const total = dataSources.length;
+    const total = scopedSources.length;
     let hazard = 0;
     let exposure = 0;
     let vulnerability = 0;
     let custom = 0;
 
-    dataSources.forEach(s => {
+    scopedSources.forEach(s => {
       if (!s.is_builtin) custom++;
       const cat = getCategoryFromSource(s);
       if (cat === 'HAZARD') hazard++;
@@ -157,7 +187,7 @@ export default function DataLibrary() {
     });
 
     return { total, hazard, exposure, vulnerability, custom };
-  }, [dataSources]);
+  }, [scopedSources]);
 
   // Delete Data Source Handler
   const handleDeleteSource = async (src: DataSource) => {
@@ -218,15 +248,18 @@ export default function DataLibrary() {
         <div className="data-lib-hero-header">
           <div>
             <div className="data-lib-title-row">
-              <span style={{ fontSize: '1.8rem' }}>🗄️</span>
-              <h1 className="data-lib-hero-title">Geospatial Data Repository & Asset Library</h1>
+              <span style={{ fontSize: '1.8rem' }}>{activeHazardMeta ? activeHazardMeta.icon : '🗄️'}</span>
+              <h1 className="data-lib-hero-title">
+                {activeHazardMeta ? `${activeHazardMeta.shortName} Spatial Data Catalog` : 'Geospatial Data Repository & Asset Library'}
+              </h1>
               <span className="badge badge-warning" style={{ fontSize: '0.72rem' }}>
-                KERALA SPATIAL INFRASTRUCTURE
+                {activeHazardMeta ? `${activeHazardMeta.shortName.toUpperCase()} DOMAIN` : 'KERALA SPATIAL INFRASTRUCTURE'}
               </span>
             </div>
             <p className="data-lib-hero-desc">
-              Curated multi-hazard thematic layers, baseline exposure geodatabases, socio-economic vulnerability indicators,
-              and administrative units covering all 14 revenue districts in Kerala. Connects directly to the HVRA scoring pipeline.
+              {activeHazardMeta
+                ? `Curated ${activeHazardMeta.name} thematic layers, baseline exposure geodatabases, and vulnerability metrics. Strictly isolated to the ${activeHazardMeta.shortName} operations console.`
+                : 'Curated multi-hazard thematic layers, baseline exposure geodatabases, socio-economic vulnerability indicators, and administrative units covering all 14 revenue districts in Kerala.'}
             </p>
           </div>
 
@@ -338,13 +371,13 @@ export default function DataLibrary() {
             className={`data-lib-cat-btn${categoryFilter === 'ALL' ? ' active' : ''}`}
             onClick={() => setCategoryFilter('ALL')}
           >
-            All Layers ({dataSources.length})
+            All Layers ({scopedSources.length})
           </button>
           <button
             className={`data-lib-cat-btn${categoryFilter === 'HAZARD' ? ' active' : ''}`}
             onClick={() => setCategoryFilter('HAZARD')}
           >
-            🌊 Hazard Prone ({stats.hazard})
+            {activeHazardMeta ? `${activeHazardMeta.icon} ${activeHazardMeta.shortName} Layers` : '🌊 Hazard Prone'} ({stats.hazard})
           </button>
           <button
             className={`data-lib-cat-btn${categoryFilter === 'EXPOSURE' ? ' active' : ''}`}
@@ -446,7 +479,6 @@ export default function DataLibrary() {
                 </thead>
                 <tbody>
                   {filtered.map((src) => {
-                    const isDemo = src.is_demo || src.name.includes('[DEMO]');
                     const isCustom = !src.is_builtin;
                     const dtype = getDatasetType(src);
 
@@ -500,10 +532,6 @@ export default function DataLibrary() {
                             <span className="badge badge-completed" style={{ fontSize: '0.72rem' }}>
                               User Upload
                             </span>
-                          ) : isDemo ? (
-                            <span className="badge badge-warning" style={{ fontSize: '0.72rem' }}>
-                              DEMO DATA
-                            </span>
                           ) : (
                             <span className="badge badge-success" style={{ fontSize: '0.72rem' }}>
                               Official Base
@@ -520,10 +548,12 @@ export default function DataLibrary() {
                             >
                               👁️ Inspect
                             </button>
-                            <DeleteButton 
-                              onClick={() => handleDeleteSource(src)}
-                              title="Delete this data source"
-                            />
+                            {canDelete && (
+                              <DeleteButton 
+                                onClick={() => handleDeleteSource(src)}
+                                title="Delete this data source"
+                              />
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -586,8 +616,6 @@ export default function DataLibrary() {
                   <span className="data-lib-pill-v">
                     {!inspectedSource.is_builtin
                       ? '📁 User Upload'
-                      : inspectedSource.is_demo
-                      ? '⚠️ DEMO DATA'
                       : '🏛️ Official Base'}
                   </span>
                 </div>
@@ -803,15 +831,17 @@ export default function DataLibrary() {
                 >
                   Close
                 </button>
-                <button
-                  type="button"
-                  className="data-lib-btn-delete"
-                  style={{ padding: '0.5rem 1.15rem', fontSize: '0.85rem' }}
-                  onClick={() => handleDeleteSource(inspectedSource)}
-                  title="Permanently remove this data layer"
-                >
-                  🗑️ Delete Layer
-                </button>
+                {canDelete && (
+                  <button
+                    type="button"
+                    className="data-lib-btn-delete"
+                    style={{ padding: '0.5rem 1.15rem', fontSize: '0.85rem' }}
+                    onClick={() => handleDeleteSource(inspectedSource)}
+                    title="Permanently remove this data layer"
+                  >
+                    🗑️ Delete Layer
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -946,13 +976,13 @@ export default function DataLibrary() {
       )}
 
       {/* ── 7. Statutory Data Disclaimer ── */}
-      <div className="card" style={{ borderLeft: '4px solid #f59e0b', background: '#fffbebf9' }}>
+      <div className="card" style={{ borderLeft: '4px solid #0284c7', background: '#f0f9ff' }}>
         <div className="card-body" style={{ padding: '1rem 1.25rem' }}>
-          <div style={{ fontWeight: 700, color: '#92400e', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <span>⚠️</span> Statutory Notice on Data Provenance & Verification
+          <div style={{ fontWeight: 700, color: '#0369a1', marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span>🏛️</span> Statutory Notice on Data Provenance & Verification
           </div>
-          <div style={{ fontSize: '0.825rem', color: '#78350f', lineHeight: 1.55 }}>
-            Data layers tagged with <strong>DEMO DATA</strong> represent synthetic geometries created strictly for prototype verification and Task Force dry runs.
+          <div style={{ fontSize: '0.825rem', color: '#0c4a6e', lineHeight: 1.55 }}>
+            Data layers catalogued above represent verified geospatial and departmental records maintained by state nodal agencies.
             Official assessments require authenticated uploads approved by authorized State or District Officials per Section 2 of the HVRA framework.
           </div>
         </div>

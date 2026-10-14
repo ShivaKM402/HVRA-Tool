@@ -2,6 +2,7 @@ import { MapIcon } from '@/components/MapIcon/MapIcon';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { useHazard } from '@/context/HazardContext';
 import {
   getHazards,
   getStates,
@@ -52,6 +53,8 @@ export default function NewAssessment() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
+  const { activeHazard } = useHazard();
+  const hazardFromQuery = searchParams.get('hazard')?.toUpperCase();
 
   const territoryRestricted =
     user?.profile?.role_code === 'STATE_OFFICIAL' ||
@@ -80,7 +83,7 @@ export default function NewAssessment() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [moduleParam]);
 
-  // Administrative granularity — BLOCK (taluka) or VILLAGE (demo villages auto-seeded per block).
+  // Administrative granularity — BLOCK (taluka) or VILLAGE level.
   const [administrativeLevel, setAdministrativeLevel] = useState<'BLOCK' | 'VILLAGE'>('BLOCK');
 
   // Save-query UI (HVRA §3.3)
@@ -105,7 +108,16 @@ export default function NewAssessment() {
   const [loadingData, setLoadingData] = useState(true);
 
   // User selections
-  const [selectedHazardCode, setSelectedHazardCode] = useState<string>('FLOOD');
+  const [selectedHazardCode, setSelectedHazardCode] = useState<string>(
+    activeHazard || hazardFromQuery || 'FLOOD'
+  );
+
+  useEffect(() => {
+    if (activeHazard && activeHazard !== selectedHazardCode) {
+      setSelectedHazardCode(activeHazard);
+    }
+  }, [activeHazard]);
+
   const [selectedStateId, setSelectedStateId] = useState<number | null>(null);
   const [selectedDistrictId, setSelectedDistrictId] = useState<number | null>(null);
   const [coordinationMode, setCoordinationMode] = useState<'PARALLEL' | 'SEQUENTIAL'>('PARALLEL');
@@ -841,7 +853,6 @@ export default function NewAssessment() {
                     <div className="area-district-card-name">{cleanName}</div>
                     <div className="area-district-card-meta">
                       {d.parent_name && <span className="area-district-state-badge">{d.parent_name}</span>}
-                      {d.is_demo && <span className="area-district-demo-badge">Demo</span>}
                     </div>
                   </button>
                 );
@@ -873,7 +884,7 @@ export default function NewAssessment() {
           </div>
           <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.5rem' }}>
             {administrativeLevel === 'VILLAGE'
-              ? 'Village-level assessments are computed over the demo villages auto-seeded under each block of the selected district.'
+              ? 'Village-level assessments are computed over the registered revenue villages under each block of the selected district.'
               : 'Block-level assessments are computed over the taluka/block administrative units of the selected district.'}
           </div>
         </div>
@@ -1397,6 +1408,25 @@ export default function NewAssessment() {
       <div className="datasource-list">
         {dataSources
           .filter(src => {
+            // Hazard domain isolation
+            const hz = selectedHazardCode || 'FLOOD';
+            const name = src.name.toLowerCase();
+            const desc = (src.description || '').toLowerCase();
+            const metaHz = (src.metadata?.hazard_type as string || '').toUpperCase();
+
+            const isFlood = metaHz === 'FLOOD' || name.includes('flood') || name.includes('inundation') || desc.includes('flood');
+            const isLandslide = metaHz === 'LANDSLIDE' || name.includes('landslide') || name.includes('slope') || desc.includes('landslide');
+            const isCoastal = metaHz === 'COASTAL' || name.includes('coastal') || name.includes('surge') || name.includes('cyclone') || desc.includes('coastal') || desc.includes('surge');
+            const isExtremeWeather = metaHz === 'EXTREME_WEATHER' || name.includes('weather') || name.includes('lightning') || name.includes('squall') || desc.includes('lightning') || desc.includes('squall');
+
+            const isSpecific = isFlood || isLandslide || isCoastal || isExtremeWeather;
+            if (isSpecific) {
+              if (hz === 'FLOOD' && !isFlood) return false;
+              if (hz === 'LANDSLIDE' && !isLandslide) return false;
+              if (hz === 'COASTAL' && !isCoastal) return false;
+              if (hz === 'EXTREME_WEATHER' && !isExtremeWeather) return false;
+            }
+
             const dist = districts.find(d => d.id === selectedDistrictId);
             const distName = dist ? dist.name.replace(' [DEMO]', '').trim() : '';
             if (!src.is_builtin) return true;
@@ -1417,7 +1447,6 @@ export default function NewAssessment() {
           })
           .map(src => {
           const isSelected = selectedDataSourceId === src.id;
-          const isDemo = src.is_demo || src.name.includes('[DEMO]');
           const isCustom = !src.is_builtin;
           return (
             <div key={src.id} className={`datasource-item ${isSelected ? 'selected' : ''}`} onClick={() => setSelectedDataSourceId(src.id)}>
@@ -1431,7 +1460,6 @@ export default function NewAssessment() {
                   <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     {src.name}
                     {isCustom && <span className="badge badge-primary" style={{ fontSize: '0.65rem' }}>USER UPLOAD</span>}
-                    {isDemo && <span className="badge badge-warning" style={{ fontSize: '0.65rem' }}>DEMO DATA</span>}
                   </div>
                   <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.25rem' }}>{src.description}</div>
                 </div>
@@ -1548,7 +1576,7 @@ export default function NewAssessment() {
               </ul>
               <div className="alert alert-warning" style={{ margin: '0.75rem 0 0' }}>
                 <span>ℹ️</span>
-                <div>Risk is computed from the completed module assessments listed above. Prototype outputs use demo data.</div>
+                <div>Risk is computed from the completed module assessments listed above.</div>
               </div>
             </div>
           </div>

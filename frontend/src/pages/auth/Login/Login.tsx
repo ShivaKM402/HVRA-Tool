@@ -1,185 +1,371 @@
 /**
- * Login page — token authentication (HVRA §2).
- * Quick-fill buttons for the seeded demo accounts.
+ * Login Page — 5-Tier Governance Role Hierarchy
+ * 1. Employee (Line Department Field Entry)
+ * 2. Senior Employee (Department Verification & Sign-off)
+ * 3. Manager (Multi-Agency Review & Coordination)
+ * 4. District Administrator (District Collectorate / DDMA Approval)
+ * 5. State Administrator (Statewide SDMA Command & Master Policy)
  */
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import './Login.css';
 
-const DEMO_ACCOUNTS = [
-  { label: 'Platform Admin', username: 'admin', password: 'admin123', role: 'PLATFORM_ADMIN' },
-  { label: 'State Official', username: 'state', password: 'state123', role: 'STATE_OFFICIAL' },
-  { label: 'District Official', username: 'ernakulam', password: 'district123', role: 'DISTRICT_OFFICIAL' },
-  { label: 'Analyst', username: 'analyst', password: 'analyst123', role: 'ANALYST' },
-  { label: 'Viewer', username: 'viewer', password: 'viewer123', role: 'VIEWER' },
+interface GovernanceRoleAccount {
+  level: number;
+  label: string;
+  roleBadge: string;
+  username: string;
+  password: string;
+  role: string;
+  icon: string;
+  desc: string;
+  scope: string;
+  category: 'FIELD' | 'ADMIN';
+}
+
+const GOVERNANCE_ROLES: GovernanceRoleAccount[] = [
+  {
+    level: 1,
+    label: 'Employee',
+    roleBadge: 'Level 1 · Field Staff',
+    username: 'employee',
+    password: 'employee123',
+    role: 'DEPARTMENT_OFFICER',
+    icon: '👷‍♂️',
+    desc: 'Enters field telemetry, spatial records & submits department surveys',
+    scope: 'Line Department / Panchayats',
+    category: 'FIELD',
+  },
+  {
+    level: 2,
+    label: 'Senior Employee',
+    roleBadge: 'Level 2 · Department Lead',
+    username: 'senior_employee',
+    password: 'senior123',
+    role: 'SENIOR_OFFICER',
+    icon: '👔',
+    desc: 'Verifies baseline records, validates boundaries & line clearance',
+    scope: 'Executive Engineer / HoD Office',
+    category: 'FIELD',
+  },
+  {
+    level: 3,
+    label: 'Manager',
+    roleBadge: 'Level 3 · Operations Lead',
+    username: 'manager',
+    password: 'manager123',
+    role: 'MANAGER',
+    icon: '💼',
+    desc: 'Coordinates inter-department sign-offs & reviews Task Force queue',
+    scope: 'DEOC Operations / Review Queue',
+    category: 'FIELD',
+  },
+  {
+    level: 4,
+    label: 'District Administrator',
+    roleBadge: 'Level 4 · DDMA Authority',
+    username: 'district_admin',
+    password: 'district123',
+    role: 'DISTRICT_OFFICIAL',
+    icon: '🏢',
+    desc: 'Formally endorses & signs off on district hazard & risk assessments',
+    scope: 'District Collectorate / DDMA',
+    category: 'ADMIN',
+  },
+  {
+    level: 5,
+    label: 'State Administrator',
+    roleBadge: 'Level 5 · State SDMA Head',
+    username: 'state_admin',
+    password: 'admin123',
+    role: 'PLATFORM_ADMIN',
+    icon: '🏛️',
+    desc: 'Statewide governance, master policy calibration & system authority',
+    scope: 'Kerala State Disaster Management',
+    category: 'ADMIN',
+  },
 ];
 
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [activeTab, setActiveTab] = useState<'ALL' | 'FIELD' | 'ADMIN'>('ALL');
+  const [activeAccountUser, setActiveAccountUser] = useState<string | null>(null);
 
   const from = (location.state as { from?: string } | null)?.from || '/dashboard';
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+  const performLogin = async (u: string, p: string) => {
     setError(null);
     setBusy(true);
     try {
-      const user = await login(username.trim(), password);
-      navigate(user.profile?.role_code === 'PLATFORM_ADMIN' || user.is_staff ? '/settings' : from, {
-        replace: true,
-      });
+      const user = await login(u.trim(), p);
+      let dest = from;
+      const roleCode = user.profile?.role_code;
+
+      if (roleCode === 'PLATFORM_ADMIN' || user.is_staff) {
+        dest = from === '/dashboard' ? '/dashboard' : from;
+      } else if (roleCode === 'DEPARTMENT_OFFICER' || roleCode === 'SENIOR_OFFICER') {
+        dest = '/department-coordination';
+      } else if (roleCode === 'MANAGER' || roleCode === 'DISTRICT_OFFICIAL') {
+        dest = '/review-queue';
+      }
+      navigate(dest, { replace: true });
     } catch (err: any) {
-      setError(err.message || 'Login failed. Check your credentials.');
+      setError(err.message || 'Login failed. Please check your credentials.');
     } finally {
       setBusy(false);
     }
   };
 
-  const fillDemo = (u: string, p: string) => {
-    setUsername(u);
-    setPassword(p);
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!username.trim() || !password) {
+      setError('Please provide both username and password.');
+      return;
+    }
+    performLogin(username, password);
+  };
+
+  const handleInstantLogin = (acc: GovernanceRoleAccount) => {
+    setActiveAccountUser(acc.username);
+    setUsername(acc.username);
+    setPassword(acc.password);
+    performLogin(acc.username, acc.password);
+  };
+
+  const handleFillOnly = (acc: GovernanceRoleAccount) => {
+    setActiveAccountUser(acc.username);
+    setUsername(acc.username);
+    setPassword(acc.password);
     setError(null);
   };
 
+  const filteredRoles = GOVERNANCE_ROLES.filter(acc => {
+    if (activeTab === 'ALL') return true;
+    return acc.category === activeTab;
+  });
+
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '2rem 1rem'
-    }}>
-      <div className="card" style={{
-        width: '100%',
-        maxWidth: 440,
-        boxShadow: '0 24px 60px -12px rgba(0,0,0,0.7), 0 0 0 1px rgba(14,165,233,0.2)',
-        borderRadius: 'var(--radius-2xl)',
-        animation: 'fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards'
-      }}>
-        <div className="card-header" style={{
-          textAlign: 'center',
-          flexDirection: 'column',
-          padding: '2rem 2rem 1.25rem',
-        }}>
-          <div style={{
-            width: 60,
-            height: 60,
-            borderRadius: '18px',
-            background: 'linear-gradient(135deg, #0ea5e9 0%, #06d6a0 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '2rem',
-            margin: '0 auto 1rem',
-            boxShadow: '0 4px 20px rgba(14,165,233,0.5), 0 0 0 4px rgba(14,165,233,0.12)',
-            animation: 'waveFloat 2s ease-in-out infinite'
-          }}>
-            🌊
+    <div className="login-viewport">
+      {/* Background glow orbs */}
+      <div className="login-bg-glow" />
+      <div className="login-bg-glow-2" />
+
+      {/* ── Top Portal Header Bar ── */}
+      <header className="login-topbar">
+        <div className="login-brand-left">
+          <div className="login-seal">
+            <span>🛡️</span>
           </div>
-          <h2 style={{
-            fontFamily: 'var(--font-heading)',
-            fontSize: '1.65rem',
-            fontWeight: 700,
-            color: 'var(--text-heading)',
-            margin: 0,
-            letterSpacing: '-0.025em'
-          }}>
-            HVRA Digital Tool
-          </h2>
-          <div style={{ fontSize: '0.84rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
-            Kerala State Disaster Management Framework
+          <div className="login-brand-titles">
+            <span className="login-gov-kerala">Government of Kerala</span>
+            <span className="login-app-name">HVRA Multi-Hazard Command Portal</span>
+            <span className="login-framework-sub">Kerala State Disaster Management Authority (KSDMA)</span>
           </div>
         </div>
 
-        <div className="card-body" style={{ padding: '1.75rem 2rem 2rem' }}>
-          {error && (
-            <div className="alert alert-error" style={{ marginBottom: '1.25rem' }}>
-              <span>⚠️</span>
-              <div>{error}</div>
-            </div>
-          )}
+        <div className="login-topbar-badge">
+          <span className="login-pulse-dot" />
+          <span>Statutory Governance Hierarchy</span>
+        </div>
+      </header>
 
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
-            <div>
-              <label className="form-label">
-                Official Username
-              </label>
-              <input
-                className="form-control"
-                placeholder="e.g. analyst or admin"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                autoFocus
-                required
-              />
-            </div>
-            <div>
-              <label className="form-label">
-                Secure Password
-              </label>
-              <input
-                className="form-control"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-
-            <button
-              className="btn btn-primary btn-lg"
-              style={{ width: '100%', marginTop: '0.5rem' }}
-              disabled={busy}
-            >
-              {busy ? 'Authenticating…' : '🔐 Sign In to Command Center'}
-            </button>
-          </form>
-
-          <div style={{ textAlign: 'center', marginTop: '1.25rem', fontSize: '0.86rem', color: '#64748b' }}>
-            Need an officer account?{' '}
-            <Link to="/register" style={{ color: '#2563eb', fontWeight: 700 }}>
-              Register here
-            </Link>
+      {/* ── Main Content Container ── */}
+      <main className="login-main">
+        {/* Hero Section */}
+        <div className="login-hero">
+          <div className="login-hero-pill">
+            <span>🏛️ 5-Tier Officer Sign-In</span>
           </div>
+          <h1 className="login-hero-title">
+            Sign in to the <span>HVRA Command Center</span>
+          </h1>
+          <p className="login-hero-sub">
+            Select your administrative role below for 1-click access, or sign in using your official credentials.
+          </p>
+        </div>
 
-          {/* Quick Demo Credentials */}
-          <div style={{ marginTop: '1.75rem', borderTop: '1px solid #f1f5f9', paddingTop: '1.25rem' }}>
-            <div style={{
-              fontSize: '0.74rem',
-              fontWeight: 800,
-              color: '#64748b',
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-              marginBottom: '0.75rem'
-            }}>
-              Quick-Fill Prototype Accounts
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-              {DEMO_ACCOUNTS.map((acc) => (
+        {/* ── Split Grid: Quick-Fill First (Left) + Manual (Right) ── */}
+        <div className="login-split-grid">
+
+          {/* ── Quick-Fill Panel (PROMINENT FIRST) ── */}
+          <div className="login-quick-panel">
+            <div className="login-quick-head">
+              <div className="login-quick-title-group">
+                <h3>
+                  <span>⚡</span> Quick-Fill &amp; 1-Click Sign-In
+                </h3>
+                <p>Click any officer role to sign in instantly without typing.</p>
+              </div>
+
+              {/* Filter Tabs */}
+              <div className="login-filter-tabs">
                 <button
-                  key={acc.role}
                   type="button"
-                  className="btn btn-secondary btn-sm"
-                  style={{ justifyContent: 'space-between', padding: '0.5rem 0.85rem' }}
-                  onClick={() => fillDemo(acc.username, acc.password)}
+                  className={`login-tab-btn ${activeTab === 'ALL' ? 'login-tab-btn--active' : ''}`}
+                  onClick={() => setActiveTab('ALL')}
                 >
-                  <span style={{ fontWeight: 600 }}>👤 {acc.label}</span>
-                  <span className="badge badge-info" style={{ fontSize: '0.66rem' }}>
-                    {acc.role}
-                  </span>
+                  All 5 Roles
                 </button>
-              ))}
+                <button
+                  type="button"
+                  className={`login-tab-btn ${activeTab === 'FIELD' ? 'login-tab-btn--active' : ''}`}
+                  onClick={() => setActiveTab('FIELD')}
+                >
+                  Field &amp; Ops (3)
+                </button>
+                <button
+                  type="button"
+                  className={`login-tab-btn ${activeTab === 'ADMIN' ? 'login-tab-btn--active' : ''}`}
+                  onClick={() => setActiveTab('ADMIN')}
+                >
+                  Administrators (2)
+                </button>
+              </div>
+            </div>
+
+            {/* List of 5 Governance Roles */}
+            <div className="login-group-section">
+              <div className="login-role-grid">
+                {filteredRoles.map((acc) => {
+                  const isSelected = activeAccountUser === acc.username;
+                  return (
+                    <div
+                      key={acc.username}
+                      className={`login-role-card ${isSelected ? 'login-role-card-active' : ''}`}
+                      onClick={() => handleFillOnly(acc)}
+                      title="Click to fill credentials into the form"
+                    >
+                      <div className="login-role-left">
+                        <div className="login-role-icon">{acc.icon}</div>
+                        <div className="login-role-meta">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                            <span className="login-role-name">{acc.label}</span>
+                            <span className={`login-role-badge login-role-badge--level-${acc.level}`}>
+                              {acc.roleBadge}
+                            </span>
+                          </div>
+                          <span className="login-role-desc">{acc.desc}</span>
+                          <span className="login-role-user">@{acc.username} · {acc.scope}</span>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        className="login-role-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleInstantLogin(acc);
+                        }}
+                        disabled={busy}
+                        title={`Sign in immediately as ${acc.label}`}
+                      >
+                        ⚡ Sign In
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
+
+          {/* ── Manual Sign-In Card (Right) ── */}
+          <div className="login-form-card">
+            <div className="login-form-header">
+              <h2 className="login-form-title">Officer Credentials</h2>
+              <p className="login-form-sub">Enter official username &amp; password or choose a quick role.</p>
+            </div>
+
+            {error && (
+              <div className="login-alert-error">
+                <span>⚠️</span>
+                <div>{error}</div>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="login-form">
+              <div className="login-field">
+                <label className="login-field-label" htmlFor="login-username">
+                  Official Username
+                </label>
+                <div className="login-input-wrap">
+                  <span className="login-input-icon">👤</span>
+                  <input
+                    id="login-username"
+                    className="login-input"
+                    type="text"
+                    placeholder="e.g. employee, manager, district_admin"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    required
+                    autoFocus
+                  />
+                </div>
+              </div>
+
+              <div className="login-field">
+                <label className="login-field-label" htmlFor="login-password">
+                  <span>Secure Password</span>
+                </label>
+                <div className="login-input-wrap">
+                  <span className="login-input-icon">🔒</span>
+                  <input
+                    id="login-password"
+                    className="login-input"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="login-pw-toggle"
+                    onClick={() => setShowPassword(!showPassword)}
+                    title={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? '👁️' : '👁️‍🗨️'}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="login-submit-btn"
+                disabled={busy}
+              >
+                {busy ? '⏳ Authenticating…' : '🔐 Sign In to Portal'}
+              </button>
+            </form>
+
+            <div className="login-footer-links">
+              Need a government officer account?{' '}
+              <Link to="/register" className="login-register-link">
+                Register here
+              </Link>
+
+              <div className="login-compliance-badge">
+                <span>🛡️</span>
+                <span>Protected by KSDMA Role-Based Security Framework (HVRA §2)</span>
+              </div>
+            </div>
+          </div>
+
         </div>
-      </div>
+      </main>
+
+      {/* ── Footer ── */}
+      <footer className="login-bottom-bar">
+        © 2026 Kerala State Disaster Management Authority (KSDMA). All rights reserved.
+      </footer>
     </div>
   );
 }

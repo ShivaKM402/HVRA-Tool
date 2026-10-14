@@ -146,6 +146,126 @@
   color: var(--text-muted);
 }
 
+/* ---------- Chapter 7 Map & Visualization Card ---------- */
+.rpt-map-section {
+  page-break-inside: avoid;
+}
+
+.report-map-card {
+  margin: 1.25rem 0 1.5rem;
+  background: #ffffff;
+  border: 1px solid var(--border-default, #e2e8f0);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(60, 64, 67, 0.08);
+}
+
+.report-map-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #f8fafc;
+  border-bottom: 1px solid var(--border-default, #e2e8f0);
+}
+
+.report-map-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.88rem;
+  color: #1e293b;
+}
+
+.report-map-figure-badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  background: var(--color-primary, #1a73e8);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.report-map-mode-pills {
+  display: inline-flex;
+  background: #e2e8f0;
+  padding: 3px;
+  border-radius: 8px;
+  gap: 2px;
+}
+
+.map-mode-btn {
+  background: transparent;
+  border: none;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.map-mode-btn:hover {
+  color: #0f172a;
+}
+
+.map-mode-btn.active {
+  background: #ffffff;
+  color: var(--color-primary, #1a73e8);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.report-map-container {
+  width: 100%;
+  height: 560px;
+  min-height: 560px;
+  position: relative;
+  background: #f1f5f9;
+}
+
+.report-map-footer {
+  padding: 0.75rem 1rem;
+  background: #f8fafc;
+  border-top: 1px solid var(--border-default, #e2e8f0);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.report-map-caption {
+  font-size: 0.78rem;
+  color: #64748b;
+  flex: 1;
+  min-width: 260px;
+  line-height: 1.45;
+}
+
+.report-map-metadata-badges {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.rpt-badge {
+  display: inline-block;
+  padding: 0.2rem 0.45rem;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  color: #475569;
+  font-weight: 500;
+}
+
 @media (max-width: 980px) {
   .rpt { grid-template-columns: 1fr; padding: 1rem; }
   .rpt-toc { position: static; max-height: none; }
@@ -153,6 +273,8 @@
 
 @media print {
   .rpt { grid-template-columns: 1fr; padding: 0; }
-  .rpt-toc, .report-action-bar { display: none !important; }
+  .rpt-toc, .report-action-bar, .report-map-mode-pills { display: none !important; }
   .rpt-preview .printable-report-sheet { box-shadow: none; border: none; padding: 0; }
+  .rpt-map-section, .report-map-card { page-break-inside: avoid; }
+  .report-map-container { height: 480px !important; min-height: 480px !important; }
 }

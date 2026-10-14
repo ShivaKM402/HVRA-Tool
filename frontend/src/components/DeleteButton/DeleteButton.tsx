@@ -1,4 +1,5 @@
 import React from 'react';
+import { useAuth } from '@/context/AuthContext';
 import './DeleteButton.css';
 
 interface DeleteButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -8,6 +9,11 @@ interface DeleteButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement
 }
 
 export const DeleteButton: React.FC<DeleteButtonProps> = ({ onClick, title = 'Delete item', className = '', ...props }) => {
+  const { canDelete } = useAuth();
+  if (!canDelete) {
+    return null;
+  }
+
   return (
     <button 
       aria-label={title} 

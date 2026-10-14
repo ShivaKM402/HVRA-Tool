@@ -28,6 +28,12 @@ class DataSourceViewSet(viewsets.ModelViewSet):
     permission_classes = [CanContributeData]
 
     def perform_destroy(self, instance):
+        from apps.accounts.permissions import user_can_delete
+        if not user_can_delete(self.request.user):
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied(
+                "Employees and non-administrative officers are not authorized to delete data sources."
+            )
         # Also clean up any auto-created hazard layers for this data source
         from apps.hazards.models import HazardLayer
         HazardLayer.objects.filter(name__icontains=instance.name).delete()
@@ -177,6 +183,12 @@ class UploadedDatasetViewSet(viewsets.ModelViewSet):
     permission_classes = [CanContributeData]
 
     def perform_destroy(self, instance):
+        from apps.accounts.permissions import user_can_delete
+        if not user_can_delete(self.request.user):
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied(
+                "Employees and non-administrative officers are not authorized to delete uploaded datasets."
+            )
         if instance.file:
             try:
                 instance.file.delete(save=False)

@@ -5,9 +5,9 @@
 import { MapIcon } from '@/components/MapIcon/MapIcon';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
-import { checkHealth, getAssessments, getHazards, getDistricts, getDashboardSummary, getRiskDashboardSummary, deleteAssessment } from '@/services/api';
-import type { Assessment, HealthCheckResponse, HazardType, AdministrativeUnit, DashboardSummaryResponse } from '@/types';
+import { checkHealth, getAssessments, getHazards, getDistricts, deleteAssessment } from '@/services/api';
+import type { Assessment, HealthCheckResponse, HazardType, AdministrativeUnit } from '@/types';
+import { useHazard, HAZARD_CATALOG, type HazardCode } from '@/context/HazardContext';
 import KeralaMap from '@/components/Map/KeralaMap';
 import './Dashboard.css';
 
@@ -75,6 +75,8 @@ function ModernStatusBadge({ status }: { status: string }) {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { activeHazard, activeHazardMeta, setActiveHazard, clearHazard } = useHazard();
+
   const [_health, setHealth] = useState<HealthCheckResponse | null>(null);
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [hazards, setHazards] = useState<HazardType[]>([]);
@@ -87,32 +89,132 @@ export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [tableModuleFilter, setTableModuleFilter] = useState('ALL');
 
-  // Cross-district comparison (HVRA §3.4)
-  const [summary, setSummary] = useState<DashboardSummaryResponse | null>(null);
-  const [summaryModule, setSummaryModule] = useState<'HAZARD' | 'VULNERABILITY' | 'EXPOSURE' | 'COMPOSITE_RISK'>('HAZARD');
-  const [summaryLoading, setSummaryLoading] = useState(false);
-  const [summaryError, setSummaryError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function loadSummary() {
-      setSummaryLoading(true);
-      setSummaryError(null);
-      try {
-        const data =
-          summaryModule === 'COMPOSITE_RISK'
-            ? await getRiskDashboardSummary()
-            : await getDashboardSummary({ module_type: summaryModule });
-        if (!cancelled) setSummary(data);
-      } catch (err: any) {
-        if (!cancelled) setSummaryError(err.message || 'Failed to load district summary.');
-      } finally {
-        if (!cancelled) setSummaryLoading(false);
-      }
-    }
-    loadSummary();
-    return () => { cancelled = true; };
-  }, [summaryModule]);
+  // Department Taskforce definitions for each hazard domain
+  const HAZARD_DEPARTMENT_TASKS: Record<
+    HazardCode,
+    Array<{
+      department: string;
+      role: string;
+      indicators: string[];
+      status: 'SUBMITTED' | 'PENDING';
+      officer: string;
+      assessmentId: number;
+    }>
+  > = {
+    FLOOD: [
+      {
+        department: 'Water Resources Department (Irrigation)',
+        role: 'Hydrological River Gauge & Reservoir Surge Telemetry',
+        indicators: ['Flood-prone Area (%)', 'River Gauge Discharge Anomaly', 'Flood Frequency'],
+        status: 'SUBMITTED',
+        officer: 'Er. Ramesh K. (Executive Engineer, Hydrology)',
+        assessmentId: 86,
+      },
+      {
+        department: 'Local Self Government (LSGD / Panchayats)',
+        role: 'Inundation Habitations, Shelter Logs & Kutcha Housing',
+        indicators: ['Residential Buildings in Floodplain', 'Kutcha Housing Stock', 'Relief Shelter Shortfall'],
+        status: 'SUBMITTED',
+        officer: 'Sri. Suresh V. (Assistant Director of Panchayats)',
+        assessmentId: 86,
+      },
+      {
+        department: 'Public Works Department (PWD)',
+        role: 'Submerged Roadways, Culverts & Lifeline Bridges',
+        indicators: ['Submersible Road Length (km)', 'Highways in Hazard Zone', 'Drainage Inadequacy'],
+        status: 'PENDING',
+        officer: 'Executive Engineer (PWD Roads Division)',
+        assessmentId: 86,
+      },
+      {
+        department: 'Health & Family Welfare Department',
+        role: 'Critical Hospital Access & Post-Flood Epidemic Surveillance',
+        indicators: ['Critical Facilities Exposed', 'Emergency Health Access Gap'],
+        status: 'PENDING',
+        officer: 'District Medical Officer (DMO Thiruvananthapuram)',
+        assessmentId: 86,
+      },
+    ],
+    LANDSLIDE: [
+      {
+        department: 'Mining & Geology / KSDMA',
+        role: 'Western Ghats Slip Zones, Debris Inundation & Quarry Monitoring',
+        indicators: ['Landslide Susceptibility Zone (%)', 'Historical Debris Flow Incidents'],
+        status: 'SUBMITTED',
+        officer: 'Smt. Latha M. (Deputy Collector, KSDMA)',
+        assessmentId: 87,
+      },
+      {
+        department: 'Water Resources Department (Irrigation)',
+        role: 'Antecedent Soil Moisture & Precipitation Trigger Anomaly',
+        indicators: ['Cumulative Rainfall Trigger Anomaly', 'Basin Discharge Logs'],
+        status: 'SUBMITTED',
+        officer: 'Er. Ramesh K. (Hydrology Division)',
+        assessmentId: 87,
+      },
+      {
+        department: 'Department of Environment & Climate Change',
+        role: 'Steep Slopes (>30°) & Forest Buffer Depletion',
+        indicators: ['Steep Slope Terrain Area (>30°)', 'Vegetation Loss Index'],
+        status: 'PENDING',
+        officer: 'Environmental Officer (Kottayam Range)',
+        assessmentId: 87,
+      },
+    ],
+    COASTAL: [
+      {
+        department: 'Harbour Engineering Department',
+        role: 'Sea Wall Structural Integrity & Shoreline Retreat Monitoring',
+        indicators: ['Annual Shoreline Retreat & Erosion Rate (m/yr)', 'Sea Wall Condition'],
+        status: 'SUBMITTED',
+        officer: 'Er. Mathew P. (Harbour Engineering Dept)',
+        assessmentId: 88,
+      },
+      {
+        department: 'Local Self Government & Fisheries',
+        role: 'Fisherfolk Settlement Inundation & High Tide Ingress (200m)',
+        indicators: ['Fisherfolk & Coastal Dwellings within 200m HTL'],
+        status: 'PENDING',
+        officer: 'Joint Director of Fisheries (Trivandrum Coast)',
+        assessmentId: 88,
+      },
+      {
+        department: 'Water Resources Department (Irrigation)',
+        role: 'Tidal Ingress & River Estuary Backwater Surges',
+        indicators: ['Peak High-Tide & Storm Inundation Surge Depth'],
+        status: 'PENDING',
+        officer: 'Executive Engineer (Canals & Estuaries)',
+        assessmentId: 88,
+      },
+    ],
+    EXTREME_WEATHER: [
+      {
+        department: 'Revenue & Disaster Management (KSDMA)',
+        role: 'Ground Flash Lightning Density & Automated Alert Dissemination',
+        indicators: ['Lightning Strike Flash Density (flashes/km²)', 'Squall Warning Logs'],
+        status: 'SUBMITTED',
+        officer: 'State Emergency Operations Center (SEOC)',
+        assessmentId: 89,
+      },
+      {
+        department: 'India Meteorological Department (IMD)',
+        role: 'Doppler Radar Squall Gust Velocity & Convective Cell Tracking',
+        indicators: ['Severe Thunderstorm Peak Gust Velocity (km/h)'],
+        status: 'PENDING',
+        officer: 'Meteorologist-in-Charge (IMD Thiruvananthapuram)',
+        assessmentId: 89,
+      },
+      {
+        department: 'Local Self Government (LSGD / Panchayats)',
+        role: 'Tin / Sheet / Kutcha Roof Vulnerability to Wind Damage',
+        indicators: ['Kutcha / Sheet Roof Structures Exposed to Gusts'],
+        status: 'PENDING',
+        officer: 'Town Planning Inspector (LSGD Kottayam)',
+        assessmentId: 89,
+      },
+    ],
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -139,22 +241,49 @@ export default function Dashboard() {
     load();
   }, []);
 
-  const completedCount = useMemo(() => assessments.filter((a) => a.status === 'COMPLETED').length, [assessments]);
+  // Per-hazard assessment counts and primary IDs for quick links
+  const hazardStats = useMemo(() => {
+    const stats: Record<HazardCode, { count: number; completed: number; primaryId: number }> = {
+      FLOOD: { count: 0, completed: 0, primaryId: 0 },
+      LANDSLIDE: { count: 0, completed: 0, primaryId: 0 },
+      COASTAL: { count: 0, completed: 0, primaryId: 0 },
+      EXTREME_WEATHER: { count: 0, completed: 0, primaryId: 0 },
+    };
+
+    assessments.forEach((a) => {
+      const ht = (a.hazard_type || '').toUpperCase() as HazardCode;
+      if (ht in stats) {
+        stats[ht].count += 1;
+        if (a.status === 'COMPLETED') stats[ht].completed += 1;
+        if (!stats[ht].primaryId) stats[ht].primaryId = a.id;
+      }
+    });
+
+    return stats;
+  }, [assessments]);
+
+  // Scoped assessments for active hazard (or all if no hazard selected)
+  const scopedAssessments = useMemo(() => {
+    if (!activeHazard) return assessments;
+    return assessments.filter((a) => (a.hazard_type || '').toUpperCase() === activeHazard);
+  }, [assessments, activeHazard]);
+
+  const completedCount = useMemo(() => scopedAssessments.filter((a) => a.status === 'COMPLETED').length, [scopedAssessments]);
   const activeHazards = useMemo(() => hazards.filter((h) => h.is_active).length, [hazards]);
 
   // District-specific assessment count for dossier
   const districtAssessments = useMemo(() => {
     if (!selectedDistrict) return [];
     const cleanDist = selectedDistrict.name.replace(' [DEMO]', '').toLowerCase();
-    return assessments.filter(a =>
+    return scopedAssessments.filter(a =>
       a.district === selectedDistrict.id ||
       (a.district_name && a.district_name.toLowerCase().includes(cleanDist))
     );
-  }, [selectedDistrict, assessments]);
+  }, [selectedDistrict, scopedAssessments]);
 
-  // Filtered recent assessments
+  // Filtered recent assessments (Strictly hazard-scoped)
   const filteredAssessments = useMemo(() => {
-    return assessments.filter(a => {
+    return scopedAssessments.filter(a => {
       const matchSearch =
         searchQuery === '' ||
         a.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -166,7 +295,7 @@ export default function Dashboard() {
 
       return matchSearch && matchModule;
     });
-  }, [assessments, searchQuery, tableModuleFilter]);
+  }, [scopedAssessments, searchQuery, tableModuleFilter]);
 
   const handleDeleteAssessment = async (id: number, name: string) => {
     if (!window.confirm(`Are you sure you want to delete assessment "${name}"?\n\nThis will permanently remove the assessment and all linked classification results.`)) {
@@ -221,59 +350,153 @@ export default function Dashboard() {
     );
   }
 
+  // ── FIRST PAGE: Dedicated 4-Column Box Selection Screen (When no hazard is selected) ──
+  if (activeHazard === null) {
+    return (
+      <div className="hazard-selection-page-wrapper">
+        <div className="hazard-selection-container">
+          {/* Official Emblem & State Header */}
+          <div className="hazard-portal-header">
+            <div className="hazard-emblem-badge">
+              <span style={{ fontSize: '1.4rem' }}>🏛️</span>
+              <div>
+                <div style={{ fontWeight: 800, letterSpacing: '0.04em', fontSize: '0.85rem', color: '#1e3a8a', textTransform: 'uppercase' }}>
+                  Government of Kerala • Disaster Management Department
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                  Kerala State Disaster Management Authority (KSDMA) • State Emergency Operations Center
+                </div>
+              </div>
+            </div>
+            <div className="hazard-portal-live-pill">
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+              <span>14 Revenue Districts Connected</span>
+            </div>
+          </div>
+
+          {/* Central Hero Heading */}
+          <div className="hazard-portal-hero">
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: '#dbeafe', color: '#1e40af', padding: '0.35rem 0.9rem', borderRadius: '999px', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.75rem' }}>
+              <span>🏛️</span> KERALA STATE DISASTER MANAGEMENT AUTHORITY (KSDMA)
+            </div>
+            <h1 className="hazard-portal-title">
+              Select a Hazard Domain to Enter
+            </h1>
+            <p className="hazard-portal-subtitle">
+              Choose one of the 4 operational hazard boxes below. When you enter a domain, all analytical models, line-department taskforces, indicators, and spatial assessment dossiers inside will be configured <strong>strictly and exclusively</strong> for that hazard.
+            </p>
+          </div>
+
+          {/* 4 Clean Box Columns Grid */}
+          <div className="hazard-gateway-boxes-grid">
+            {(['FLOOD', 'LANDSLIDE', 'COASTAL', 'EXTREME_WEATHER'] as HazardCode[]).map((code) => {
+              const meta = HAZARD_CATALOG[code];
+              const stats = hazardStats[code];
+              const indCount = code === 'FLOOD' ? 21 : code === 'LANDSLIDE' ? 4 : 3;
+
+              return (
+                <div
+                  key={code}
+                  className="hazard-gateway-box"
+                  style={{
+                    '--box-color': meta.color,
+                    '--box-bg': `${meta.color}15`,
+                  } as React.CSSProperties}
+                  onClick={() => setActiveHazard(code)}
+                >
+                  <div className="hazard-box-icon-bubble">{meta.icon}</div>
+                  <h3 className="hazard-box-title">{meta.name}</h3>
+                  <div className="hazard-box-tagline">{meta.tagline}</div>
+
+                  <div className="hazard-box-bottom-area" style={{ marginTop: 'auto', paddingTop: '1.25rem' }}>
+                    <div className="hazard-box-stats-row" style={{ border: 'none', padding: '0.4rem 0' }}>
+                      <span><strong>{indCount}</strong> Indicators</span>
+                      <span><strong>{stats.count}</strong> Runs</span>
+                    </div>
+
+                    <button className="hazard-box-btn" type="button">
+                      <span>Open {meta.shortName} Portal</span>
+                      <span>➔</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── 2. DEDICATED HAZARD-SCOPED WORKSPACE (When a hazard box was clicked) ──
   return (
     <div className="dashboard-wrapper">
-      {/* ── Google-Style Clean Header ── */}
+      {/* ── Google-Style Clean Header (100% Scoped to Active Hazard Domain) ── */}
       <div className="dashboard-page-header">
         <div className="dashboard-header-text">
-          <div className="dashboard-header-pill">🌊 Kerala State Disaster Management Authority</div>
-          <h1 className="dashboard-header-title">Flood Hazard &amp; Risk Intelligence</h1>
+          <div className="dashboard-header-pill">
+            {activeHazardMeta?.icon} Kerala State Disaster Management Authority • {activeHazardMeta?.shortName} Domain Console
+          </div>
+          <h1 className="dashboard-header-title">
+            {activeHazardMeta?.name} &amp; Risk Intelligence
+          </h1>
           <p className="dashboard-header-desc">
-            Monitor real-time inundation zones, coordinate inter-departmental flood indicators, and generate official risk assessment dossiers.
+            {activeHazardMeta?.tagline}. Dedicated line-department data submissions, telemetry indicators, and spatial assessment dossiers.
           </p>
         </div>
         <div className="dashboard-header-actions">
           <button
             className="btn btn-primary btn-sm"
-            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-            onClick={() => navigate('/new-assessment?module=HAZARD')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              background: activeHazardMeta?.color,
+              borderColor: activeHazardMeta?.color,
+            }}
+            onClick={() => navigate(`/new-assessment?module=HAZARD&hazard=${activeHazard}`)}
           >
-            <span>+</span> Run Flood Assessment
+            <span>+</span> Run {activeHazardMeta?.shortName} Assessment
           </button>
           <button
             className="btn btn-secondary btn-sm"
-            style={{ color: '#0d9488', borderColor: '#ccfbf1', background: '#f0fdfa', fontWeight: 600 }}
-            onClick={() => navigate('/assessments/86/results?tab=coordination')}
-            title="Departmental Data Coordination (Water Resources, LSGD, PWD, Health, Economics & Statistics)"
+            style={{ color: activeHazardMeta?.color, borderColor: `${activeHazardMeta?.color}40`, background: `${activeHazardMeta?.color}0a`, fontWeight: 700 }}
+            onClick={() => navigate(hazardStats[activeHazard].primaryId ? `/department-coordination?assessmentId=${hazardStats[activeHazard].primaryId}` : `/department-coordination?hazard=${activeHazard}`)}
+            title="Departmental Data Coordination for this hazard"
           >
-            🏛️ Dept Coordination
+            🏛️ {activeHazardMeta?.shortName} Dept Tasks
           </button>
           <button
             className="btn btn-secondary btn-sm"
-            onClick={() => navigate('/reports')}
+            onClick={() => clearHazard()}
+            title="Return to 4-Column Hazard Selection Gateway"
+            style={{ fontWeight: 700, color: '#1d4ed8', background: '#eff6ff', borderColor: '#bfdbfe' }}
           >
-            📋 View Reports
+            ⬅ Change Hazard (4 Columns)
           </button>
         </div>
       </div>
 
       <div className="dashboard">
-
-      {/* ── 2. Executive KPI Metrics Grid ── */}
+        {/* ── 1. Executive KPI Metrics Grid (Scoped to Domain) ── */}
       <div className="kpi-grid">
-        <div className="kpi-card" style={{ '--kpi-accent': '#4f46e5', '--kpi-bg': '#eff0ff', position: 'relative' } as React.CSSProperties}>
+        <div className="kpi-card" style={{ '--kpi-accent': activeHazardMeta?.color || '#4f46e5', '--kpi-bg': activeHazardMeta ? `${activeHazardMeta.color}10` : '#eff0ff', position: 'relative' } as React.CSSProperties}>
           <div style={{ position: 'absolute', top: '0.6rem', right: '0.6rem' }}>
             <CardMenu items={[
               { icon: '📋', label: 'View All Reports', onClick: () => navigate('/reports') },
-              { icon: '➕', label: 'New Assessment', onClick: () => navigate('/new-assessment?module=HAZARD') },
+              { icon: '➕', label: 'New Assessment', onClick: () => navigate(activeHazard ? `/new-assessment?module=HAZARD&hazard=${activeHazard}` : '/new-assessment?module=HAZARD') },
             ]} />
           </div>
           <div className="kpi-header">
-            <div className="kpi-icon-bubble">📋</div>
-            <span className="badge badge-info" style={{ fontSize: '0.68rem' }}>All Modules</span>
+            <div className="kpi-icon-bubble">{activeHazardMeta?.icon || '📋'}</div>
+            <span className="badge badge-info" style={{ fontSize: '0.68rem' }}>
+              {activeHazardMeta ? `${activeHazardMeta.shortName} Domain` : 'All Modules'}
+            </span>
           </div>
-          <div className="kpi-value">{assessments.length}</div>
-          <div className="kpi-label">Total Risk Assessments</div>
+          <div className="kpi-value">{scopedAssessments.length}</div>
+          <div className="kpi-label">
+            {activeHazardMeta ? `${activeHazardMeta.shortName} Risk Assessments` : 'Total Risk Assessments'}
+          </div>
           <div className="kpi-subtext">
             <span>⚡ Continuous ledger updates</span>
           </div>
@@ -290,7 +513,9 @@ export default function Dashboard() {
             <span className="badge badge-success" style={{ fontSize: '0.68rem' }}>100% Validated</span>
           </div>
           <div className="kpi-value">{completedCount}</div>
-          <div className="kpi-label">Completed Syntheses</div>
+          <div className="kpi-label">
+            {activeHazardMeta ? `${activeHazardMeta.shortName} Validated Syntheses` : 'Completed Syntheses'}
+          </div>
           <div className="kpi-subtext">
             <span>📄 Ready for statutory report export</span>
           </div>
@@ -300,17 +525,21 @@ export default function Dashboard() {
           <div style={{ position: 'absolute', top: '0.6rem', right: '0.6rem' }}>
             <CardMenu items={[
               { icon: '⚠️', label: 'View Hazards', onClick: () => navigate('/data-library') },
-              { icon: '🌊', label: 'Run Hazard Assessment', onClick: () => navigate('/new-assessment?module=HAZARD') },
+              { icon: '🌊', label: 'Run Hazard Assessment', onClick: () => navigate(activeHazard ? `/new-assessment?module=HAZARD&hazard=${activeHazard}` : '/new-assessment?module=HAZARD') },
             ]} />
           </div>
           <div className="kpi-header">
-            <div className="kpi-icon-bubble">⚠️</div>
+            <div className="kpi-icon-bubble">📊</div>
             <span className="badge badge-warning" style={{ fontSize: '0.68rem' }}>Monitored</span>
           </div>
-          <div className="kpi-value">{activeHazards}</div>
-          <div className="kpi-label">Active Kerala Hazards</div>
+          <div className="kpi-value">
+            {activeHazard === 'FLOOD' ? 21 : activeHazard === 'LANDSLIDE' ? 4 : activeHazard === 'COASTAL' ? 3 : activeHazard === 'EXTREME_WEATHER' ? 3 : activeHazards}
+          </div>
+          <div className="kpi-label">
+            {activeHazardMeta ? `${activeHazardMeta.shortName} Key Indicators` : 'Active Kerala Hazards'}
+          </div>
           <div className="kpi-subtext">
-            <span>🌊 Riverine, Pluvial &amp; Flash Flood Risk</span>
+            <span>{activeHazardMeta ? `Lead: ${activeHazardMeta.leadAgency.split('(')[0]}` : '🌊 Riverine, Pluvial & Flash Flood Risk'}</span>
           </div>
         </div>
 
@@ -321,13 +550,19 @@ export default function Dashboard() {
             ]} />
           </div>
           <div className="kpi-header">
-            <div className="kpi-icon-bubble"><MapIcon /></div>
-            <span className="badge badge-completed" style={{ fontSize: '0.68rem' }}>Full Coverage</span>
+            <div className="kpi-icon-bubble">🏛️</div>
+            <span className="badge badge-completed" style={{ fontSize: '0.68rem' }}>
+              {activeHazard ? 'Coordinated' : 'Full Coverage'}
+            </span>
           </div>
-          <div className="kpi-value">{districts.length}</div>
-          <div className="kpi-label">Revenue Districts Synced</div>
+          <div className="kpi-value">
+            {activeHazard ? (HAZARD_DEPARTMENT_TASKS[activeHazard]?.length || 4) : districts.length}
+          </div>
+          <div className="kpi-label">
+            {activeHazardMeta ? 'Responsible Line Departments' : 'Revenue Districts Synced'}
+          </div>
           <div className="kpi-subtext">
-            <span>📍 Taluka &amp; Grama Panchayat resolution</span>
+            <span>{activeHazardMeta ? 'Multi-agency indicator validation' : '📍 Taluka & Grama Panchayat resolution'}</span>
           </div>
         </div>
       </div>
@@ -438,312 +673,20 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── 4. Connected Workflow Portals (HVRA 4 Modules) ── */}
-      <div className="workflow-section">
-        <div className="section-header">
-          <div className="section-title">
-            <span>⚡</span>
-            <span>HVRA Analytical Suite & Decision Pipelines</span>
-          </div>
-          <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
-            Core statutory assessment modules under Kerala SDMA guidelines
-          </span>
-        </div>
-
-        <div className="workflow-modules-grid">
-          {/* Module 1: Hazard */}
-          <div
-            className="workflow-card"
-            style={{ '--wf-color': '#2563eb', '--wf-shadow': 'rgba(37, 99, 235, 0.22)' } as React.CSSProperties}
-            onClick={() => navigate('/new-assessment?module=HAZARD')}
-          >
-            <div>
-              <div className="workflow-card-tag">Module 1 • Hydrology & Meteorology</div>
-              <div className="workflow-card-icon">🌊</div>
-              <div className="workflow-card-name">Hazard Assessment (H)</div>
-              <div className="workflow-card-desc">
-                Execute IMD precipitation exceedance, CWC river gauge thresholds, and flood inundation extent queries.
-              </div>
-            </div>
-            <div className="workflow-card-btn">
-              Configure Query Parameters ➔
-            </div>
-          </div>
-
-          {/* Module 2: Vulnerability */}
-          <div
-            className="workflow-card"
-            style={{ '--wf-color': '#ea580c', '--wf-shadow': 'rgba(234, 88, 12, 0.22)' } as React.CSSProperties}
-            onClick={() => navigate('/new-assessment?module=VULNERABILITY')}
-          >
-            <div>
-              <div className="workflow-card-tag">Module 2 • Demographics & Built Env</div>
-              <div className="workflow-card-icon">👥</div>
-              <div className="workflow-card-name">Vulnerability Assessment (V)</div>
-              <div className="workflow-card-desc">
-                Evaluate socio-economic vulnerability, housing fragility, elderly/infant population density, and coping capacity.
-              </div>
-            </div>
-            <div className="workflow-card-btn">
-              Analyze Social Indicators ➔
-            </div>
-          </div>
-
-          {/* Module 3: Exposure */}
-          <div
-            className="workflow-card"
-            style={{ '--wf-color': '#059669', '--wf-shadow': 'rgba(5, 150, 105, 0.22)' } as React.CSSProperties}
-            onClick={() => navigate('/new-assessment?module=EXPOSURE')}
-          >
-            <div>
-              <div className="workflow-card-tag">Module 3 • Assets & Lifelines</div>
-              <div className="workflow-card-icon">🏘️</div>
-              <div className="workflow-card-name">Exposure Assessment (E)</div>
-              <div className="workflow-card-desc">
-                Overlay critical infrastructure, lifelines, healthcare centers, roads, and agrarian acreage in hazard zones.
-              </div>
-            </div>
-            <div className="workflow-card-btn">
-              Quantify Exposed Assets ➔
-            </div>
-          </div>
-
-          {/* Module 4: Composite Risk */}
-          <div
-            className="workflow-card"
-            style={{ '--wf-color': '#7c3aed', '--wf-shadow': 'rgba(124, 58, 237, 0.22)' } as React.CSSProperties}
-            onClick={() => navigate('/risk-builder')}
-          >
-            <div>
-              <div className="workflow-card-tag">Module 4 • Multi-Criteria Synthesis</div>
-              <div className="workflow-card-icon">⚖️</div>
-              <div className="workflow-card-name">Composite Risk Builder</div>
-              <div className="workflow-card-desc">
-                Synthesize H × V × E layers via customizable AHP weighted criteria into actionable statutory decision classes.
-              </div>
-            </div>
-            <div className="workflow-card-btn">
-              Build Risk Matrix ➔
-            </div>
-          </div>
-        </div>
-
-        {/* Secondary Governance & Data Tools */}
-        <div className="secondary-tools-grid">
-          <div className="secondary-tool-item" onClick={() => navigate('/review-queue')}>
-            <div className="secondary-tool-icon">🏛️</div>
-            <div>
-              <div className="secondary-tool-title">Task Force Review Queue</div>
-              <div className="secondary-tool-sub">Official endorsement and sign-off</div>
-            </div>
-          </div>
-
-          <div className="secondary-tool-item" onClick={() => navigate('/dashboard/compare')}>
-            <div className="secondary-tool-icon">📊</div>
-            <div>
-              <div className="secondary-tool-title">Cross-District Benchmarks</div>
-              <div className="secondary-tool-sub">Side-by-side comparative analysis</div>
-            </div>
-          </div>
-
-          <div className="secondary-tool-item" onClick={() => navigate('/data-library')}>
-            <div className="secondary-tool-icon">🗃️</div>
-            <div>
-              <div className="secondary-tool-title">Spatial Data Library</div>
-              <div className="secondary-tool-sub">GeoJSON, shapefiles & rasters</div>
-            </div>
-          </div>
-
-          <div className="secondary-tool-item" onClick={() => navigate('/reports')}>
-            <div className="secondary-tool-icon">📄</div>
-            <div>
-              <div className="secondary-tool-title">Statutory Reports Gallery</div>
-              <div className="secondary-tool-sub">Chapter dossiers & PDF packages</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── 5. Cross-District Comparison Studio (Recharts + Table) ── */}
-      <div className="compare-studio-card">
-        <div className="compare-studio-header">
-          <div>
-            <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span>🏙️</span> Cross-District Risk Spectrum (HVRA §3.4)
-            </h3>
-            <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.2rem' }}>
-              District-aggregated severity scores across completed assessments for State resource allocation.
-            </div>
-          </div>
-
-          <div className="compare-module-tabs">
-            {(['HAZARD', 'VULNERABILITY', 'EXPOSURE', 'COMPOSITE_RISK'] as const).map((m) => (
-              <button
-                key={m}
-                className={`compare-tab-btn${summaryModule === m ? ' active' : ''}`}
-                onClick={() => setSummaryModule(m)}
-              >
-                {m === 'COMPOSITE_RISK' ? 'Composite Risk' : m[0] + m.slice(1).toLowerCase()}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {summaryLoading ? (
-          <div style={{ padding: '3.5rem', textAlign: 'center', color: '#64748b' }}>
-            <div className="spinner" style={{ margin: '0 auto 1rem auto' }} />
-            Computing district spatial aggregations…
-          </div>
-        ) : summaryError ? (
-          <div style={{ padding: '2rem' }}>
-            <div className="alert alert-error">⚠️ {summaryError}</div>
-          </div>
-        ) : !summary || summary.districts.length === 0 ? (
-          <div style={{ padding: '3rem 2rem' }}>
-            <div className="empty-state">
-              <div className="empty-state-icon">🏙️</div>
-              <div className="empty-state-title">No completed {summaryModule.replace('_', ' ').toLowerCase()} assessments</div>
-              <div className="empty-state-description">
-                Execute assessments in at least two revenue districts to populate the comparative aggregation spectrum.
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="compare-body-grid">
-            {/* Recharts Bar Chart */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
-                <h4 style={{ margin: 0, fontSize: '0.9rem', color: '#334155' }}>
-                  District Average Severity Score (0 – 10 Scale)
-                </h4>
-                <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
-                  {summary.districts.length} districts represented
-                </span>
-              </div>
-
-              <div style={{ height: 280 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={summary.districts} margin={{ top: 8, right: 12, left: -20, bottom: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                    <XAxis
-                      dataKey="district_name"
-                      tick={{ fontSize: 11, fill: '#64748b' }}
-                      interval={0}
-                      angle={-30}
-                      textAnchor="end"
-                      height={65}
-                      tickFormatter={(v: string) => v.replace(' [DEMO]', '').slice(0, 11)}
-                    />
-                    <YAxis domain={[0, 10]} tick={{ fontSize: 11, fill: '#64748b' }} />
-                    <Tooltip
-                      content={({ active, payload, label }) => {
-                        if (active && payload && payload.length) {
-                          const val = Number(payload[0].value);
-                          return (
-                            <div className="custom-chart-tooltip">
-                              <div className="tooltip-district-name">
-                                {String(label).replace(' [DEMO]', '')} District
-                              </div>
-                              <div className="tooltip-score-val">
-                                {val.toFixed(2)} <span style={{ fontSize: '0.75rem', fontWeight: 500 }}>/ 10</span>
-                              </div>
-                              <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '0.2rem' }}>
-                                Severity: {val >= 7 ? 'High (HH)' : val >= 5 ? 'Moderate (MH)' : 'Low (LH)'}
-                              </div>
-                            </div>
-                          );
-                        }
-                        return null;
-                      }}
-                    />
-                    <Bar dataKey="average_score" radius={[6, 6, 0, 0]}>
-                      {summary.districts.map((d, i) => (
-                        <Cell
-                          key={i}
-                          fill={
-                            d.average_score >= 7 ? '#ef4444' :
-                            d.average_score >= 5 ? '#f59e0b' :
-                            d.average_score >= 3 ? '#eab308' : '#10b981'
-                          }
-                        />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* Ranked Table */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
-                <h4 style={{ margin: 0, fontSize: '0.9rem', color: '#334155' }}>
-                  District Risk Ledger & Dominant Classes
-                </h4>
-                <span className="badge badge-info" style={{ fontSize: '0.7rem' }}>
-                  Sorted by Score
-                </span>
-              </div>
-
-              <div className="table-responsive" style={{ maxHeight: 280, overflowY: 'auto' }}>
-                <table className="data-table" style={{ fontSize: '0.82rem' }}>
-                  <thead>
-                    <tr>
-                      <th style={{ width: '40px', textAlign: 'center' }}>#</th>
-                      <th>District</th>
-                      <th style={{ textAlign: 'center' }}>Runs</th>
-                      <th style={{ textAlign: 'center' }}>Avg Score</th>
-                      <th style={{ textAlign: 'center' }}>Top Tier</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {summary.districts.map((d, idx) => {
-                      const summaryCounts = d.classification_summary || {};
-                      const topCls = Object.entries(summaryCounts).sort((a, b) => (b[1] as number) - (a[1] as number))[0]?.[0] || '—';
-                      return (
-                        <tr key={d.district_id}>
-                          <td style={{ textAlign: 'center', fontWeight: 700, color: '#94a3b8' }}>
-                            {idx + 1}
-                          </td>
-                          <td style={{ fontWeight: 600, color: '#0f172a' }}>
-                            {d.district_name.replace(' [DEMO]', '')}
-                          </td>
-                          <td style={{ textAlign: 'center' }}>{d.assessment_count}</td>
-                          <td style={{ textAlign: 'center', fontWeight: 800 }}>
-                            <span style={{
-                              color: d.average_score >= 7 ? '#ef4444' : d.average_score >= 5 ? '#d97706' : '#059669'
-                            }}>
-                              {d.average_score.toFixed(2)}
-                            </span>
-                          </td>
-                          <td style={{ textAlign: 'center' }}>
-                            <span className={`badge ${
-                              topCls === 'HH' || topCls === 'VERY_HIGH' ? 'badge-hh' :
-                              topCls === 'MH' || topCls === 'HIGH' ? 'badge-mh' :
-                              topCls === 'LH' || topCls === 'MODERATE' ? 'badge-lh' : 'badge-nh'
-                            }`}>
-                              {topCls}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ── 6. Recent Assessments & 3-Output Pipeline Ledger ── */}
+      {/* ── 3. Recent Assessments & 3-Output Pipeline Ledger ── */}
       <div className="ledger-card">
         <div className="ledger-header">
           <div>
             <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span>📋</span> Recent Assessments & 3-Output Pipeline
+              <span>{activeHazardMeta ? activeHazardMeta.icon : '📋'}</span>
+              <span>
+                {activeHazardMeta ? `${activeHazardMeta.shortName} Assessment Ledger` : 'Recent Assessments & 3-Output Pipeline'}
+              </span>
             </h3>
             <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.2rem' }}>
-              Immediate access to Spatial Map, Administrative Classification Matrix, and Statutory Dossier Report.
+              {activeHazardMeta
+                ? `Showing official assessments scoped exclusively to ${activeHazardMeta.name} (${filteredAssessments.length} runs).`
+                : 'Immediate access to Spatial Map, Administrative Classification Matrix, and Statutory Dossier Report.'}
             </div>
           </div>
 
@@ -793,10 +736,10 @@ export default function Dashboard() {
 
             <button
               className="btn btn-primary btn-sm"
-              onClick={() => navigate('/new-assessment')}
+              onClick={() => navigate(activeHazard ? `/new-assessment?module=HAZARD&hazard=${activeHazard}` : '/new-assessment')}
               id="btn-new-assessment-table"
             >
-              + New Assessment
+              + New {activeHazardMeta ? activeHazardMeta.shortName : ''} Assessment
             </button>
           </div>
         </div>
@@ -804,21 +747,23 @@ export default function Dashboard() {
         <div className="table-responsive" style={{ border: 'none', borderRadius: 0 }}>
           {filteredAssessments.length === 0 ? (
             <div className="empty-state" style={{ margin: '2rem' }}>
-              <div className="empty-state-icon">📋</div>
+              <div className="empty-state-icon">{activeHazardMeta?.icon || '📋'}</div>
               <div className="empty-state-title">
-                {searchQuery ? 'No matching assessments found' : 'No assessments recorded yet'}
+                {searchQuery
+                  ? 'No matching assessments found'
+                  : `No ${activeHazardMeta ? activeHazardMeta.shortName : ''} assessments recorded yet`}
               </div>
               <div className="empty-state-description">
                 {searchQuery
                   ? 'Try searching by a different term or clear your search filter.'
-                  : 'Execute your first hazard assessment run to populate the 3-output pipeline.'}
+                  : `Execute your first ${activeHazardMeta ? activeHazardMeta.shortName : ''} hazard assessment run to populate the 3-output pipeline.`}
               </div>
               <button
                 className="btn btn-primary"
-                onClick={() => navigate('/new-assessment')}
+                onClick={() => navigate(activeHazard ? `/new-assessment?module=HAZARD&hazard=${activeHazard}` : '/new-assessment')}
                 style={{ marginTop: '0.85rem' }}
               >
-                + Start Assessment
+                + Start {activeHazardMeta ? activeHazardMeta.shortName : ''} Assessment
               </button>
             </div>
           ) : (
@@ -867,6 +812,14 @@ export default function Dashboard() {
                     <td>
                       <div className="pipeline-actions-group" style={{ justifyContent: 'center' }}>
                         <button
+                          className="pipeline-btn"
+                          onClick={() => navigate(`/department-coordination?assessmentId=${a.id}`)}
+                          title="View Line Department Data Coordination"
+                          style={{ background: '#f0fdfa', color: '#0d9488', borderColor: '#ccfbf1' }}
+                        >
+                          🏛️ Tasks
+                        </button>
+                        <button
                           className="pipeline-btn pipeline-btn-map"
                           onClick={() => navigate(`/assessments/${a.id}/results?tab=map`)}
                           title="View Geospatial Thematic Layer"
@@ -906,46 +859,6 @@ export default function Dashboard() {
               </tbody>
             </table>
           )}
-        </div>
-      </div>
-
-      {/* ── 7. Monitored Kerala Hazard Modalities ── */}
-      <div className="card">
-        <div className="card-header">
-          <h3 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span>🌊</span> Monitored Kerala Hazard Modalities & Sensor Feeds
-          </h3>
-          <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
-            Multi-hazard baseline datasets integrated with IMD, CWC, and NCESS
-          </span>
-        </div>
-        <div className="card-body">
-          <div className="hazard-modalities-grid">
-            {hazards.map((h) => (
-              <div
-                key={h.code}
-                className="hazard-modality-card"
-                style={{ '--hazard-color': h.color || '#3b82f6' } as React.CSSProperties}
-                onClick={() => {
-                  if (h.is_active) {
-                    navigate(`/new-assessment?module=HAZARD&hazard=${h.code}`);
-                  }
-                }}
-              >
-                <div className="hazard-modality-icon">{h.icon || '⚠️'}</div>
-                <div className="hazard-modality-title">{h.name}</div>
-                {h.is_active ? (
-                  <span className="badge badge-completed" style={{ fontSize: '0.64rem' }}>
-                    Telemetry Active
-                  </span>
-                ) : (
-                  <span className="badge badge-draft" style={{ fontSize: '0.64rem' }}>
-                    Scheduled
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
         </div>
       </div>
     </div>

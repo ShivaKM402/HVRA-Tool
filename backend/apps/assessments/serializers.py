@@ -53,6 +53,22 @@ class AssessmentResultSerializer(serializers.ModelSerializer):
         return obj.indicator.name if obj.indicator else "COMPOSITE"
 
 
+def format_user_sender_label(user):
+    if not user:
+        return "District Officer"
+    full = user.get_full_name().strip()
+    profile = getattr(user, "profile", None)
+    role_label = profile.get_role_display() if profile else ""
+    dept = profile.department if profile and profile.department else ""
+    org = profile.organization if profile and profile.organization else ""
+
+    title = full or user.username
+    sub_parts = [p for p in [dept, role_label, org] if p]
+    if sub_parts:
+        return f"{title} ({' | '.join(sub_parts)})"
+    return title
+
+
 class AssessmentSerializer(serializers.ModelSerializer):
     state_name = serializers.CharField(source="state.name", read_only=True)
     district_name = serializers.CharField(source="district.name", read_only=True)
@@ -60,7 +76,7 @@ class AssessmentSerializer(serializers.ModelSerializer):
     result_count = serializers.SerializerMethodField()
     module_type = serializers.CharField(source="get_module_type_display", read_only=True)
     module_code = serializers.SerializerMethodField()
-    created_by_name = serializers.CharField(source="created_by.username", read_only=True, default=None)
+    created_by_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Assessment
@@ -85,6 +101,9 @@ class AssessmentSerializer(serializers.ModelSerializer):
 
     def get_module_code(self, obj):
         return obj.module_type
+
+    def get_created_by_name(self, obj):
+        return format_user_sender_label(obj.created_by)
 
 
 class AssessmentCreateSerializer(serializers.ModelSerializer):
@@ -264,7 +283,7 @@ class RiskAssessmentSerializer(serializers.ModelSerializer):
     result_count = serializers.SerializerMethodField()
     module_type = serializers.CharField(read_only=True, default="COMPOSITE_RISK")
     module_code = serializers.SerializerMethodField()
-    created_by_name = serializers.CharField(source="created_by.username", read_only=True, default=None)
+    created_by_name = serializers.SerializerMethodField()
 
     class Meta:
         model = RiskAssessment
@@ -288,6 +307,9 @@ class RiskAssessmentSerializer(serializers.ModelSerializer):
 
     def get_module_code(self, obj):
         return "COMPOSITE_RISK"
+
+    def get_created_by_name(self, obj):
+        return format_user_sender_label(obj.created_by)
 
 
 # ------------------------------------------------------------------

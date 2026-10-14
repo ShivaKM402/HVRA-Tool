@@ -35,6 +35,12 @@ import type {
   ApprovalActionResponse,
   DepartmentSubmissionsResponse,
   ExpertRecalculatePayload,
+  IssueTemplate,
+  IssueReportListItem,
+  IssueReportDetail,
+  IssueAttachment,
+  CreateIssuePayload,
+  WorkflowAssignmentRule,
 } from '../types';
 
 const isProd = import.meta.env.PROD;
@@ -212,14 +218,31 @@ export const getFloodBlockSummary = async (params?: {
 };
 
 // -------------------------------------------------------
-// Indicators
+// Indicators & Department Mapping (HVRA §3 & §6)
 // -------------------------------------------------------
-export const getIndicators = async (hazardType?: string, moduleType?: string): Promise<HazardIndicator[]> => {
-  const params: Record<string, string> = {};
-  if (hazardType) params.hazard_type = hazardType;
-  if (moduleType) params.module_type = moduleType;
-  const response = await api.get<PaginatedResponse<HazardIndicator>>('/indicators/', { params });
-  return response.data.results;
+export const getIndicators = async (
+  hazardTypeOrParams?: string | {
+    hazard_type?: string;
+    module_type?: string;
+    category?: string;
+    department?: string;
+    include_inactive?: string;
+  },
+  moduleType?: string
+): Promise<HazardIndicator[]> => {
+  let params: Record<string, string> = {};
+  if (typeof hazardTypeOrParams === 'string') {
+    if (hazardTypeOrParams) params.hazard_type = hazardTypeOrParams;
+    if (moduleType) params.module_type = moduleType;
+  } else if (hazardTypeOrParams && typeof hazardTypeOrParams === 'object') {
+    params = { ...(hazardTypeOrParams as Record<string, string>) };
+    if (moduleType && !params.module_type) params.module_type = moduleType;
+  }
+  const response = await api.get<PaginatedResponse<HazardIndicator> | HazardIndicator[]>('/indicators/', { params });
+  if (Array.isArray(response.data)) {
+    return response.data;
+  }
+  return response.data?.results || [];
 };
 
 // -------------------------------------------------------
@@ -794,6 +817,134 @@ export const updateHazardEvent = async (id: number, payload: Partial<HazardEvent
 
 export const deleteHazardEvent = async (id: number): Promise<void> => {
   await api.delete(`/hazard-events/${id}/`);
+};
+
+// -------------------------------------------------------
+// Indicator Updates (HVRA §3 & §6)
+// -------------------------------------------------------
+
+export const updateIndicator = async (
+  id: number,
+  payload: Partial<HazardIndicator>
+): Promise<HazardIndicator> => {
+  const response = await api.patch<HazardIndicator>(`/indicators/${id}/`, payload);
+  return response.data;
+};
+
+// -------------------------------------------------------
+// 3-Tier Field Incident & HVRA Publishing Pipeline API
+// -------------------------------------------------------
+
+export const getIssueTemplates = async (): Promise<PaginatedResponse<IssueTemplate>> => {
+  const response = await api.get<PaginatedResponse<IssueTemplate>>('/issues/templates/');
+  return response.data;
+};
+
+export const getIssueTemplateByHazard = async (hazardType: string): Promise<IssueTemplate> => {
+  const response = await api.get<IssueTemplate>(`/issues/templates/by-hazard/?hazard_type=${hazardType.toUpperCase()}`);
+  return response.data;
+};
+
+export const getIssues = async (params?: {
+  queue?: string;
+  hazard_type?: string;
+  district?: number;
+  department?: string;
+  status?: string;
+}): Promise<PaginatedResponse<IssueReportListItem>> => {
+  const response = await api.get<PaginatedResponse<IssueReportListItem>>('/issues/', { params });
+  return response.data;
+};
+
+export const getIssueById = async (id: number): Promise<IssueReportDetail> => {
+  const response = await api.get<IssueReportDetail>(`/issues/${id}/`);
+  return response.data;
+};
+
+export const createIssue = async (payload: CreateIssuePayload): Promise<IssueReportDetail> => {
+  const response = await api.post<IssueReportDetail>('/issues/', payload);
+  return response.data;
+};
+
+export const updateIssue = async (id: number, payload: Partial<CreateIssuePayload>): Promise<IssueReportDetail> => {
+  const response = await api.patch<IssueReportDetail>(`/issues/${id}/`, payload);
+  return response.data;
+};
+
+export const submitIssue = async (id: number, comments?: string): Promise<IssueReportDetail> => {
+  const response = await api.post<IssueReportDetail>(`/issues/${id}/submit/`, { comments });
+  return response.data;
+};
+
+export const seniorReviewIssue = async (
+  id: number,
+  action: 'APPROVE' | 'REQUEST_REVISION',
+  remarks: string
+): Promise<IssueReportDetail> => {
+  const response = await api.post<IssueReportDetail>(`/issues/${id}/senior-review/`, { action, remarks });
+  return response.data;
+};
+
+export const managerReviewIssue = async (
+  id: number,
+  action: 'APPROVE' | 'REQUEST_REVISION',
+  remarks: string
+): Promise<IssueReportDetail> => {
+  const response = await api.post<IssueReportDetail>(`/issues/${id}/manager-review/`, { action, remarks });
+  return response.data;
+};
+
+export const generateDraftAssessmentFromIssue = async (
+  id: number,
+  assessmentName?: string
+): Promise<{
+  message: string;
+  assessment_id: number;
+  assessment_name: string;
+  module_type: string;
+  status: string;
+  issue: IssueReportDetail;
+}> => {
+  const response = await api.post(`/issues/${id}/generate-draft-assessment/`, {
+    assessment_name: assessmentName,
+  });
+  return response.data;
+};
+
+export const publishHVRAFromIssue = async (
+  id: number,
+  remarks?: string
+): Promise<{
+  message: string;
+  assessment_id: number;
+  version: number;
+  is_published: boolean;
+  issue: IssueReportDetail;
+}> => {
+  const response = await api.post(`/issues/${id}/publish-hvra/`, { remarks });
+  return response.data;
+};
+
+export const uploadIssueAttachment = async (
+  id: number,
+  file: File,
+  caption?: string,
+  fileType: string = 'PHOTO'
+): Promise<IssueAttachment> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  if (caption) formData.append('caption', caption);
+  formData.append('file_type', fileType);
+
+  const response = await api.post<IssueAttachment>(`/issues/${id}/upload-attachment/`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
+};
+
+export const getWorkflowAssignmentRules = async (): Promise<PaginatedResponse<WorkflowAssignmentRule>> => {
+  const response = await api.get<PaginatedResponse<WorkflowAssignmentRule>>('/issues/assignment-rules/');
+  return response.data;
 };
 
 export default api;

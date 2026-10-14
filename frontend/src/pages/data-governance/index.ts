@@ -1,6 +1,5 @@
 export { default as AdminUnitExplorer } from './AdminUnits/AdminUnitExplorer';
 export { default as DataLibrary } from './DataLibrary/DataLibrary';
-export { default as FloodData } from './FloodData/FloodData';
 export { default as Reports } from './Reports/Reports';
 export { default as ReviewQueue } from './ReviewQueue/ReviewQueue';
 export { default as SavedQueries } from './SavedQueries/SavedQueries';

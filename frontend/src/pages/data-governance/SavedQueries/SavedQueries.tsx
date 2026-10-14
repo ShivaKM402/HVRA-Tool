@@ -8,10 +8,12 @@ import { getSavedQueries, deleteSavedQuery, runSavedQuery } from '@/services/api
 import { useToast } from '@/context/ToastContext';
 import { ShareQueryModal } from '@/components/Modals/ShareQueryModal';
 import { DeleteButton } from '@/components/DeleteButton/DeleteButton';
+import { useAuth } from '@/context/AuthContext';
 import type { SavedQuery } from '@/types';
 import './SavedQueries.css';
 
 export default function SavedQueries() {
+  const { canDelete } = useAuth();
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [queries, setQueries] = useState<SavedQuery[]>([]);
@@ -164,10 +166,12 @@ export default function SavedQueries() {
                   </button>
                 </div>
 
-                <DeleteButton 
-                  onClick={() => handleDelete(q.id, q.name)}
-                  title="Delete Template"
-                />
+                {canDelete && (
+                  <DeleteButton 
+                    onClick={() => handleDelete(q.id, q.name)}
+                    title="Delete Template"
+                  />
+                )}
               </div>
             </div>
           ))}

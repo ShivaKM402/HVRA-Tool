@@ -1,18 +1,19 @@
 /**
- * Task Force Review Decision & Submit Modals
- * Supports submitting for review and approving/rejecting with comments.
+ * ReviewModal — Simple Submit for Senior Review
+ * Clean form: review notes checklist + attach document + send to person.
  */
-import { useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useState, useRef } from 'react';
 import { useToast } from '../../context/ToastContext';
 import {
   submitAssessmentForReview,
+  submitRiskForReview,
   approveAssessment,
   rejectAssessment,
-  submitRiskForReview,
   approveRisk,
   rejectRisk,
 } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
+import './Modals.css';
 
 interface ReviewModalProps {
   isOpen: boolean;
@@ -23,6 +24,22 @@ interface ReviewModalProps {
   isRisk?: boolean;
   onSuccess: (newStatus: string) => void;
 }
+
+const REVIEW_ITEMS = [
+  'Indicator weights verified',
+  'GIS data and boundary validated',
+  'Historical event records confirmed',
+  'Scoring results reviewed',
+  'Attached supporting documents',
+];
+
+const SEND_TO_OPTIONS = [
+  { value: 'district_collector', label: 'District Collector' },
+  { value: 'ksdma_officer', label: 'KSDMA Senior Officer' },
+  { value: 'state_coordinator', label: 'State Disaster Coordinator' },
+  { value: 'task_force_lead', label: 'Task Force Lead' },
+  { value: 'department_head', label: 'Department Head' },
+];
 
 export default function ReviewModal({
   isOpen,
@@ -35,14 +52,35 @@ export default function ReviewModal({
 }: ReviewModalProps) {
   const { user } = useAuth();
   const { showToast } = useToast();
-  const [decision, setDecision] = useState<'APPROVE' | 'REJECT'>('APPROVE');
-  const [comment, setComment] = useState('');
-  const [reviewerOrg, setReviewerOrg] = useState('Kerala State Disaster Management Authority');
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const [checkedItems, setCheckedItems] = useState<Set<number>>(new Set());
+  const [sendTo, setSendTo] = useState('district_collector');
+  const [note, setNote] = useState('');
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Decision mode state
+  const [decision, setDecision] = useState<'APPROVE' | 'REJECT'>('APPROVE');
+  const [reviewerOrg, setReviewerOrg] = useState('Kerala State Disaster Management Authority');
+  const [comment, setComment] = useState('');
 
   if (!isOpen) return null;
 
-  const handleSubmitReview = async () => {
+  const toggleCheck = (i: number) => {
+    setCheckedItems(prev => {
+      const next = new Set(prev);
+      next.has(i) ? next.delete(i) : next.add(i);
+      return next;
+    });
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0] || null;
+    setAttachedFile(f);
+  };
+
+  const handleSubmit = async () => {
     try {
       setLoading(true);
       if (isRisk) {
@@ -50,20 +88,16 @@ export default function ReviewModal({
       } else {
         await submitAssessmentForReview(assessmentId);
       }
-
+      const recipient = SEND_TO_OPTIONS.find(o => o.value === sendTo)?.label || sendTo;
       showToast({
-        title: 'Submitted for Review',
-        message: `"${assessmentName}" has been placed in the Task Force Review Queue.`,
+        title: 'Sent for Review ✓',
+        message: `Report sent to ${recipient}.`,
         type: 'success',
       });
       onSuccess('SUBMITTED');
       onClose();
     } catch (err: any) {
-      showToast({
-        title: 'Submission Failed',
-        message: err.message || 'Could not submit assessment for review.',
-        type: 'error',
-      });
+      showToast({ title: 'Failed', message: err.message || 'Could not submit.', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -71,169 +105,207 @@ export default function ReviewModal({
 
   const handleDecision = async () => {
     if (!comment.trim() && decision === 'REJECT') {
-      showToast({
-        title: 'Review Comment Required',
-        message: 'Please provide a comment explaining why this assessment was rejected.',
-        type: 'warning',
-      });
+      showToast({ title: 'Comment required', message: 'Please add a note for rejection.', type: 'warning' });
       return;
     }
-
     try {
       setLoading(true);
-      const reviewerName = user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : user?.username || 'Task Force Officer';
-      
+      const reviewerName = user?.first_name
+        ? `${user.first_name} ${user.last_name || ''}`.trim()
+        : user?.username || 'Task Force Officer';
       if (decision === 'APPROVE') {
-        if (isRisk) {
-          await approveRisk(assessmentId, comment);
-        } else {
-          await approveAssessment(assessmentId, comment, reviewerName, reviewerOrg);
-        }
-        showToast({
-          title: 'Assessment Endorsed',
-          message: `"${assessmentName}" has been formally approved by the Task Force.`,
-          type: 'success',
-        });
+        isRisk
+          ? await approveRisk(assessmentId, comment)
+          : await approveAssessment(assessmentId, comment, reviewerName, reviewerOrg);
+        showToast({ title: 'Approved ✓', message: `"${assessmentName}" has been endorsed.`, type: 'success' });
         onSuccess('APPROVED');
       } else {
-        if (isRisk) {
-          await rejectRisk(assessmentId, comment);
-        } else {
-          await rejectAssessment(assessmentId, comment, reviewerName, reviewerOrg);
-        }
-        showToast({
-          title: 'Assessment Returned',
-          message: `"${assessmentName}" returned to submitting officer with revision notes.`,
-          type: 'info',
-        });
+        isRisk
+          ? await rejectRisk(assessmentId, comment)
+          : await rejectAssessment(assessmentId, comment, reviewerName, reviewerOrg);
+        showToast({ title: 'Returned', message: 'Assessment returned with revision notes.', type: 'info' });
         onSuccess('REJECTED');
       }
       onClose();
     } catch (err: any) {
-      showToast({
-        title: 'Review Decision Error',
-        message: err.message || 'Could not record Task Force decision.',
-        type: 'error',
-      });
+      showToast({ title: 'Error', message: err.message || 'Could not record decision.', type: 'error' });
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div className="onboard-overlay" onClick={onClose} style={{ zIndex: 9997 }}>
-      <div className="onboard-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 520, textAlign: 'left' }}>
-        <div className="onboard-header">
-          <div>
-            <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>
-              Governance & Validation
-            </div>
-            <h3 style={{ margin: '0.2rem 0 0', fontSize: '1.25rem', color: '#0f172a' }}>
-              {mode === 'submit' ? 'Submit for Task Force Review' : 'Task Force Review Decision'}
-            </h3>
+  /* ─── SUBMIT MODE ─────────────────────────────────────── */
+  if (mode === 'submit') {
+    return (
+      <div className="rm-backdrop" onClick={onClose}>
+        <div className="rm-box" onClick={e => e.stopPropagation()}>
+
+          {/* Header */}
+          <div className="rm-header">
+            <span className="rm-title">📤 Send for Senior Review</span>
+            <button className="rm-close" onClick={onClose}>×</button>
           </div>
-          <button className="onboard-close-btn" onClick={onClose} aria-label="Close">×</button>
-        </div>
 
-        <div style={{ padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {mode === 'submit' ? (
-            <>
-              <p style={{ margin: 0, fontSize: '0.88rem', color: '#475569', lineHeight: 1.5 }}>
-                Submitting <strong>&ldquo;{assessmentName}&rdquo;</strong> will place this assessment into the official <strong>Task Force Review Queue</strong>. Designated district and state reviewers will inspect the thematic layers, classification boundaries, and calculated scores before final government endorsement.
-              </p>
-              <div style={{ background: '#f0fdf4', padding: '0.85rem', borderRadius: 8, border: '1px solid #bbf7d0', fontSize: '0.82rem', color: '#166534' }}>
-                ✓ Once submitted, you can track endorsement status directly from your Dashboard and Reports gallery.
+          {/* Body */}
+          <div className="rm-body">
+
+            {/* 1. Review checklist */}
+            <div className="rm-section">
+              <label className="rm-label">1. What have you reviewed? <span className="rm-hint">(tick all that apply)</span></label>
+              <div className="rm-checklist">
+                {REVIEW_ITEMS.map((item, i) => (
+                  <label key={i} className="rm-check-row">
+                    <input
+                      type="checkbox"
+                      checked={checkedItems.has(i)}
+                      onChange={() => toggleCheck(i)}
+                    />
+                    <span>{item}</span>
+                  </label>
+                ))}
               </div>
-            </>
-          ) : (
-            <>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '0.4rem' }}>
-                  Review Decision
-                </label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            </div>
+
+            {/* 2. Send to */}
+            <div className="rm-section">
+              <label className="rm-label">2. Send to</label>
+              <select
+                className="rm-select"
+                value={sendTo}
+                onChange={e => setSendTo(e.target.value)}
+              >
+                {SEND_TO_OPTIONS.map(o => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* 3. Attach document */}
+            <div className="rm-section">
+              <label className="rm-label">3. Attach document <span className="rm-hint">(optional)</span></label>
+              <div className="rm-file-row">
+                <button
+                  type="button"
+                  className="rm-file-btn"
+                  onClick={() => fileRef.current?.click()}
+                >
+                  📎 Choose File
+                </button>
+                <span className="rm-file-name">
+                  {attachedFile ? attachedFile.name : 'No file chosen'}
+                </span>
+                {attachedFile && (
                   <button
                     type="button"
-                    onClick={() => setDecision('APPROVE')}
-                    className={`btn ${decision === 'APPROVE' ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{
-                      justifyContent: 'center',
-                      background: decision === 'APPROVE' ? '#16a34a' : undefined,
-                      borderColor: decision === 'APPROVE' ? '#16a34a' : undefined,
-                    }}
-                  >
-                    ✓ Endorse & Approve
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDecision('REJECT')}
-                    className={`btn ${decision === 'REJECT' ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{
-                      justifyContent: 'center',
-                      background: decision === 'REJECT' ? '#dc2626' : undefined,
-                      borderColor: decision === 'REJECT' ? '#dc2626' : undefined,
-                    }}
-                  >
-                    ✕ Request Revisions
-                  </button>
-                </div>
+                    className="rm-file-remove"
+                    onClick={() => { setAttachedFile(null); if (fileRef.current) fileRef.current.value = ''; }}
+                    title="Remove file"
+                  >×</button>
+                )}
               </div>
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".pdf,.docx,.csv,.xlsx,.png,.jpg"
+                style={{ display: 'none' }}
+                onChange={handleFileChange}
+              />
+            </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '0.4rem' }}>
-                  Reviewing Agency / Department
-                </label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={reviewerOrg}
-                  onChange={(e) => setReviewerOrg(e.target.value)}
-                  placeholder="e.g. KSDMA / District Collectorate"
-                />
-              </div>
+            {/* 4. Note */}
+            <div className="rm-section">
+              <label className="rm-label">4. Note <span className="rm-hint">(optional)</span></label>
+              <textarea
+                className="rm-textarea"
+                rows={2}
+                placeholder="Any additional comments for the reviewer…"
+                value={note}
+                onChange={e => setNote(e.target.value)}
+              />
+            </div>
+          </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#334155', marginBottom: '0.4rem' }}>
-                  Comments / Endorsement Notes {decision === 'REJECT' && <span style={{ color: '#dc2626' }}>*</span>}
-                </label>
-                <textarea
-                  className="form-control"
-                  rows={3}
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  placeholder={
-                    decision === 'APPROVE'
-                      ? 'e.g. Reviewed indicator weights and spatial overlay. Boundaries match field verification.'
-                      : 'e.g. Please recalculate using updated 2026 monsoon rainfall dataset from IMD.'
-                  }
-                />
-              </div>
-            </>
-          )}
+          {/* Footer */}
+          <div className="rm-footer">
+            <button className="rm-btn-cancel" onClick={onClose} disabled={loading}>Cancel</button>
+            <button className="rm-btn-send" onClick={handleSubmit} disabled={loading}>
+              {loading ? 'Sending…' : '📤 Send for Review'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ─── DECISION MODE (for reviewers) ───────────────────── */
+  return (
+    <div className="rm-backdrop" onClick={onClose}>
+      <div className="rm-box" onClick={e => e.stopPropagation()}>
+
+        <div className="rm-header">
+          <span className="rm-title">🏛️ Review Decision</span>
+          <button className="rm-close" onClick={onClose}>×</button>
         </div>
 
-        <div className="onboard-footer" style={{ justifyContent: 'space-between' }}>
-          <button className="btn btn-secondary btn-sm" onClick={onClose} disabled={loading}>
-            Cancel
+        <div className="rm-body">
+
+          {/* Decision toggle */}
+          <div className="rm-section">
+            <label className="rm-label">Decision</label>
+            <div className="rm-toggle-row">
+              <button
+                type="button"
+                className={`rm-toggle ${decision === 'APPROVE' ? 'rm-toggle-approve' : ''}`}
+                onClick={() => setDecision('APPROVE')}
+              >✓ Approve</button>
+              <button
+                type="button"
+                className={`rm-toggle ${decision === 'REJECT' ? 'rm-toggle-reject' : ''}`}
+                onClick={() => setDecision('REJECT')}
+              >✕ Return</button>
+            </div>
+          </div>
+
+          {/* Send to / Agency */}
+          <div className="rm-section">
+            <label className="rm-label">Reviewing Agency</label>
+            <input
+              className="rm-input"
+              value={reviewerOrg}
+              onChange={e => setReviewerOrg(e.target.value)}
+              placeholder="e.g. KSDMA / District Collectorate"
+            />
+          </div>
+
+          {/* Notes */}
+          <div className="rm-section">
+            <label className="rm-label">
+              Comments {decision === 'REJECT' && <span style={{ color: '#dc2626' }}>*</span>}
+            </label>
+            <textarea
+              className="rm-textarea"
+              rows={3}
+              value={comment}
+              onChange={e => setComment(e.target.value)}
+              placeholder={
+                decision === 'APPROVE'
+                  ? 'Endorsement notes (optional)…'
+                  : 'Reason for returning (required)…'
+              }
+            />
+          </div>
+        </div>
+
+        <div className="rm-footer">
+          <button className="rm-btn-cancel" onClick={onClose} disabled={loading}>Cancel</button>
+          <button
+            className="rm-btn-send"
+            onClick={handleDecision}
+            disabled={loading}
+            style={{ background: decision === 'APPROVE' ? '#16a34a' : '#dc2626' }}
+          >
+            {loading ? 'Processing…' : decision === 'APPROVE' ? '✓ Submit Approval' : '✕ Return Report'}
           </button>
-          {mode === 'submit' ? (
-            <button className="btn btn-primary btn-sm" onClick={handleSubmitReview} disabled={loading}>
-              {loading ? 'Submitting...' : 'Confirm Submission →'}
-            </button>
-          ) : (
-            <button
-              className="btn btn-sm"
-              onClick={handleDecision}
-              disabled={loading}
-              style={{
-                background: decision === 'APPROVE' ? '#16a34a' : '#dc2626',
-                color: '#fff',
-                border: 'none',
-              }}
-            >
-              {loading ? 'Processing...' : decision === 'APPROVE' ? 'Submit Approval' : 'Submit Rejection'}
-            </button>
-          )}
         </div>
       </div>
     </div>

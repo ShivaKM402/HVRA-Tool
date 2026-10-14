@@ -208,10 +208,10 @@ export default function ExpertRecalibrationModal({
         className="modal-container"
         style={{
           background: '#ffffff',
-          borderRadius: '14px',
+          borderRadius: '12px',
           width: '100%',
-          maxWidth: '860px',
-          maxHeight: '90vh',
+          maxWidth: '880px',
+          maxHeight: '88vh',
           display: 'flex',
           flexDirection: 'column',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
@@ -221,25 +221,26 @@ export default function ExpertRecalibrationModal({
         {/* Header */}
         <div
           style={{
-            padding: '1.25rem 1.75rem',
+            padding: '0.9rem 1.25rem',
             borderBottom: '1px solid #e2e8f0',
             display: 'flex',
             justifyContent: 'space-between',
-            alignItems: 'flex-start',
+            alignItems: 'center',
             background: 'linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%)',
+            flexShrink: 0,
           }}
         >
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-              <span style={{ fontSize: '1.4rem' }}>⚡</span>
-              <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#0f172a' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '1.2rem' }}>⚡</span>
+              <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>
                 Expert Review & Recalibration (HVRA §6)
               </h2>
               <span
                 style={{
-                  fontSize: '0.72rem',
+                  fontSize: '0.7rem',
                   fontWeight: 700,
-                  padding: '0.2rem 0.55rem',
+                  padding: '0.15rem 0.5rem',
                   borderRadius: '12px',
                   background: '#dbeafe',
                   color: '#1e40af',
@@ -248,9 +249,8 @@ export default function ExpertRecalibrationModal({
                 FLOOD ASSESSMENT
               </span>
             </div>
-            <p style={{ margin: '0.35rem 0 0', fontSize: '0.85rem', color: '#64748b' }}>
-              Modify indicator weightages or override observations with peer-reviewed justification.
-              Scores automatically normalize and re-classify on the 0–10 scale.
+            <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: '#64748b' }}>
+              Modify indicator weightages or override observations with peer-reviewed justification. Normalized on 0–10 scale.
             </p>
           </div>
           <button
@@ -259,10 +259,11 @@ export default function ExpertRecalibrationModal({
             style={{
               background: 'transparent',
               border: 'none',
-              fontSize: '1.4rem',
+              fontSize: '1.25rem',
               color: '#94a3b8',
               cursor: 'pointer',
               lineHeight: 1,
+              padding: '0.25rem',
             }}
           >
             ✕
@@ -274,21 +275,22 @@ export default function ExpertRecalibrationModal({
           style={{
             display: 'flex',
             borderBottom: '1px solid #e2e8f0',
-            padding: '0 1.75rem',
+            padding: '0 1.25rem',
             background: '#f8fafc',
-            gap: '1rem',
+            gap: '0.75rem',
+            flexShrink: 0,
           }}
         >
           <button
             onClick={() => setActiveTab('weights')}
             style={{
-              padding: '0.75rem 0.5rem',
+              padding: '0.6rem 0.5rem',
               background: 'none',
               border: 'none',
               borderBottom: activeTab === 'weights' ? '3px solid #2563eb' : '3px solid transparent',
               color: activeTab === 'weights' ? '#1d4ed8' : '#64748b',
               fontWeight: activeTab === 'weights' ? 700 : 500,
-              fontSize: '0.9rem',
+              fontSize: '0.85rem',
               cursor: 'pointer',
             }}
           >
@@ -297,13 +299,13 @@ export default function ExpertRecalibrationModal({
           <button
             onClick={() => setActiveTab('overrides')}
             style={{
-              padding: '0.75rem 0.5rem',
+              padding: '0.6rem 0.5rem',
               background: 'none',
               border: 'none',
               borderBottom: activeTab === 'overrides' ? '3px solid #2563eb' : '3px solid transparent',
               color: activeTab === 'overrides' ? '#1d4ed8' : '#64748b',
               fontWeight: activeTab === 'overrides' ? 700 : 500,
-              fontSize: '0.9rem',
+              fontSize: '0.85rem',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -316,8 +318,8 @@ export default function ExpertRecalibrationModal({
                 style={{
                   background: '#ef4444',
                   color: '#ffffff',
-                  fontSize: '0.7rem',
-                  padding: '0.1rem 0.4rem',
+                  fontSize: '0.68rem',
+                  padding: '0.1rem 0.35rem',
                   borderRadius: '999px',
                   fontWeight: 700,
                 }}
@@ -332,11 +334,12 @@ export default function ExpertRecalibrationModal({
         <div
           style={{
             flex: 1,
+            minHeight: 0,
             overflowY: 'auto',
-            padding: '1.5rem 1.75rem',
+            padding: '1rem 1.25rem',
             display: 'flex',
             flexDirection: 'column',
-            gap: '1.25rem',
+            gap: '0.75rem',
           }}
         >
           {activeTab === 'weights' && (
@@ -346,10 +349,10 @@ export default function ExpertRecalibrationModal({
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  marginBottom: '1rem',
+                  marginBottom: '0.65rem',
                 }}
               >
-                <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                <div style={{ fontSize: '0.82rem', color: '#64748b' }}>
                   Adjust weights (0.0 to 10.0 scale) per line department guidelines:
                 </div>
                 <button
@@ -365,8 +368,8 @@ export default function ExpertRecalibrationModal({
                     background: '#f1f5f9',
                     border: '1px solid #cbd5e1',
                     borderRadius: '6px',
-                    padding: '0.3rem 0.6rem',
-                    fontSize: '0.78rem',
+                    padding: '0.25rem 0.55rem',
+                    fontSize: '0.75rem',
                     color: '#475569',
                     cursor: 'pointer',
                   }}
@@ -375,7 +378,14 @@ export default function ExpertRecalibrationModal({
                 </button>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              {/* Compact 2-Column Responsive Grid without Dead Space */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
+                  gap: '0.65rem',
+                }}
+              >
                 {indicators.map((ind) => {
                   const currentWeight = weights[ind.indicator] ?? ind.weight ?? 5.0;
                   return (
@@ -383,64 +393,80 @@ export default function ExpertRecalibrationModal({
                       key={ind.id}
                       style={{
                         display: 'flex',
-                        alignItems: 'center',
+                        flexDirection: 'column',
                         justifyContent: 'space-between',
-                        padding: '0.75rem 1rem',
+                        padding: '0.65rem 0.85rem',
                         background: '#f8fafc',
                         border: '1px solid #e2e8f0',
                         borderRadius: '8px',
-                        gap: '1rem',
+                        gap: '0.4rem',
                       }}
                     >
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
-                          <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#1e293b' }}>
-                            {ind.indicator_name}
-                          </span>
-                          <span
-                            style={{
-                              fontSize: '0.72rem',
-                              fontFamily: 'monospace',
-                              background: '#e2e8f0',
-                              padding: '0.1rem 0.35rem',
-                              borderRadius: '4px',
-                            }}
-                          >
-                            {ind.indicator_code}
-                          </span>
-                          {ind.department && (
-                            <span
-                              style={{
-                                fontSize: '0.68rem',
-                                padding: '0.1rem 0.4rem',
-                                borderRadius: '4px',
-                                background: '#e0e7ff',
-                                color: '#3730a3',
-                              }}
-                            >
-                              🏛️ {ind.department}
-                            </span>
-                          )}
-                          {ind.category_display && (
-                            <span
-                              style={{
-                                fontSize: '0.68rem',
-                                padding: '0.1rem 0.4rem',
-                                borderRadius: '4px',
-                                background: '#fef3c7',
-                                color: '#92400e',
-                              }}
-                            >
-                              {ind.category_display}
-                            </span>
-                          )}
-                        </div>
-                        <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                          Unit: {ind.indicator_unit || 'dimensionless'}
-                        </div>
+                      {/* Row 1: Title + Code */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                        <span
+                          style={{
+                            fontWeight: 600,
+                            fontSize: '0.85rem',
+                            color: '#0f172a',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                          title={ind.indicator_name}
+                        >
+                          {ind.indicator_name}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: '0.68rem',
+                            fontFamily: 'monospace',
+                            background: '#e2e8f0',
+                            padding: '0.1rem 0.35rem',
+                            borderRadius: '4px',
+                            color: '#475569',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {ind.indicator_code}
+                        </span>
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', width: '220px' }}>
+                      {/* Row 2: Department & Unit */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.72rem', color: '#64748b', flexWrap: 'wrap' }}>
+                        {ind.department && (
+                          <span
+                            style={{
+                              fontSize: '0.68rem',
+                              padding: '0.1rem 0.35rem',
+                              borderRadius: '4px',
+                              background: '#e0e7ff',
+                              color: '#3730a3',
+                              fontWeight: 500,
+                            }}
+                          >
+                            🏛️ {ind.department}
+                          </span>
+                        )}
+                        {ind.category_display && (
+                          <span
+                            style={{
+                              fontSize: '0.68rem',
+                              padding: '0.1rem 0.35rem',
+                              borderRadius: '4px',
+                              background: '#fef3c7',
+                              color: '#92400e',
+                            }}
+                          >
+                            {ind.category_display}
+                          </span>
+                        )}
+                        <span style={{ color: '#cbd5e1' }}>•</span>
+                        <span>Unit: {ind.indicator_unit || 'dimensionless'}</span>
+                      </div>
+
+                      {/* Row 3: Full-width Slider + Number Input */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginTop: '0.15rem' }}>
                         <input
                           type="range"
                           min="0"
@@ -448,7 +474,7 @@ export default function ExpertRecalibrationModal({
                           step="0.1"
                           value={currentWeight}
                           onChange={(e) => handleWeightChange(ind.indicator, parseFloat(e.target.value))}
-                          style={{ flex: 1, accentColor: '#2563eb', cursor: 'pointer' }}
+                          style={{ flex: 1, accentColor: '#2563eb', cursor: 'pointer', height: '5px' }}
                         />
                         <input
                           type="number"
@@ -458,13 +484,15 @@ export default function ExpertRecalibrationModal({
                           value={currentWeight}
                           onChange={(e) => handleWeightChange(ind.indicator, parseFloat(e.target.value) || 0)}
                           style={{
-                            width: '56px',
-                            padding: '0.25rem 0.4rem',
-                            borderRadius: '6px',
+                            width: '52px',
+                            padding: '0.2rem 0.35rem',
+                            borderRadius: '5px',
                             border: '1px solid #cbd5e1',
-                            fontSize: '0.85rem',
+                            fontSize: '0.82rem',
                             textAlign: 'right',
                             fontWeight: 700,
+                            color: '#1e293b',
+                            background: '#ffffff',
                           }}
                         />
                       </div>
@@ -698,15 +726,16 @@ export default function ExpertRecalibrationModal({
         {/* Footer */}
         <div
           style={{
-            padding: '1rem 1.75rem',
+            padding: '0.75rem 1.25rem',
             borderTop: '1px solid #e2e8f0',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             background: '#f8fafc',
+            flexShrink: 0,
           }}
         >
-          <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
+          <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
             ⚡ Recalculation operates atomically on backend scoring engine with full audit trails.
           </div>
           <div style={{ display: 'flex', gap: '0.75rem' }}>

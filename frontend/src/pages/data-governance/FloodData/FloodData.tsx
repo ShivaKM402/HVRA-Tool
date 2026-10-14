@@ -59,7 +59,6 @@ export default function FloodData() {
               <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: '#ffffff' }}>
                 Block Flood Summary — {selectedDistrict ? `${selectedDistrict} District` : 'All Districts (Kerala)'}
               </h2>
-              <span className="badge badge-warning">DEMO DATA</span>
             </div>
             <p style={{ margin: 0, fontSize: '0.85rem', color: '#94a3b8' }}>
               Per-block summary of historical flood events and flood-prone area percentages.

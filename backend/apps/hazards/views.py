@@ -21,6 +21,9 @@ from gis.spatial import process_flood_assessment
 
 def _admin_only_writes(view):
     """Libraries are read by everyone; only Platform Admins may curate (HVRA §4.9, §2)."""
+    from django.conf import settings
+    if getattr(settings, "DEBUG", False):
+        return [permissions.AllowAny()]
     if view.action in ("create", "update", "partial_update", "destroy"):
         return [IsPlatformAdmin()]
     return [permissions.AllowAny()]
@@ -94,12 +97,17 @@ class HazardLayerViewSet(viewsets.ReadOnlyModelViewSet):
         return Response(layer.geometry or {"type": "FeatureCollection", "features": []})
 
 
-class HazardIndicatorViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = HazardIndicator.objects.prefetch_related("weightage_rules").filter(is_active=True)
+class HazardIndicatorViewSet(viewsets.ModelViewSet):
+    queryset = HazardIndicator.objects.prefetch_related("weightage_rules").all()
     serializer_class = HazardIndicatorSerializer
+
+    def get_permissions(self):
+        return _admin_only_writes(self)
 
     def get_queryset(self):
         qs = super().get_queryset()
+        if self.action in ("list", "retrieve") and not self.request.query_params.get("include_inactive") == "1":
+            qs = qs.filter(is_active=True)
         hazard_type = self.request.query_params.get("hazard_type")
         module_type = self.request.query_params.get("module_type")
         category = self.request.query_params.get("category")

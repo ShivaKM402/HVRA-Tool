@@ -21,6 +21,7 @@ import {
 } from '@/services/api';
 import type { Assessment, RiskAssessment, SavedQuery, ApprovalStatus } from '@/types';
 import { useAuth } from '@/context/AuthContext';
+import { useHazard } from '@/context/HazardContext';
 
 const APPROVAL_BADGES: Record<ApprovalStatus, { label: string; cls: string }> = {
   PENDING: { label: 'Pending', cls: 'badge-draft' },
@@ -30,12 +31,14 @@ const APPROVAL_BADGES: Record<ApprovalStatus, { label: string; cls: string }> = 
 };
 
 /** Inline Task Force review cell — submit from the directory, review on the results page. */
-function TaskForceCell({ kind, id, approvalStatus, isCompleted, onChange }: {
+function TaskForceCell({ kind, id, approvalStatus, isCompleted, onChange, submittedBy, reviewerName }: {
   kind: 'assessment' | 'risk';
   id: number;
   approvalStatus?: ApprovalStatus;
   isCompleted: boolean;
   onChange: () => void;
+  submittedBy?: string | null;
+  reviewerName?: string;
 }) {
   const { isAuthenticated, isAdmin } = useAuth();
   const [busy, setBusy] = useState(false);
@@ -60,8 +63,10 @@ function TaskForceCell({ kind, id, approvalStatus, isCompleted, onChange }: {
     }
   };
 
+  const senderShort = submittedBy ? submittedBy.split('(')[0].trim() : 'Analyst';
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' }}>
       <span className={`badge ${badge.cls}`} style={{ fontSize: '0.68rem', fontWeight: 700 }}>
         {badge.label}
       </span>
@@ -76,12 +81,22 @@ function TaskForceCell({ kind, id, approvalStatus, isCompleted, onChange }: {
         </button>
       )}
       {status === 'SUBMITTED' && (
-        <Link
-          to={`/${kind === 'risk' ? 'risk-assessments' : 'assessments'}/${id}/results`}
-          style={{ fontSize: '0.7rem', fontWeight: 600, color: isAdmin ? '#2563eb' : '#94a3b8', textDecoration: 'none' }}
-        >
-          {isAdmin ? 'Review →' : '⏳ Awaiting TF'}
-        </Link>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.15rem' }}>
+          <Link
+            to={`/${kind === 'risk' ? 'risk-assessments' : 'assessments'}/${id}/results`}
+            style={{ fontSize: '0.7rem', fontWeight: 700, color: isAdmin ? '#2563eb' : '#b45309', textDecoration: 'none' }}
+          >
+            {isAdmin ? 'Review →' : '⏳ Awaiting TF'}
+          </Link>
+          <span style={{ fontSize: '0.66rem', color: '#64748b', fontWeight: 500 }} title={`Submitted by ${submittedBy || 'Analyst'}`}>
+            From: <strong>{senderShort}</strong>
+          </span>
+        </div>
+      )}
+      {status === 'APPROVED' && reviewerName && (
+        <span style={{ fontSize: '0.66rem', color: '#166534', fontWeight: 600 }} title={`Endorsed by ${reviewerName}`}>
+          By: {reviewerName}
+        </span>
       )}
       {error && <span style={{ fontSize: '0.65rem', color: '#dc2626' }}>{error}</span>}
     </div>
@@ -89,12 +104,20 @@ function TaskForceCell({ kind, id, approvalStatus, isCompleted, onChange }: {
 }
 
 export default function Reports() {
+  const { canDelete } = useAuth();
+  const { activeHazard, activeHazardMeta } = useHazard();
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [riskAssessments, setRiskAssessments] = useState<RiskAssessment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [hazardFilter, setHazardFilter] = useState('');
+  const [hazardFilter, setHazardFilter] = useState(activeHazard || '');
+
+  useEffect(() => {
+    if (activeHazard) {
+      setHazardFilter(activeHazard);
+    }
+  }, [activeHazard]);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
   const [savedQueries, setSavedQueries] = useState<SavedQuery[]>([]);
   const [savedQueriesLoading, setSavedQueriesLoading] = useState(false);
@@ -250,12 +273,22 @@ export default function Reports() {
   const moduleBadge = (m?: string) =>
     MODULE_BADGES[(m || 'HAZARD').toUpperCase()] || MODULE_BADGES.HAZARD;
 
+  const effectiveHazard = activeHazard || hazardFilter;
   const filtered = assessments.filter(a => {
     const q = searchQuery.toLowerCase();
     const matchName = a.name.toLowerCase().includes(q) || (a.district_name || '').toLowerCase().includes(q);
-    const isHazard = (a.module_code || 'HAZARD') === 'HAZARD';
-    const matchHazard = !hazardFilter || (isHazard && a.hazard_type.toUpperCase() === hazardFilter.toUpperCase());
+    const matchHazard = !effectiveHazard || (a.hazard_type && a.hazard_type.toUpperCase() === effectiveHazard.toUpperCase());
     return matchName && matchHazard;
+  });
+
+  const filteredRisk = riskAssessments.filter(r => {
+    const q = searchQuery.toLowerCase();
+    const matchName = !q || r.name.toLowerCase().includes(q) || (r.district_name || '').toLowerCase().includes(q);
+    if (!effectiveHazard) return matchName;
+    const hName = (r.hazard_assessment_name || '').toUpperCase();
+    const rName = r.name.toUpperCase();
+    const matchesHazard = hName.includes(effectiveHazard) || rName.includes(effectiveHazard);
+    return matchName && (matchesHazard || !r.hazard_assessment_name);
   });
 
   return (
@@ -266,13 +299,16 @@ export default function Reports() {
         <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <h2 className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <span>📄</span> Assessment Reports Library
+              <span>{activeHazardMeta ? activeHazardMeta.icon : '📄'}</span>
+              <span>{activeHazardMeta ? `${activeHazardMeta.shortName} Statutory Assessment Reports` : 'Assessment Reports Library'}</span>
             </h2>
             <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.25rem' }}>
-              Standardized 10-chapter assessment reports with automated scoring, geospatial indicators, and DOCX/PDF export.
+              {activeHazardMeta 
+                ? `Standardized 10-chapter ${activeHazardMeta.name} assessment dossiers with verified department data and statutory SDMA clearance.`
+                : 'Standardized 10-chapter assessment reports with automated scoring, geospatial indicators, and DOCX/PDF export.'}
             </div>
           </div>
-          <Link to="/new-assessment" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <Link to={activeHazard ? `/new-assessment?module=HAZARD&hazard=${activeHazard}` : '/new-assessment'} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             <span>➕</span> Generate New Assessment
           </Link>
         </div>
@@ -290,22 +326,45 @@ export default function Reports() {
               />
             </div>
             <div style={{ minWidth: '180px' }}>
-              <select
-                className="form-control"
-                value={hazardFilter}
-                onChange={(e) => setHazardFilter(e.target.value)}
-              >
-                <option value="">All Hazards (Flood)</option>
-                <option value="FLOOD">🌊 Flood</option>
-              </select>
+              {activeHazard && activeHazardMeta ? (
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    background: `${activeHazardMeta.color}15`,
+                    border: `1.5px solid ${activeHazardMeta.color}44`,
+                    borderRadius: '8px',
+                    padding: '0.45rem 0.85rem',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    color: activeHazardMeta.color,
+                  }}
+                >
+                  <span>{activeHazardMeta.icon}</span>
+                  <span>Domain: {activeHazardMeta.shortName}</span>
+                </div>
+              ) : (
+                <select
+                  className="form-control"
+                  value={hazardFilter}
+                  onChange={(e) => setHazardFilter(e.target.value)}
+                >
+                  <option value="">All Hazards</option>
+                  <option value="FLOOD">🌊 Flood</option>
+                  <option value="LANDSLIDE">⛰️ Landslide</option>
+                  <option value="COASTAL">🏖️ Coastal Inundation</option>
+                  <option value="EXTREME_WEATHER">⚡ Extreme Weather</option>
+                </select>
+              )}
             </div>
-            {searchQuery || hazardFilter ? (
+            {searchQuery || (!activeHazard && hazardFilter) ? (
               <button
                 className="btn btn-secondary"
                 style={{ fontSize: '0.85rem' }}
-                onClick={() => { setSearchQuery(''); setHazardFilter(''); }}
+                onClick={() => { setSearchQuery(''); if (!activeHazard) setHazardFilter(''); }}
               >
-                Clear Filters
+                Clear Search
               </button>
             ) : null}
           </div>
@@ -343,6 +402,7 @@ export default function Reports() {
                     <th style={{ textAlign: 'center', padding: '0.85rem 1rem' }}>Hazard</th>
                     <th style={{ textAlign: 'center', padding: '0.85rem 1rem' }}>Status</th>
                     <th style={{ textAlign: 'center', padding: '0.85rem 1rem' }}>Task Force</th>
+                    <th style={{ textAlign: 'left', padding: '0.85rem 1rem' }}>Submitted By</th>
                     <th style={{ textAlign: 'left', padding: '0.85rem 1rem' }}>Generated</th>
                     <th style={{ textAlign: 'right', padding: '0.85rem 1.25rem' }}>Actions & Exports</th>
                   </tr>
@@ -356,6 +416,9 @@ export default function Reports() {
                         </Link>
                         <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.2rem' }}>
                           Level: {a.administrative_level} · Method: {a.normalization_method}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#0369a1', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                          <span>👤 <strong>From:</strong> {a.created_by_name || 'GIS Analyst'}</span>
                         </div>
                       </td>
                       <td style={{ padding: '1rem' }}>
@@ -379,7 +442,25 @@ export default function Reports() {
                           approvalStatus={a.approval_status}
                           isCompleted={a.status === 'COMPLETED'}
                           onChange={() => refreshRow(a.id)}
+                          submittedBy={a.created_by_name}
+                          reviewerName={a.reviewer_name}
                         />
+                      </td>
+                      <td style={{ padding: '1rem', fontSize: '0.82rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                          <div style={{ fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                            <span>👤</span>
+                            <span>{a.created_by_name ? a.created_by_name.split('(')[0].trim() : 'GIS Analyst'}</span>
+                          </div>
+                          {a.created_by_name && a.created_by_name.includes('(') && (
+                            <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                              {a.created_by_name.substring(a.created_by_name.indexOf('('))}
+                            </div>
+                          )}
+                          <div style={{ fontSize: '0.72rem', color: a.approval_status === 'SUBMITTED' ? '#c2410c' : a.approval_status === 'APPROVED' ? '#166534' : '#64748b', fontWeight: 600 }}>
+                            {a.approval_status === 'SUBMITTED' ? '📤 Sent to Task Force' : a.approval_status === 'APPROVED' ? `✓ Endorsed${a.reviewer_name ? ` by ${a.reviewer_name}` : ''}` : '📝 Internal Draft'}
+                          </div>
+                        </div>
                       </td>
                       <td style={{ padding: '1rem', fontSize: '0.82rem', color: '#64748b' }}>
                         {new Date(a.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
@@ -387,7 +468,7 @@ export default function Reports() {
                       <td style={{ textAlign: 'right', padding: '1rem 1.25rem' }}>
                         <div style={{ display: 'inline-flex', gap: '0.4rem', alignItems: 'center' }}>
                           <Link
-                            to={`/assessments/${a.id}/results?tab=coordination`}
+                            to={`/department-coordination?assessmentId=${a.id}`}
                             className="btn btn-secondary"
                             style={{ fontSize: '0.78rem', padding: '0.3rem 0.6rem', color: '#0d9488', borderColor: '#ccfbf1', background: '#f0fdfa', fontWeight: 600 }}
                             title="View Department Coordination (Water Resources, LSGD, PWD, Health, Economics & Statistics)"
@@ -418,7 +499,9 @@ export default function Reports() {
                           >
                             📥 PDF
                           </button>
-                          <DeleteButton onClick={() => handleDeleteAssessment(a)} title="Delete Assessment Report" />
+                          {canDelete && (
+                            <DeleteButton onClick={() => handleDeleteAssessment(a)} title="Delete Assessment Report" />
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -470,12 +553,13 @@ export default function Reports() {
                     <th style={{ textAlign: 'center', padding: '0.85rem 1rem' }}>Formula</th>
                     <th style={{ textAlign: 'center', padding: '0.85rem 1rem' }}>Status</th>
                     <th style={{ textAlign: 'center', padding: '0.85rem 1rem' }}>Task Force</th>
+                    <th style={{ textAlign: 'left', padding: '0.85rem 1rem' }}>Submitted By</th>
                     <th style={{ textAlign: 'left', padding: '0.85rem 1rem' }}>Generated</th>
                     <th style={{ textAlign: 'right', padding: '0.85rem 1.25rem' }}>Actions & Exports</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {riskAssessments.map((r) => {
+                  {filteredRisk.map((r) => {
                     const components = [
                       r.hazard_assessment ? 'H' : null,
                       r.vulnerability_assessment ? 'V' : null,
@@ -490,6 +574,9 @@ export default function Reports() {
                           </Link>
                           <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.2rem' }}>
                             Level: {r.administrative_level} · Weights: {weights}
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: '#0369a1', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                            <span>👤 <strong>From:</strong> {r.created_by_name || 'State Officer'}</span>
                           </div>
                         </td>
                         <td style={{ padding: '1rem' }}>
@@ -525,7 +612,25 @@ export default function Reports() {
                             approvalStatus={r.approval_status}
                             isCompleted={r.status === 'COMPLETED'}
                             onChange={() => refreshRow(r.id)}
+                            submittedBy={r.created_by_name}
+                            reviewerName={r.reviewer_name}
                           />
+                        </td>
+                        <td style={{ padding: '1rem', fontSize: '0.82rem' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                            <div style={{ fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                              <span>👤</span>
+                              <span>{r.created_by_name ? r.created_by_name.split('(')[0].trim() : 'State Officer'}</span>
+                            </div>
+                            {r.created_by_name && r.created_by_name.includes('(') && (
+                              <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                                {r.created_by_name.substring(r.created_by_name.indexOf('('))}
+                              </div>
+                            )}
+                            <div style={{ fontSize: '0.72rem', color: r.approval_status === 'SUBMITTED' ? '#c2410c' : r.approval_status === 'APPROVED' ? '#166534' : '#64748b', fontWeight: 600 }}>
+                              {r.approval_status === 'SUBMITTED' ? '📤 Sent to Task Force' : r.approval_status === 'APPROVED' ? `✓ Endorsed${r.reviewer_name ? ` by ${r.reviewer_name}` : ''}` : '📝 Internal Draft'}
+                            </div>
+                          </div>
                         </td>
                         <td style={{ padding: '1rem', fontSize: '0.82rem', color: '#64748b' }}>
                           {r.created_at ? new Date(r.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recent'}
@@ -556,7 +661,9 @@ export default function Reports() {
                             >
                               📥 PDF
                             </button>
-                            <DeleteButton onClick={() => handleDeleteRisk(r)} title="Delete Composite Risk Assessment" />
+                            {canDelete && (
+                              <DeleteButton onClick={() => handleDeleteRisk(r)} title="Delete Composite Risk Assessment" />
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -672,13 +779,16 @@ export default function Reports() {
                               🔗 Share
                             </button>
                           )}
-                          <button
-                            className="btn btn-secondary btn-sm"
-                            style={{ fontSize: '0.72rem', padding: '0.25rem 0.6rem', color: '#dc2626' }}
-                            onClick={() => handleDeleteQuery(q)}
-                          >
-                            🗑️
-                          </button>
+                          {canDelete && (
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              style={{ fontSize: '0.72rem', padding: '0.25rem 0.6rem', color: '#dc2626' }}
+                              onClick={() => handleDeleteQuery(q)}
+                              title="Delete Template"
+                            >
+                              🗑️
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

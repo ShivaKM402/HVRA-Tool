@@ -16,7 +16,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # -------------------------------------------------------
 SECRET_KEY = config("SECRET_KEY", default="dev-secret-key-change-in-production")
 DEBUG = config("DEBUG", default=True, cast=bool)
-ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1,*").split(",")
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1,testserver,*").split(",")
 
 # -------------------------------------------------------
 # Application definition
@@ -42,6 +42,7 @@ LOCAL_APPS = [
     "apps.hazards",
     "apps.datasets",
     "apps.assessments",
+    "apps.issues",
     "apps.reports",
     "apps.ai_copilot",
 ]
@@ -167,8 +168,8 @@ CORS_ALLOW_ALL_ORIGINS = DEBUG
 # -------------------------------------------------------
 # Prototype / Application settings
 # -------------------------------------------------------
-PROTOTYPE_MODE = config("PROTOTYPE_MODE", default=True, cast=bool)
-DEMO_DATA_LABEL = config("DEMO_DATA_LABEL", default="DEMO DATA")
+PROTOTYPE_MODE = config("PROTOTYPE_MODE", default=False, cast=bool)
+DEMO_DATA_LABEL = config("DEMO_DATA_LABEL", default="")
 API_VERSION = config("API_VERSION", default="v1")
 
 # Flood weightage thresholds (configurable, not official values)

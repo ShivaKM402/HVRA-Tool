@@ -34,8 +34,7 @@ class DataSource(models.Model):
         ordering = ["name"]
 
     def __str__(self):
-        demo_tag = " [DEMO]" if self.is_demo else ""
-        return f"{self.name} ({self.organization}){demo_tag}"
+        return f"{self.name} ({self.organization})"
 
 
 class UploadedDataset(models.Model):

@@ -222,7 +222,12 @@ export default function ResultsMap({
             ? Number(props.final_score).toFixed(2)
             : 'N/A');
 
-    const detail = resultsData.find((r: any) => r.administrative_unit === unitId);
+    const detail = (resultsData || []).find(
+      (r: any) =>
+        r.administrative_unit === unitId ||
+        r.unit_id === unitId ||
+        (r.unit_name && name && r.unit_name.toLowerCase().trim() === name.toLowerCase().trim())
+    );
     const meta = detail?.metadata || {};
 
     const fmt = (v: number | null | undefined) =>
@@ -411,8 +416,7 @@ export default function ResultsMap({
                   <div style={{ fontSize: 12, marginTop: 4, color: '#334155' }}>
                     <strong>Name:</strong> {p.name || 'Drainage corridor'}<br/>
                     <strong>Type:</strong> Flood Drainage Network<br/>
-                    {p.year && <div><strong>Year:</strong> {p.year}</div>}
-                    <small style={{ color: '#64748b' }}>{p.is_demo ? 'DEMO DATA — not official' : 'GIS layer'}</small>
+                    <small style={{ color: '#64748b' }}>GIS layer</small>
                   </div>
                 </div>
               </Popup>

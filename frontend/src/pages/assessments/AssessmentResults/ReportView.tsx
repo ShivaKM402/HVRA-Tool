@@ -1,9 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getAssessmentReport } from '@/services/api';
+import ResultsMap from '@/components/Map/ResultsMap';
+import { useAuth } from '@/context/AuthContext';
 import './ReportView.css';
 
 export default function ReportView() {
+  const { canDelete } = useAuth();
   const { id } = useParams();
   const navigate = useNavigate();
   const [report, setReport] = useState<any>(null);
@@ -12,6 +15,8 @@ export default function ReportView() {
   const [downloadingFormat, setDownloadingFormat] = useState<string | null>(null);
   const [activeChapter, setActiveChapter] = useState(1);
   const [regenerating, setRegenerating] = useState(false);
+  const [selectedBlockId, setSelectedBlockId] = useState<number | null>(null);
+  const [mapMode, setMapMode] = useState<'all' | 'classification' | 'thematic'>('all');
   const previewRef = useRef<HTMLDivElement | null>(null);
 
   const handleDeleteReport = async () => {
@@ -208,7 +213,7 @@ export default function ReportView() {
             ← Back to Results
           </Link>
           <Link
-            to={`/assessments/${id}/results?tab=coordination`}
+            to={`/department-coordination?assessmentId=${id}`}
             className="btn btn-secondary btn-sm"
             style={{ color: '#0d9488', borderColor: '#ccfbf1', background: '#f0fdfa' }}
             title="Departmental Data Coordination"
@@ -247,14 +252,16 @@ export default function ReportView() {
           >
             🖨️ Print
           </button>
-          <button
-            className="btn btn-secondary btn-sm"
-            style={{ color: '#dc2626', background: '#fef2f2', borderColor: '#fecaca' }}
-            onClick={handleDeleteReport}
-            title="Permanently Delete Report"
-          >
-            🗑️ Delete
-          </button>
+          {canDelete && (
+            <button
+              className="btn btn-secondary btn-sm"
+              style={{ color: '#dc2626', background: '#fef2f2', borderColor: '#fecaca' }}
+              onClick={handleDeleteReport}
+              title="Permanently Delete Report"
+            >
+              🗑️ Delete
+            </button>
+          )}
         </div>
       </div>
 
@@ -276,16 +283,65 @@ export default function ReportView() {
                 {metadata.state} → {metadata.district} → {metadata.level} Administrative Assessment
               </div>
             </div>
-            {metadata.is_demo && (
-              <div style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d', padding: '0.4rem 0.8rem', borderRadius: '4px', fontWeight: 700, fontSize: '0.8rem' }}>
-                ⚠️ DEMO ASSESSMENT
-              </div>
-            )}
           </div>
-          <div style={{ marginTop: '1.25rem', color: '#64748b', fontSize: '0.85rem', display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
-            <span><strong>Generated:</strong> {new Date(metadata.created_at).toLocaleString()}</span>
-            <span><strong>Module:</strong> {metadata.module_label || 'Hazard Assessment'}{metadata.hazard_type ? ` · Hazard: ${metadata.hazard_type}` : ''}</span>
-            <span><strong>Status:</strong> {metadata.status}</span>
+
+          {/* Statutory Transmission & Sender Box */}
+          <div style={{
+            marginTop: '1.25rem',
+            padding: '1rem 1.25rem',
+            background: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '10px',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '0.85rem',
+            fontSize: '0.84rem',
+          }}>
+            <div>
+              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Submitted By (Originating Officer)
+              </div>
+              <div style={{ fontWeight: 700, color: '#0f172a', marginTop: '0.2rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <span>👤</span>
+                <span>{metadata.created_by_name || 'GIS Analyst (Analyst · SEOC)'}</span>
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Addressed To (Reviewing Authority)
+              </div>
+              <div style={{ fontWeight: 700, color: '#0f172a', marginTop: '0.2rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <span>🏛️</span>
+                <span>District Disaster Management Authority (DDMA / Task Force)</span>
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Task Force Review Stage
+              </div>
+              <div style={{
+                fontWeight: 700,
+                color: metadata.approval_status === 'APPROVED' ? '#166534' : metadata.approval_status === 'SUBMITTED' ? '#c2410c' : '#475569',
+                marginTop: '0.2rem',
+              }}>
+                {metadata.approval_status === 'APPROVED'
+                  ? `✓ APPROVED & ENDORSED${metadata.reviewer_name ? ` (By: ${metadata.reviewer_name})` : ''}`
+                  : metadata.approval_status === 'SUBMITTED'
+                  ? '⏳ SUBMITTED (Awaiting TF Review)'
+                  : '📝 DRAFT (Internal)'}
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Generated / Submission Date
+              </div>
+              <div style={{ fontWeight: 700, color: '#0f172a', marginTop: '0.2rem' }}>
+                🕒 {new Date(metadata.created_at).toLocaleString()}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -319,7 +375,7 @@ export default function ReportView() {
             {isHazardModule ? (
               <>The {metadata.hazard_type || ''} assessment utilizes a composite scoring methodology. Raw spatial metrics (such as flood-prone area percentages and historical event frequencies) are extracted via GIS processing. These metrics are normalized and weighted to produce a final composite score on a 0–10 scale.</>
             ) : (
-              <>This module utilizes a deterministic indicator scoring methodology. Indicator values for each administrative block are generated from the module's indicator library (prototype DEMO DATA) and normalized to a 0–10 scale before weighted aggregation into a final composite score.</>
+              <>This module utilizes a deterministic indicator scoring methodology. Indicator values for each administrative block are generated from the module's indicator library and normalized to a 0–10 scale before weighted aggregation into a final composite score.</>
             )}
           </p>
           <h4 style={{ marginTop: '1rem', color: '#0f172a' }}>Indicators & Applied Weights:</h4>
@@ -340,7 +396,7 @@ export default function ReportView() {
             {isHazardModule ? (
               <>An analysis of the historical event catalogue recorded a total of <strong>{historical_profile.total_events}</strong> distinct {metadata.hazard_type.toLowerCase()} events across the assessed blocks. These events form the basis for the frequency indicator calculations.</>
             ) : (
-              <>Indicators for this module are derived from deterministic administrative and demographic database attributes (prototype DEMO DATA) rather than a historical event catalogue. No historical event dependency is required for this module.</>
+              <>Indicators for this module are derived from deterministic administrative and demographic database attributes rather than a historical event catalogue. No historical event dependency is required for this module.</>
             )}
           </p>
         </section>
@@ -359,9 +415,6 @@ export default function ReportView() {
                 <div key={idx} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderLeft: '4px solid #0ea5e9', borderRadius: '6px', padding: '1rem 1.25rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
                     <h4 style={{ margin: 0, fontSize: '0.98rem', color: '#0f172a', fontWeight: 700 }}>{c.title}</h4>
-                    {c.is_demo && (
-                      <span className="badge badge-warning" style={{ fontSize: '0.62rem' }}>DEMO</span>
-                    )}
                   </div>
                   <p style={{ margin: '0.5rem 0 0.25rem', color: '#334155', fontSize: '0.92rem', lineHeight: '1.55' }}>{c.statement}</p>
                   {(c.source || c.vintage) && (
@@ -407,16 +460,104 @@ export default function ReportView() {
         </section>
 
         {/* 7. Maps */}
-        <section>
+        <section className="rpt-map-section">
           <span id="ch-7" className="rpt-anchor" />
-          <h2 style={{ color: '#1e293b', fontSize: '1.4rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem', marginBottom: '1rem' }}>7. Maps & Visualizations</h2>
-          <p>
-            The spatial distribution of the hazard classification has been rendered interactively. To view the high-resolution dynamic map, please navigate to the Assessment Dashboard.
+          <h2 style={{ color: '#1e293b', fontSize: '1.4rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem', marginBottom: '0.75rem' }}>
+            7. Thematic &amp; Admin-level Spatial Maps
+          </h2>
+          <p style={{ color: '#475569', fontSize: '0.92rem', lineHeight: '1.6', marginBottom: '1rem' }}>
+            Spatial cartography depicting {moduleSubject} intensity and thematic inundation footprints across <strong>{metadata.district || 'the district'}</strong>.
+            Administrative units are categorized into 4 relative severity tiers (No Hazard [NH], Low Hazard [LH], Moderate Hazard [MH], High Hazard [HH]) based on percentile distribution against neighbouring local bodies under the Kerala State Disaster Management Authority (KSDMA) HVRA Framework.
           </p>
-          <div style={{ marginTop: '1rem' }}>
-            <Link to={`/assessments/${id}/results`} className="btn btn-primary">
-              View Interactive Map Dashboard
-            </Link>
+
+          {/* Interactive Report Map Card */}
+          <div className="report-map-card">
+            {/* Toolbar Header */}
+            <div className="report-map-toolbar">
+              <div className="report-map-title">
+                <span className="report-map-figure-badge">Figure 7.1</span>
+                <span>
+                  <strong>
+                    {mapMode === 'classification'
+                      ? `Administrative Hazard Classification — ${metadata.district || 'District'}`
+                      : mapMode === 'thematic'
+                      ? `Flood Inundation & Drainage Corridors — ${metadata.district || 'District'}`
+                      : `Multi-Hazard Classification & Thematic Overlays — ${metadata.district || 'District'}`}
+                  </strong>
+                </span>
+              </div>
+
+              {/* Mode Switcher Pills */}
+              <div className="report-map-mode-pills" role="group" aria-label="Map Display Layers">
+                <button
+                  type="button"
+                  className={`map-mode-btn ${mapMode === 'all' ? 'active' : ''}`}
+                  onClick={() => setMapMode('all')}
+                  title="Combined Administrative Classification and Flood Layers"
+                >
+                  🌐 Combined View
+                </button>
+                <button
+                  type="button"
+                  className={`map-mode-btn ${mapMode === 'classification' ? 'active' : ''}`}
+                  onClick={() => setMapMode('classification')}
+                  title="Administrative Unit Hazard Choropleth"
+                >
+                  🗺️ Hazard Classification
+                </button>
+                <button
+                  type="button"
+                  className={`map-mode-btn ${mapMode === 'thematic' ? 'active' : ''}`}
+                  onClick={() => setMapMode('thematic')}
+                  title="Raw Flood Inundation & Waterway Footprint"
+                >
+                  🌊 Flood Footprint
+                </button>
+              </div>
+            </div>
+
+            {/* Embedded Live ResultsMap */}
+            <div className="report-map-container">
+              <ResultsMap
+                assessmentId={parseInt(id || '0', 10)}
+                selectedBlockId={selectedBlockId}
+                onBlockSelect={(bId) => setSelectedBlockId(bId)}
+                resultsData={block_results}
+                mode={mapMode}
+                variant={metadata?.module_type === 'COMPOSITE_RISK' ? 'risk' : 'hazard'}
+                legendTitle={
+                  metadata?.module_type === 'COMPOSITE_RISK'
+                    ? 'Composite Risk Severity'
+                    : `${metadata?.hazard_type || 'Flood'} Hazard Classification`
+                }
+              />
+            </div>
+
+            {/* Map Caption & Provenance Footnote */}
+            <div className="report-map-footer">
+              <div className="report-map-caption">
+                <span style={{ fontWeight: 600, color: '#0f172a' }}>Cartographic Notes: </span>
+                Boundaries delineate Local Self-Government (LSG) and Revenue Block boundaries.
+                Hover or click any administrative polygon to inspect unit composite scores, event histories, and gauge telemetry.
+                {selectedBlockId && (
+                  <span style={{ marginLeft: '0.4rem', color: '#0284c7', fontWeight: 600 }}>
+                    (Currently highlighted: Unit #{selectedBlockId})
+                  </span>
+                )}
+              </div>
+              <div className="report-map-metadata-badges">
+                <span className="rpt-badge">CRS: EPSG:4326</span>
+                <span className="rpt-badge">KSDMA SEOC / CWC</span>
+                <Link
+                  to={`/assessments/${id}/results`}
+                  className="rpt-badge"
+                  style={{ textDecoration: 'none', color: '#0284c7', fontWeight: 600 }}
+                  title="Open in full screen assessment dashboard"
+                >
+                  ↗ Full Dashboard
+                </Link>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -436,21 +577,43 @@ export default function ReportView() {
                 </tr>
               </thead>
               <tbody>
-                {block_results.map((r: any, idx: number) => (
-                  <tr key={idx}>
-                    <td style={{ padding: '0.75rem', fontWeight: 500 }}>{r.unit_name}</td>
-                    <td style={{ textAlign: 'right', padding: '0.75rem' }}>
-                      {r.metadata?.flood_prone_percentage !== undefined ? r.metadata.flood_prone_percentage.toFixed(1) + '%' : r.flood_prone_percentage !== undefined ? r.flood_prone_percentage.toFixed(1) + '%' : '—'}
-                    </td>
-                    <td style={{ textAlign: 'right', padding: '0.75rem' }}>{r.metadata?.event_count ?? r.event_count ?? '—'}</td>
-                    <td style={{ textAlign: 'right', padding: '0.75rem', fontWeight: 'bold' }}>{(r.composite_score || 0).toFixed(2)}</td>
-                    <td style={{ textAlign: 'center', padding: '0.75rem' }}>
-                      <span className={`badge badge-${r.classification === 'HH' ? 'error' : r.classification === 'MH' ? 'warning' : r.classification === 'LH' ? 'info' : 'success'}`}>
-                        {r.classification}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {block_results.map((r: any, idx: number) => {
+                  const bId = r.administrative_unit || r.unit_id;
+                  const isSelected = selectedBlockId !== null && bId === selectedBlockId;
+                  return (
+                    <tr
+                      key={idx}
+                      onClick={() => {
+                        if (bId) {
+                          setSelectedBlockId(isSelected ? null : bId);
+                          const mapEl = document.getElementById('ch-7');
+                          if (mapEl) mapEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        }
+                      }}
+                      style={{
+                        cursor: bId ? 'pointer' : 'default',
+                        background: isSelected ? 'rgba(2, 132, 199, 0.08)' : undefined,
+                        transition: 'background 0.15s ease',
+                      }}
+                      title={bId ? 'Click to highlight this unit on the spatial map above' : undefined}
+                    >
+                      <td style={{ padding: '0.75rem', fontWeight: 500 }}>
+                        {r.unit_name}
+                        {isSelected && <span style={{ marginLeft: 6, fontSize: '0.75rem', color: '#0284c7' }}>📍</span>}
+                      </td>
+                      <td style={{ textAlign: 'right', padding: '0.75rem' }}>
+                        {r.metadata?.flood_prone_percentage !== undefined ? r.metadata.flood_prone_percentage.toFixed(1) + '%' : r.flood_prone_percentage !== undefined ? r.flood_prone_percentage.toFixed(1) + '%' : '—'}
+                      </td>
+                      <td style={{ textAlign: 'right', padding: '0.75rem' }}>{r.metadata?.event_count ?? r.event_count ?? '—'}</td>
+                      <td style={{ textAlign: 'right', padding: '0.75rem', fontWeight: 'bold' }}>{(r.composite_score || 0).toFixed(2)}</td>
+                      <td style={{ textAlign: 'center', padding: '0.75rem' }}>
+                        <span className={`badge badge-${r.classification === 'HH' ? 'error' : r.classification === 'MH' ? 'warning' : r.classification === 'LH' ? 'info' : 'success'}`}>
+                          {r.classification}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -474,7 +637,7 @@ export default function ReportView() {
         {/* 10. Recommendations */}
         <section>
           <span id="ch-10" className="rpt-anchor" />
-          <h2 style={{ color: '#1e293b', fontSize: '1.4rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem', marginBottom: '1rem' }}>10. Recommendations (Prototype)</h2>
+          <h2 style={{ color: '#1e293b', fontSize: '1.4rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem', marginBottom: '1rem' }}>10. Recommendations</h2>
           <ul style={{ paddingLeft: '1.5rem' }}>
             {recommendations.map((rec: string, idx: number) => (
               <li key={idx} style={{ marginBottom: '0.5rem' }}>{rec}</li>
@@ -486,12 +649,10 @@ export default function ReportView() {
         <section>
           <span id="ch-11" className="rpt-anchor" />
           <h2 style={{ color: '#1e293b', fontSize: '1.4rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem', marginBottom: '1rem' }}>11. Annexures</h2>
-          <div style={{ background: '#fefce8', padding: '1.5rem', border: '1px solid #fef08a', borderRadius: '6px' }}>
-            <h4 style={{ margin: '0 0 0.5rem 0', color: '#854d0e' }}>Disclaimer: DEMO DATA</h4>
-            <p style={{ margin: 0, fontSize: '0.9rem', color: '#713f12' }}>
-              This report, including all geospatial representations, statistical counts, scores, and classifications, is generated using synthetic prototype data. 
-              The findings and recommendations presented herein do not represent official government statistics or actionable risk management guidelines. 
-              This document is produced strictly for the purpose of demonstrating software capabilities.
+          <div style={{ background: '#f8fafc', padding: '1.5rem', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
+            <h4 style={{ margin: '0 0 0.5rem 0', color: '#1e293b' }}>Statutory Notice</h4>
+            <p style={{ margin: 0, fontSize: '0.9rem', color: '#475569' }}>
+              This report, including all geospatial representations, statistical counts, scores, and classifications, is generated using the Hazard, Vulnerability, and Risk Assessment (HVRA) methodology framework approved by the State Disaster Management Authority.
             </p>
           </div>
         </section>

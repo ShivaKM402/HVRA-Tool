@@ -24,6 +24,9 @@ urlpatterns = [
     # Assessments
     path("", include("apps.assessments.urls")),
 
+    # Field Incident & Workflow Engine (3-Tier)
+    path("", include("apps.issues.urls")),
+
     # Reports
     path("", include("apps.reports.urls")),
 

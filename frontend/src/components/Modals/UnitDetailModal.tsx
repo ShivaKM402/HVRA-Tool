@@ -3,6 +3,7 @@
  * Displays administrative unit breakdown, classification, score and indicator contributions.
  */
 import type { AssessmentResult } from '../../types';
+import './Modals.css';
 
 interface UnitDetailModalProps {
   isOpen: boolean;

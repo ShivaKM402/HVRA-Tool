@@ -74,8 +74,7 @@ class AdministrativeUnit(models.Model):
         ordering = ["level", "name"]
 
     def __str__(self):
-        demo_tag = " [DEMO]" if self.is_demo else ""
-        return f"{self.name} ({self.level}){demo_tag}"
+        return f"{self.name} ({self.level})"
 
     @property
     def geometry(self):

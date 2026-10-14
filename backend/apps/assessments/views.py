@@ -150,7 +150,7 @@ def _load_blocks(assessment):
                 centroid_lon=blon,
                 area_sqkm=120.0 + idx * 15.0,
                 geometry_geojson=__import__("json").dumps(geom),
-                is_demo=True,
+                is_demo=False,
             )
         blocks_qs = AdministrativeUnit.objects.filter(
             parent=assessment.district, level="BLOCK"
@@ -192,7 +192,7 @@ def _seed_villages(blocks_qs):
             ]
             geom = {"type": "Polygon", "coordinates": [coords]}
             AdministrativeUnit.objects.create(
-                name=f"{block.name.replace(' [DEMO]', '')} — {vname} Village [DEMO]",
+                name=f"{block.name.replace(' [DEMO]', '')} — {vname} Village",
                 code=f"{block.code}-V{idx + 1:02d}",
                 level="VILLAGE",
                 parent=block,
@@ -200,7 +200,7 @@ def _seed_villages(blocks_qs):
                 centroid_lon=vlon,
                 area_sqkm=round((block.area_sqkm or 120.0) / 3.0, 2),
                 geometry_geojson=_json.dumps(geom),
-                is_demo=True,
+                is_demo=False,
             )
             count += 1
     return count
@@ -441,8 +441,14 @@ class AssessmentViewSet(viewsets.ModelViewSet):
 
 
     def _assert_can_modify(self, assessment):
-        """Only the creator or a Platform Admin may edit/delete an assessment."""
+        """Only administrators may delete assessments. Employees/Senior Officers cannot delete."""
         user = self.request.user
+        from apps.accounts.permissions import user_can_delete
+        if getattr(self, "action", "") == "destroy" and not user_can_delete(user):
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied(
+                "Employees and Line Department officers are not authorized to delete assessment records."
+            )
         # Allow unrestricted modifications in DEBUG mode, or if assessment has no explicit creator
         if getattr(settings, "DEBUG", False) or assessment.created_by_id is None:
             return
@@ -471,6 +477,12 @@ class AssessmentViewSet(viewsets.ModelViewSet):
         serializer.save()
 
     def perform_destroy(self, instance):
+        from apps.accounts.permissions import user_can_delete
+        if not user_can_delete(self.request.user):
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied(
+                "Employees and Line Department officers are not authorized to delete assessment records."
+            )
         self._assert_can_modify(instance)
         instance.delete()
 
@@ -728,14 +740,21 @@ class AssessmentViewSet(viewsets.ModelViewSet):
             res_qs = list(
                 AssessmentResult.objects.filter(
                     assessment=assessment, indicator_id=ai.indicator.id
-                ).values("administrative_unit_id", "raw_value")
+                ).values(
+                    "administrative_unit_id", "raw_value", "original_raw_value",
+                    "is_manually_overridden", "overridden_by"
+                )
             )
             unit_values = {
                 r["administrative_unit_id"]: r["raw_value"]
                 for r in res_qs if r["raw_value"] is not None
             }
+            orig_vals = [r["original_raw_value"] for r in res_qs if r.get("original_raw_value") is not None]
+            orig_val = round(sum(orig_vals) / len(orig_vals), 2) if orig_vals else None
             vals = list(unit_values.values())
             cur_val = round(sum(vals) / len(vals), 2) if vals else None
+            is_overridden = any(r.get("is_manually_overridden") for r in res_qs)
+            overridden_by = next((r.get("overridden_by") for r in res_qs if r.get("overridden_by")), "")
 
             dept_map[dept].append({
                 "indicator_id": ai.indicator.id,
@@ -747,6 +766,9 @@ class AssessmentViewSet(viewsets.ModelViewSet):
                 "weight": ai.weight,
                 "default_weight": ai.indicator.default_weight,
                 "current_value": cur_val,
+                "original_value": orig_val,
+                "is_overridden": is_overridden,
+                "overridden_by": overridden_by,
                 "unit_values": unit_values,
             })
 
@@ -1147,9 +1169,26 @@ class AssessmentViewSet(viewsets.ModelViewSet):
 
     def _build_report_data(self, assessment):
         """Build structured report dictionary for reporting and file generation."""
+        author_name = "District Officer"
+        if assessment.created_by:
+            full = assessment.created_by.get_full_name().strip()
+            profile = getattr(assessment.created_by, "profile", None)
+            role_label = profile.get_role_display() if profile else ""
+            dept = profile.department if profile and profile.department else ""
+            title = full or assessment.created_by.username
+            sub_parts = [p for p in [dept, role_label] if p]
+            author_name = f"{title} ({' | '.join(sub_parts)})" if sub_parts else title
+
         metadata = {
             "name": assessment.name,
             "status": assessment.status,
+            "approval_status": assessment.approval_status,
+            "submitted_at": assessment.submitted_at.isoformat() if assessment.submitted_at else None,
+            "reviewer_name": assessment.reviewer_name,
+            "reviewer_org": assessment.reviewer_org,
+            "review_comment": assessment.review_comment,
+            "reviewed_at": assessment.reviewed_at.isoformat() if assessment.reviewed_at else None,
+            "created_by_name": author_name,
             "created_at": assessment.created_at.isoformat(),
             "module_type": assessment.module_type,
             "module_label": MODULE_LABELS.get(assessment.module_type, assessment.module_type),
@@ -1193,6 +1232,8 @@ class AssessmentViewSet(viewsets.ModelViewSet):
             classification_summary[cls] = classification_summary.get(cls, 0) + 1
             meta = r.metadata or {}
             block_data = {
+                "unit_id": r.administrative_unit.id,
+                "administrative_unit": r.administrative_unit.id,
                 "unit_name": r.administrative_unit.name,
                 "composite_score": r.final_score,
                 "classification": cls,
@@ -1992,6 +2033,8 @@ class RiskAssessmentViewSet(viewsets.ModelViewSet):
         for r in comp_scores:
             classification_summary[r.risk_class] = classification_summary.get(r.risk_class, 0) + 1
             block_results.append({
+                "unit_id": r.administrative_unit.id,
+                "administrative_unit": r.administrative_unit.id,
                 "unit_name": r.administrative_unit.name,
                 "hazard_score": r.hazard_score,
                 "vulnerability_score": r.vulnerability_score,
@@ -2070,10 +2113,27 @@ class RiskAssessmentViewSet(viewsets.ModelViewSet):
                 "is_demo": True,
             }]
 
+        author_name = "District Officer"
+        if risk.created_by:
+            full = risk.created_by.get_full_name().strip()
+            profile = getattr(risk.created_by, "profile", None)
+            role_label = profile.get_role_display() if profile else ""
+            dept = profile.department if profile and profile.department else ""
+            title = full or risk.created_by.username
+            sub_parts = [p for p in [dept, role_label] if p]
+            author_name = f"{title} ({' | '.join(sub_parts)})" if sub_parts else title
+
         return {
             "metadata": {
                 "name": risk.name,
                 "status": risk.status,
+                "approval_status": risk.approval_status,
+                "submitted_at": risk.submitted_at.isoformat() if risk.submitted_at else None,
+                "reviewer_name": risk.reviewer_name,
+                "reviewer_org": risk.reviewer_org,
+                "review_comment": risk.review_comment,
+                "reviewed_at": risk.reviewed_at.isoformat() if risk.reviewed_at else None,
+                "created_by_name": author_name,
                 "created_at": risk.created_at.isoformat(),
                 "module_type": "COMPOSITE_RISK",
                 "module_label": MODULE_LABELS["COMPOSITE_RISK"],
@@ -2189,6 +2249,15 @@ class SavedQueryViewSet(viewsets.ModelViewSet):
             from django.contrib.auth.models import User
             demo_user = User.objects.filter(username="analyst").first()
             serializer.save(created_by=demo_user, is_shared=True)
+
+    def perform_destroy(self, instance):
+        from apps.accounts.permissions import user_can_delete
+        if not user_can_delete(self.request.user):
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied(
+                "Employees and non-administrative officers are not authorized to delete saved queries."
+            )
+        instance.delete()
 
     @action(detail=True, methods=["post"])
     def share(self, request, pk=None):

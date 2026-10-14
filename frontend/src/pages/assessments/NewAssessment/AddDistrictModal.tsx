@@ -193,7 +193,7 @@ export default function AddDistrictModal({ states, defaultStateId, onSuccess, on
             <div className="adm-notice">
               <span>ℹ️</span>
               <span>
-                The district will be marked as <strong>Demo Data</strong> and saved to the system.
+                The district will be saved to the official administrative registry.
                 You can run assessments on it right away.
               </span>
             </div>

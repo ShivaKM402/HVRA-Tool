@@ -291,14 +291,15 @@ a:hover { color: var(--color-primary-dark); }
   justify-content: space-between;
   padding: 0 1.25rem;
   gap: 1rem;
+  position: relative;
+  z-index: 80;
 }
 
 .google-nav-links {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-  overflow-x: auto;
-  scrollbar-width: none;
+  gap: 0.35rem;
+  overflow: visible;
   flex-shrink: 0;
 }
 

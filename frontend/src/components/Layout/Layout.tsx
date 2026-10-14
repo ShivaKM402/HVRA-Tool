@@ -27,6 +27,24 @@ export default function Layout() {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isOnboardingTourOpen, setIsOnboardingTourOpen] = useState(false);
+  const [openNavDropdown, setOpenNavDropdown] = useState<'hazard' | 'dept' | 'data' | null>(null);
+
+  // Close nav dropdown on route change
+  useEffect(() => {
+    setOpenNavDropdown(null);
+  }, [location.pathname, location.search]);
+
+  // Close nav dropdown when clicking outside
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.google-nav-dropdown-wrap')) {
+        setOpenNavDropdown(null);
+      }
+    };
+    document.addEventListener('click', handleOutsideClick);
+    return () => document.removeEventListener('click', handleOutsideClick);
+  }, []);
 
   // If no hazard is selected and the user attempts to view an inner module directly, route them to /dashboard (the 4-column selection first page)
   useEffect(() => {
@@ -312,76 +330,238 @@ export default function Layout() {
         </div>
 
         {/* Tier 2: Navigation Bar (ONLY shown when a hazard is active!) */}
+        {/* Tier 2: Navigation Bar (Grouped into 3 Clean Dropdowns when a hazard is active!) */}
         {activeHazard && (
           <div className="google-nav-bar">
             <nav className="google-nav-links">
-              <NavLink
-                to={`/dashboard?hazard=${activeHazard}`}
-                className={({ isActive }) => `google-nav-item${isActive && location.pathname === '/dashboard' ? ' active' : ''}`}
-              >
-                {activeHazardMeta?.icon} {activeHazardMeta?.shortName} Dashboard
-              </NavLink>
+              {/* Dropdown 1: Hazard Operations (Flood / Landslide / Coastal / Drought) */}
+              <div className="google-nav-dropdown-wrap">
+                <button
+                  type="button"
+                  className={`google-nav-dropdown-btn ${
+                    (location.pathname === '/dashboard' && Boolean(activeHazard)) ||
+                    location.pathname.startsWith('/new-assessment') ||
+                    location.pathname.startsWith('/assessments') ||
+                    location.pathname.startsWith('/risk-builder') ||
+                    location.pathname.startsWith('/risk-assessments') ||
+                    location.pathname.startsWith('/reports')
+                      ? 'active'
+                      : ''
+                  } ${openNavDropdown === 'hazard' ? 'open' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpenNavDropdown((prev) => (prev === 'hazard' ? null : 'hazard'));
+                  }}
+                  title={`${activeHazardMeta?.shortName || 'Hazard'} Operations & Assessments`}
+                >
+                  <span className="google-nav-dropdown-icon">{activeHazardMeta?.icon || '🌊'}</span>
+                  <span>{activeHazardMeta?.shortName || 'Hazard'} Hub</span>
+                  <span className="google-nav-arrow">▾</span>
+                </button>
 
-              <NavLink
-                to={`/new-assessment?module=HAZARD&hazard=${activeHazard}`}
-                className={({ isActive }) =>
-                  `google-nav-item${isActive && location.pathname === '/new-assessment' ? ' active' : ''}`
-                }
-              >
-                📋 {activeHazardMeta?.shortName} Assessments
-              </NavLink>
+                {openNavDropdown === 'hazard' && (
+                  <div className="google-nav-menu">
+                    <NavLink
+                      to={`/dashboard?hazard=${activeHazard}`}
+                      className={({ isActive }) =>
+                        `google-nav-menu-item ${isActive && location.pathname === '/dashboard' ? 'active' : ''}`
+                      }
+                      onClick={() => setOpenNavDropdown(null)}
+                    >
+                      <span className="google-nav-menu-icon">{activeHazardMeta?.icon || '🌊'}</span>
+                      <div className="google-nav-menu-text">
+                        <span className="google-nav-menu-title">{activeHazardMeta?.shortName} Dashboard</span>
+                        <span className="google-nav-menu-desc">District situation summary &amp; hazard intelligence</span>
+                      </div>
+                    </NavLink>
 
-              <NavLink
-                to={`/issues?hazard=${activeHazard}`}
-                className={({ isActive }) =>
-                  `google-nav-item${isActive || location.pathname.startsWith('/issues') ? ' active' : ''}`
-                }
-                title={`${activeHazardMeta?.shortName} Field Incidents & 3-Tier Approval Hub`}
-              >
-                🚨 {activeHazardMeta?.shortName} Incidents
-              </NavLink>
+                    <NavLink
+                      to={`/new-assessment?module=HAZARD&hazard=${activeHazard}`}
+                      className={({ isActive }) =>
+                        `google-nav-menu-item ${isActive && location.pathname === '/new-assessment' ? 'active' : ''}`
+                      }
+                      onClick={() => setOpenNavDropdown(null)}
+                    >
+                      <span className="google-nav-menu-icon">📋</span>
+                      <div className="google-nav-menu-text">
+                        <span className="google-nav-menu-title">{activeHazardMeta?.shortName} Assessments</span>
+                        <span className="google-nav-menu-desc">Run Module 1-3 baseline assessments &amp; maps</span>
+                      </div>
+                    </NavLink>
 
-              <NavLink
-                to={`/department-coordination?hazard=${activeHazard}`}
-                className={({ isActive }) =>
-                  `google-nav-item${isActive || location.pathname.includes('/department-coordination') || location.pathname.includes('/coordination') ? ' active' : ''}`
-                }
-                title={`${activeHazardMeta?.shortName} Department Data Coordination & Tasks`}
-              >
-                🏛️ {activeHazardMeta?.shortName} Dept Tasks
-              </NavLink>
+                    <NavLink
+                      to={`/risk-builder?hazard=${activeHazard}`}
+                      className={({ isActive }) =>
+                        `google-nav-menu-item ${isActive && location.pathname === '/risk-builder' ? 'active' : ''}`
+                      }
+                      onClick={() => setOpenNavDropdown(null)}
+                    >
+                      <span className="google-nav-menu-icon">🎛️</span>
+                      <div className="google-nav-menu-text">
+                        <span className="google-nav-menu-title">Composite Risk Builder</span>
+                        <span className="google-nav-menu-desc">Module 4 Multi-criteria weighted risk (R = H × V × E)</span>
+                      </div>
+                    </NavLink>
 
-              <NavLink
-                to={`/risk-builder?hazard=${activeHazard}`}
-                className={({ isActive }) => `google-nav-item${isActive && location.pathname === '/risk-builder' ? ' active' : ''}`}
-              >
-                🎛️ Risk Builder
-              </NavLink>
+                    <NavLink
+                      to={`/reports?hazard=${activeHazard}`}
+                      className={({ isActive }) =>
+                        `google-nav-menu-item ${isActive && location.pathname === '/reports' ? 'active' : ''}`
+                      }
+                      onClick={() => setOpenNavDropdown(null)}
+                    >
+                      <span className="google-nav-menu-icon">📑</span>
+                      <div className="google-nav-menu-text">
+                        <span className="google-nav-menu-title">Reports &amp; Dossiers</span>
+                        <span className="google-nav-menu-desc">Official 10-chapter dossiers, maps &amp; exports</span>
+                      </div>
+                    </NavLink>
+                  </div>
+                )}
+              </div>
 
-              <NavLink
-                to={`/libraries?hazard=${activeHazard}`}
-                className={({ isActive }) => `google-nav-item${isActive && location.pathname === '/libraries' ? ' active' : ''}`}
-                title={`${activeHazardMeta?.shortName} Indicators & Agency Library`}
-              >
-                📊 {activeHazardMeta?.shortName} Indicators
-              </NavLink>
+              {/* Dropdown 2: Department Operations */}
+              <div className="google-nav-dropdown-wrap">
+                <button
+                  type="button"
+                  className={`google-nav-dropdown-btn ${
+                    location.pathname.startsWith('/issues') ||
+                    location.pathname.includes('/department-coordination') ||
+                    location.pathname.includes('/coordination') ||
+                    location.pathname.startsWith('/review-queue')
+                      ? 'active'
+                      : ''
+                  } ${openNavDropdown === 'dept' ? 'open' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpenNavDropdown((prev) => (prev === 'dept' ? null : 'dept'));
+                  }}
+                  title="Department Tasks, Field Incidents & Approvals"
+                >
+                  <span className="google-nav-dropdown-icon">🏛️</span>
+                  <span>Department &amp; Field</span>
+                  <span className="google-nav-arrow">▾</span>
+                </button>
 
-              <NavLink
-                to={`/data-library?hazard=${activeHazard}`}
-                className={({ isActive }) => `google-nav-item${isActive && location.pathname === '/data-library' ? ' active' : ''}`}
-              >
-                📁 {activeHazardMeta?.shortName} Data
-              </NavLink>
+                {openNavDropdown === 'dept' && (
+                  <div className="google-nav-menu">
+                    <NavLink
+                      to={`/issues?hazard=${activeHazard}`}
+                      className={({ isActive }) =>
+                        `google-nav-menu-item ${isActive || location.pathname.startsWith('/issues') ? 'active' : ''}`
+                      }
+                      onClick={() => setOpenNavDropdown(null)}
+                    >
+                      <span className="google-nav-menu-icon">🚨</span>
+                      <div className="google-nav-menu-text">
+                        <span className="google-nav-menu-title">Field Incidents &amp; Workflow</span>
+                        <span className="google-nav-menu-desc">Ground incident logs &amp; 3-tier departmental approvals</span>
+                      </div>
+                    </NavLink>
 
-              <NavLink
-                to={`/reports?hazard=${activeHazard}`}
-                className={({ isActive }) => `google-nav-item${isActive && location.pathname === '/reports' ? ' active' : ''}`}
-              >
-                📑 {activeHazardMeta?.shortName} Reports
-              </NavLink>
+                    <NavLink
+                      to={`/department-coordination?hazard=${activeHazard}`}
+                      className={({ isActive }) =>
+                        `google-nav-menu-item ${isActive || location.pathname.includes('/department-coordination') || location.pathname.includes('/coordination') ? 'active' : ''}`
+                      }
+                      onClick={() => setOpenNavDropdown(null)}
+                    >
+                      <span className="google-nav-menu-icon">🏛️</span>
+                      <div className="google-nav-menu-text">
+                        <span className="google-nav-menu-title">Department Data Tasks</span>
+                        <span className="google-nav-menu-desc">Line agency indicators, telemetry &amp; task tracking</span>
+                      </div>
+                    </NavLink>
+
+                    <NavLink
+                      to="/review-queue"
+                      className={({ isActive }) =>
+                        `google-nav-menu-item ${isActive && location.pathname === '/review-queue' ? 'active' : ''}`
+                      }
+                      onClick={() => setOpenNavDropdown(null)}
+                    >
+                      <span className="google-nav-menu-icon">📋</span>
+                      <div className="google-nav-menu-text">
+                        <span className="google-nav-menu-title">Task Force Review Queue</span>
+                        <span className="google-nav-menu-desc">Inter-departmental endorsements &amp; official sign-offs</span>
+                      </div>
+                    </NavLink>
+                  </div>
+                )}
+              </div>
+
+              {/* Dropdown 3: Data & Libraries */}
+              <div className="google-nav-dropdown-wrap">
+                <button
+                  type="button"
+                  className={`google-nav-dropdown-btn ${
+                    location.pathname.startsWith('/data-library') ||
+                    location.pathname.startsWith('/flood-data') ||
+                    location.pathname.startsWith('/libraries') ||
+                    location.pathname.startsWith('/saved-queries')
+                      ? 'active'
+                      : ''
+                  } ${openNavDropdown === 'data' ? 'open' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpenNavDropdown((prev) => (prev === 'data' ? null : 'data'));
+                  }}
+                  title="Spatial Layers, Indicators, Datasets & Saved Queries"
+                >
+                  <span className="google-nav-dropdown-icon">📁</span>
+                  <span>Data &amp; Libraries</span>
+                  <span className="google-nav-arrow">▾</span>
+                </button>
+
+                {openNavDropdown === 'data' && (
+                  <div className="google-nav-menu">
+                    <NavLink
+                      to={`/data-library?hazard=${activeHazard}`}
+                      className={({ isActive }) =>
+                        `google-nav-menu-item ${isActive && location.pathname === '/data-library' ? 'active' : ''}`
+                      }
+                      onClick={() => setOpenNavDropdown(null)}
+                    >
+                      <span className="google-nav-menu-icon">📁</span>
+                      <div className="google-nav-menu-text">
+                        <span className="google-nav-menu-title">Spatial Data Library</span>
+                        <span className="google-nav-menu-desc">GIS shapefiles, GeoJSON catalogues &amp; layer inspector</span>
+                      </div>
+                    </NavLink>
+
+                    <NavLink
+                      to={`/libraries?hazard=${activeHazard}`}
+                      className={({ isActive }) =>
+                        `google-nav-menu-item ${isActive && location.pathname === '/libraries' ? 'active' : ''}`
+                      }
+                      onClick={() => setOpenNavDropdown(null)}
+                    >
+                      <span className="google-nav-menu-icon">📊</span>
+                      <div className="google-nav-menu-text">
+                        <span className="google-nav-menu-title">Approved Indicators &amp; Mapping</span>
+                        <span className="google-nav-menu-desc">Multi-hazard thresholds, formulas &amp; agency weights</span>
+                      </div>
+                    </NavLink>
+
+                    <NavLink
+                      to="/saved-queries"
+                      className={({ isActive }) =>
+                        `google-nav-menu-item ${isActive && location.pathname === '/saved-queries' ? 'active' : ''}`
+                      }
+                      onClick={() => setOpenNavDropdown(null)}
+                    >
+                      <span className="google-nav-menu-icon">🔖</span>
+                      <div className="google-nav-menu-text">
+                        <span className="google-nav-menu-title">Saved Queries &amp; Templates</span>
+                        <span className="google-nav-menu-desc">Reusable spatial query templates &amp; shareable links</span>
+                      </div>
+                    </NavLink>
+                  </div>
+                )}
+              </div>
 
               {isAdmin && (
-                <NavLink to="/settings" className={({ isActive }) => `google-nav-item${isActive ? ' active' : ''}`}>
+                <NavLink to="/settings" className={({ isActive }) => `google-nav-item ${isActive ? 'active' : ''}`}>
                   ⚙️ Settings
                 </NavLink>
               )}

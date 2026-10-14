@@ -232,3 +232,145 @@
   color: #0f172a;
   font-weight: 600;
 }
+
+/* ── Grouped Navigation Bar Dropdowns (Clean 3-Dropdown Layout) ── */
+.google-nav-dropdown-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.google-nav-dropdown-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-sans);
+  font-size: 0.83rem;
+  font-weight: 500;
+  color: #475569;
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 0.3rem 0.65rem;
+  border-radius: 6px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.google-nav-dropdown-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.google-nav-dropdown-btn.active {
+  background: rgba(26, 115, 232, 0.08);
+  color: var(--color-primary, #1a73e8);
+  font-weight: 600;
+}
+
+.google-nav-dropdown-btn.open {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: var(--border-default, #e2e8f0);
+}
+
+.google-nav-dropdown-icon {
+  font-size: 0.95rem;
+  display: inline-flex;
+  align-items: center;
+}
+
+.google-nav-arrow {
+  font-size: 0.65rem;
+  color: #94a3b8;
+  margin-left: 0.1rem;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.google-nav-dropdown-btn.open .google-nav-arrow {
+  transform: rotate(180deg);
+  color: var(--color-primary, #1a73e8);
+}
+
+.google-nav-menu {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  min-width: 310px;
+  background: #ffffff;
+  border: 1px solid var(--border-default, #e2e8f0);
+  border-radius: 12px;
+  box-shadow: 0 12px 30px -6px rgba(15, 23, 42, 0.15), 0 4px 8px -2px rgba(15, 23, 42, 0.06);
+  padding: 0.45rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  z-index: 1000;
+  animation: navMenuSlideDown 0.15s ease-out;
+}
+
+@keyframes navMenuSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.google-nav-menu-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #1e293b;
+  transition: all 0.12s ease;
+  border: 1px solid transparent;
+}
+
+.google-nav-menu-item:hover {
+  background: #f8fafc;
+  border-color: #f1f5f9;
+}
+
+.google-nav-menu-item.active {
+  background: #eff6ff;
+  border-color: #dbeafe;
+}
+
+.google-nav-menu-icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  line-height: 1;
+  margin-top: 0.1rem;
+}
+
+.google-nav-menu-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.google-nav-menu-title {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.25;
+}
+
+.google-nav-menu-item.active .google-nav-menu-title {
+  color: var(--color-primary, #1a73e8);
+}
+
+.google-nav-menu-desc {
+  font-size: 0.73rem;
+  color: #64748b;
+  line-height: 1.35;
+}
+

@@ -280,27 +280,16 @@ export default function Layout() {
                       >
                         👤 View Profile &amp; Jurisdiction
                       </Link>
-                      <Link
-                        to="/issues"
-                        className="dropdown-item"
-                        onClick={() => setProfileMenuOpen(false)}
-                      >
-                        🚨 Field Incidents &amp; 3-Tier Workflow
-                      </Link>
-                      <Link
-                        to="/review-queue"
-                        className="dropdown-item"
-                        onClick={() => setProfileMenuOpen(false)}
-                      >
-                        🏛️ Task Force Review Queue
-                      </Link>
-                      <Link
-                        to={`/libraries${activeHazard ? `?hazard=${activeHazard}` : ''}`}
-                        className="dropdown-item"
-                        onClick={() => setProfileMenuOpen(false)}
-                      >
-                        📊 Indicators &amp; Agency Library
-                      </Link>
+                      {/* Task Force Review Queue — only visible to reviewing authorities (Managers, District/State Admins) */}
+                      {(isAdmin || user.profile?.role_code === 'MANAGER' || user.profile?.role_code === 'DISTRICT_OFFICIAL') && (
+                        <Link
+                          to="/review-queue"
+                          className="dropdown-item"
+                          onClick={() => setProfileMenuOpen(false)}
+                        >
+                          🏛️ Task Force Review Queue
+                        </Link>
+                      )}
                       <button
                         className="dropdown-item"
                         style={{ color: '#dc2626', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', cursor: 'pointer' }}

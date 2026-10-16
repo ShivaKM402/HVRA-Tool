@@ -9,15 +9,17 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--bg-base, #f8fafc);
+  background: 
+    linear-gradient(180deg, rgba(15, 23, 42, 0.42) 0%, rgba(15, 23, 42, 0.68) 100%),
+    url('/kerala-command-backdrop.jpg') center/cover no-repeat fixed;
   color: var(--text-primary, #1e293b);
-  font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+  font-family: var(--font-sans);
   position: relative;
   overflow-x: hidden;
   box-sizing: border-box;
 }
 
-/* Elegant ambient mesh glows in harmony with multi-hazard theme */
+/* Elegant ambient mesh glows with smooth floating animations */
 .login-bg-glow {
   position: absolute;
   top: -120px;
@@ -25,9 +27,10 @@
   width: 650px;
   height: 650px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(26, 115, 232, 0.08) 0%, rgba(26, 115, 232, 0) 70%);
+  background: radial-gradient(circle, rgba(26, 115, 232, 0.12) 0%, rgba(26, 115, 232, 0) 70%);
   pointer-events: none;
-  filter: blur(50px);
+  filter: blur(55px);
+  animation: orbFloat1 20s ease-in-out infinite alternate;
 }
 
 .login-bg-glow-2 {
@@ -37,9 +40,10 @@
   width: 700px;
   height: 700px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(13, 148, 136, 0.07) 0%, rgba(13, 148, 136, 0) 70%);
+  background: radial-gradient(circle, rgba(13, 148, 136, 0.1) 0%, rgba(13, 148, 136, 0) 70%);
   pointer-events: none;
-  filter: blur(50px);
+  filter: blur(55px);
+  animation: orbFloat2 24s ease-in-out infinite alternate;
 }
 
 /* ── Top Portal Header Bar (Matches Console Google Topbar) ── */
@@ -48,9 +52,11 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.9rem 2.25rem;
-  background: #ffffff;
-  border-bottom: 1px solid var(--border-default, #e2e8f0);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  background: rgba(15, 23, 42, 0.86);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
   z-index: 10;
 }
 
@@ -71,6 +77,29 @@
   font-size: 1.45rem;
   box-shadow: 0 4px 14px rgba(26, 115, 232, 0.28);
   border: 1px solid rgba(255, 255, 255, 0.4);
+  position: relative;
+  transition: transform 0.25s ease;
+}
+
+.login-seal:hover {
+  transform: scale(1.05);
+}
+
+.login-seal::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 12px;
+  background: var(--color-primary-gradient, linear-gradient(135deg, #1a73e8 0%, #2563eb 100%));
+  opacity: 0.3;
+  filter: blur(6px);
+  z-index: -1;
+  animation: sealHaloPulse 3s ease-in-out infinite;
+}
+
+@keyframes sealHaloPulse {
+  0%, 100% { transform: scale(0.96); opacity: 0.25; }
+  50% { transform: scale(1.08); opacity: 0.55; }
 }
 
 .login-brand-titles {
@@ -79,24 +108,24 @@
 }
 
 .login-gov-kerala {
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   font-weight: 700;
   letter-spacing: 0.12em;
-  color: var(--color-primary, #1a73e8);
+  color: #38bdf8;
   text-transform: uppercase;
 }
 
 .login-app-name {
-  font-size: 1.15rem;
+  font-size: 1.18rem;
   font-weight: 800;
-  color: var(--text-heading, #0f172a);
+  color: #ffffff;
   letter-spacing: -0.01em;
   margin: 0.05rem 0;
 }
 
 .login-framework-sub {
   font-size: 0.76rem;
-  color: var(--text-muted, #64748b);
+  color: #cbd5e1;
 }
 
 .login-topbar-badge {
@@ -105,12 +134,12 @@
   gap: 0.5rem;
   font-size: 0.75rem;
   font-weight: 700;
-  color: #065f46;
-  background: #ecfdf5;
-  border: 1px solid #a7f3d0;
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.16);
+  border: 1px solid rgba(16, 185, 129, 0.45);
   padding: 0.35rem 0.85rem;
   border-radius: 999px;
-  box-shadow: 0 1px 2px rgba(16, 185, 129, 0.08);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
 }
 
 .login-pulse-dot {
@@ -156,35 +185,41 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #1d4ed8;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
+  color: #93c5fd;
+  background: rgba(30, 58, 138, 0.45);
+  border: 1px solid rgba(96, 165, 250, 0.45);
+  backdrop-filter: blur(10px);
   padding: 0.35rem 0.95rem;
   border-radius: 999px;
   margin-bottom: 0.75rem;
-  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.08);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
 .login-hero-title {
-  font-size: 2.15rem;
+  font-size: 2.2rem;
   font-weight: 800;
-  color: var(--text-heading, #0f172a);
+  color: #ffffff;
   margin: 0 0 0.5rem;
   letter-spacing: -0.025em;
   line-height: 1.25;
+  text-shadow: 0 3px 18px rgba(0, 0, 0, 0.7);
 }
 
 .login-hero-title span {
-  background: var(--color-primary-gradient, linear-gradient(135deg, #1a73e8 0%, #2563eb 100%));
+  background: linear-gradient(135deg, #60a5fa 0%, #38bdf8 50%, #93c5fd 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
+  text-shadow: none;
 }
 
 .login-hero-sub {
-  font-size: 0.95rem;
-  color: var(--text-secondary, #475569);
+  font-size: 0.98rem;
+  color: #f1f5f9;
   margin: 0;
   line-height: 1.55;
+  font-weight: 500;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.75);
 }
 
 /* ── Split Grid: Left (Quick-Fill First!) & Right (Manual) ── */
@@ -203,11 +238,13 @@
 
 /* ── Left: Quick-Fill Panel ── */
 .login-quick-panel {
-  background: #ffffff;
-  border: 1px solid var(--border-default, #e2e8f0);
-  border-radius: 18px;
-  padding: 1.75rem;
-  box-shadow: 0 10px 30px -10px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.03);
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 20px;
+  padding: 1.85rem;
+  box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.2);
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
@@ -282,32 +319,40 @@
   gap: 0.75rem;
 }
 
-/* Individual Role Card */
+/* Individual Role Card with Micro-Interactions */
 .login-role-card {
   background: #ffffff;
   border: 1.5px solid var(--border-default, #e2e8f0);
-  border-radius: 12px;
-  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  padding: 0.9rem 1.05rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  transition: all 0.2s ease;
+  gap: 0.85rem;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   cursor: pointer;
+  animation: fadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+
+.login-role-card:nth-child(1) { animation-delay: 40ms; }
+.login-role-card:nth-child(2) { animation-delay: 80ms; }
+.login-role-card:nth-child(3) { animation-delay: 120ms; }
+.login-role-card:nth-child(4) { animation-delay: 160ms; }
+.login-role-card:nth-child(5) { animation-delay: 200ms; }
+
 .login-role-card:hover {
-  background: #f8fafc;
+  background: #ffffff;
   border-color: var(--color-primary, #1a73e8);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(26, 115, 232, 0.12);
+  transform: translateY(-3px) scale(1.01);
+  box-shadow: 0 12px 28px -6px rgba(26, 115, 232, 0.16), 0 2px 6px rgba(0, 0, 0, 0.04);
 }
 
 .login-role-card-active {
   border-color: var(--color-primary, #1a73e8) !important;
   background: #eff6ff !important;
-  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.18) !important;
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.2), 0 8px 20px rgba(26, 115, 232, 0.12) !important;
 }
 
 .login-role-left {
@@ -436,11 +481,13 @@
 
 /* ── Right: Manual Sign-In Card ── */
 .login-form-card {
-  background: #ffffff;
-  border: 1px solid var(--border-default, #e2e8f0);
-  border-radius: 18px;
-  padding: 2rem 1.85rem;
-  box-shadow: 0 10px 30px -10px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.03);
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 20px;
+  padding: 2.1rem 1.95rem;
+  box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.2);
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
@@ -558,22 +605,39 @@
   background: var(--color-primary-gradient, linear-gradient(135deg, #1a73e8 0%, #2563eb 100%));
   color: #ffffff;
   border: none;
-  border-radius: 10px;
+  border-radius: 12px;
   font-size: 0.95rem;
   font-weight: 800;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 4px 14px rgba(26, 115, 232, 0.32);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
   margin-top: 0.35rem;
+  position: relative;
+  overflow: hidden;
+}
+.login-submit-btn::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 60%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+  transform: translateX(-150%) skewX(-20deg);
+  pointer-events: none;
+}
+.login-submit-btn:hover:not(:disabled)::after {
+  animation: buttonShineSweep 0.85s ease forwards;
 }
 .login-submit-btn:hover:not(:disabled) {
   background: linear-gradient(135deg, #1557b0 0%, #1d4ed8 100%);
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(26, 115, 232, 0.45);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(26, 115, 232, 0.45);
+}
+.login-submit-btn:active:not(:disabled) {
+  transform: scale(0.98);
 }
 .login-submit-btn:disabled {
   opacity: 0.55;
@@ -615,9 +679,10 @@
 .login-bottom-bar {
   text-align: center;
   padding: 1.25rem 2rem;
-  font-size: 0.76rem;
-  color: var(--text-muted, #64748b);
-  border-top: 1px solid var(--border-default, #e2e8f0);
-  background: #ffffff;
+  font-size: 0.78rem;
+  color: #94a3b8;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(16px);
   z-index: 10;
 }

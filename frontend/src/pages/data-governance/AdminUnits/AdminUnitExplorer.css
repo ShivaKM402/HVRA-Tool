@@ -71,16 +71,17 @@
 
 .block-pill-card {
   background: var(--bg-card);
-  border: 1px solid var(--border-default);
-  border-radius: 8px;
-  padding: 0.75rem;
-  transition: all 0.15s ease;
+  border: 1.5px solid var(--border-default);
+  border-radius: 10px;
+  padding: 0.85rem;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .block-pill-card:hover {
-  background: var(--bg-surface);
-  border-color: var(--border-bright);
-  box-shadow: 0 2px 8px rgba(120, 53, 15, 0.08);
+  background: #ffffff;
+  border-color: #93c5fd;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
 }
 
 .block-pill-name {

@@ -77,6 +77,7 @@ class AssessmentSerializer(serializers.ModelSerializer):
     module_type = serializers.CharField(source="get_module_type_display", read_only=True)
     module_code = serializers.SerializerMethodField()
     created_by_name = serializers.SerializerMethodField()
+    sent_to = serializers.SerializerMethodField()
 
     class Meta:
         model = Assessment
@@ -90,7 +91,7 @@ class AssessmentSerializer(serializers.ModelSerializer):
             "data_source", "normalization_method", "classification_method",
             "status", "error_message",
             "approval_status", "submitted_at", "reviewer_name", "reviewer_org",
-            "review_comment", "reviewed_at", "created_by_name",
+            "review_comment", "reviewed_at", "created_by_name", "sent_to",
             "indicators", "result_count",
             "created_at", "updated_at", "completed_at",
         ]
@@ -104,6 +105,11 @@ class AssessmentSerializer(serializers.ModelSerializer):
 
     def get_created_by_name(self, obj):
         return format_user_sender_label(obj.created_by)
+
+    def get_sent_to(self, obj):
+        if obj.approval_status == "SUBMITTED":
+            return obj.reviewer_name or "Senior Department Reviewer (Level 2)"
+        return None
 
 
 class AssessmentCreateSerializer(serializers.ModelSerializer):
@@ -284,6 +290,7 @@ class RiskAssessmentSerializer(serializers.ModelSerializer):
     module_type = serializers.CharField(read_only=True, default="COMPOSITE_RISK")
     module_code = serializers.SerializerMethodField()
     created_by_name = serializers.SerializerMethodField()
+    sent_to = serializers.SerializerMethodField()
 
     class Meta:
         model = RiskAssessment
@@ -297,7 +304,7 @@ class RiskAssessmentSerializer(serializers.ModelSerializer):
             "formula", "hazard_weight", "vulnerability_weight", "exposure_weight",
             "status", "error_message", "result_count",
             "approval_status", "submitted_at", "reviewer_name", "reviewer_org",
-            "review_comment", "reviewed_at", "created_by_name",
+            "review_comment", "reviewed_at", "created_by_name", "sent_to",
             "created_at", "updated_at", "completed_at",
         ]
         read_only_fields = ["status", "error_message", "created_at", "updated_at", "completed_at"]
@@ -310,6 +317,11 @@ class RiskAssessmentSerializer(serializers.ModelSerializer):
 
     def get_created_by_name(self, obj):
         return format_user_sender_label(obj.created_by)
+
+    def get_sent_to(self, obj):
+        if obj.approval_status == "SUBMITTED":
+            return obj.reviewer_name or "Senior Department Reviewer (Level 2)"
+        return None
 
 
 # ------------------------------------------------------------------

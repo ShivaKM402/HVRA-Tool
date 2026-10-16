@@ -1127,75 +1127,83 @@ def generate_assessment_pdf(assessment, report_data: dict) -> io.BytesIO:
             c.translate(-40, -30)
             W, H = PAGE_W, PAGE_H
 
-            # 1. Base Dark Slate Background
-            c.setFillColor(colors.HexColor("#0B132B"))
+            # 1. Base Soft Light Ivory / Warm Cream Background
+            c.setFillColor(colors.HexColor("#FBF9F5"))
             c.rect(0, 0, W, H, fill=1, stroke=0)
 
-            # Top Accent Stripes
-            c.setFillColor(colors.HexColor("#DC2626"))
+            # Elegant Double Formal Border
+            c.setStrokeColor(colors.HexColor("#D4C5B0"))
+            c.setLineWidth(1.2)
+            c.rect(18, 18, W - 36, H - 36, fill=0, stroke=1)
+            c.setStrokeColor(colors.HexColor("#EAE0D0"))
+            c.setLineWidth(0.6)
+            c.rect(22, 22, W - 44, H - 44, fill=0, stroke=1)
+
+            # Top Accent Stripes (Maroon & Gold Government Seal Colors)
+            c.setFillColor(colors.HexColor("#991B1B"))
             c.rect(0, H - 7, W, 7, fill=1, stroke=0)
-            c.setFillColor(colors.HexColor("#F59E0B"))
+            c.setFillColor(colors.HexColor("#D97706"))
             c.rect(0, H - 9, W, 2, fill=1, stroke=0)
 
             # 2. Government Header Emblem Banner
-            c.setFillColor(colors.HexColor("#111C38"))
+            c.setFillColor(colors.HexColor("#F3EDE2"))
             c.rect(0, H - 80, W, 71, fill=1, stroke=0)
-            c.setFillColor(colors.HexColor("#FFFFFF"))
+            c.setFillColor(colors.HexColor("#1C1917"))
             c.setFont("Helvetica-Bold", 8.5)
             c.drawCentredString(W / 2, H - 32,
                 "GOVERNMENT OF KERALA  |  DEPARTMENT OF DISASTER MANAGEMENT")
             c.setFont("Helvetica", 7.5)
-            c.setFillColor(colors.HexColor("#94A3B8"))
+            c.setFillColor(colors.HexColor("#57534E"))
             c.drawCentredString(W / 2, H - 46,
                 "Kerala State Disaster Management Authority (KSDMA)")
             c.drawCentredString(W / 2, H - 58,
                 "State Emergency Operations Centre (KSEOC) | Risk Lab")
 
-            c.setStrokeColor(colors.HexColor("#DC2626"))
+            c.setStrokeColor(colors.HexColor("#991B1B"))
             c.setLineWidth(2)
             c.line(40, H - 80, W - 40, H - 80)
 
             # 3. Main Document Title
-            c.setFillColor(colors.white)
+            c.setFillColor(colors.HexColor("#1C1917"))
             c.setFont("Helvetica-Bold", 19)
             c.drawCentredString(W / 2, H - 114, "HAZARD, VULNERABILITY & RISK ASSESSMENT")
             c.setFont("Helvetica-Bold", 13.5)
-            c.setFillColor(colors.HexColor("#60A5FA"))
+            c.setFillColor(colors.HexColor("#1E3A8A"))
             c.drawCentredString(W / 2, H - 138, f"STATE OF KERALA  --  {self.d_name.upper()} DISTRICT")
 
             # Module Badge
             badge_w, badge_h = 320, 24
-            c.setFillColor(colors.HexColor("#DC2626"))
+            c.setFillColor(colors.HexColor("#991B1B"))
             c.roundRect(W/2 - badge_w/2, H - 172, badge_w, badge_h, 4, fill=1, stroke=0)
             c.setFont("Helvetica-Bold", 9.5)
             c.setFillColor(colors.white)
             c.drawCentredString(W / 2, H - 163, f"MODULE 1: {self.m_label.upper()} ({self.h_type.upper()})")
 
             # Tagline
-            c.setFillColor(colors.HexColor("#CBD5E1"))
+            c.setFillColor(colors.HexColor("#44403C"))
             c.setFont("Helvetica", 8.5)
             c.drawCentredString(W / 2, H - 192,
                 "Multi-Criteria Spatial Flood Susceptibility Modeling & Decision Support Framework")
-            c.setFillColor(colors.HexColor("#94A3B8"))
+            c.setFillColor(colors.HexColor("#78716C"))
             c.setFont("Helvetica", 7.5)
             c.drawCentredString(W / 2, H - 205,
                 f"Target Geography: {self.d_name} District | State: {self.s_name} | Analytical Rule: R = H x V x Amount")
 
-            c.setStrokeColor(colors.HexColor("#334155"))
+            c.setStrokeColor(colors.HexColor("#D6D3D1"))
             c.setLineWidth(0.8)
             c.line(50, H - 218, W - 50, H - 218)
 
             # 4. CARD 1: ASSESSMENT SCOPE & SPATIAL PARAMETERS (y = 505 to 605)
-            c.setFillColor(colors.HexColor("#111C38"))
+            c.setFillColor(colors.HexColor("#FFFFFF"))
             c.roundRect(50, 505, W - 100, 100, 5, fill=1, stroke=0)
-            c.setStrokeColor(colors.HexColor("#2563EB"))
+            c.setStrokeColor(colors.HexColor("#D4C5B0"))
             c.setLineWidth(1)
             c.roundRect(50, 505, W - 100, 100, 5, fill=0, stroke=1)
             # Card 1 Header Strip
-            c.setFillColor(colors.HexColor("#1E293B"))
+            c.setFillColor(colors.HexColor("#F3EDE2"))
             c.rect(50, 583, W - 100, 22, fill=1, stroke=0)
             c.setFont("Helvetica-Bold", 8)
-            c.setFillColor(colors.HexColor("#60A5FA"))
+            c.setFillColor(colors.HexColor("#78350F"))
             c.drawString(65, 590, "1. ASSESSMENT SCOPE & SPATIAL PARAMETERS")
 
             rows_c1_left = [
@@ -1213,47 +1221,47 @@ def generate_assessment_pdf(assessment, report_data: dict) -> io.BytesIO:
             y_r = 568
             for lbl, val in rows_c1_left:
                 c.setFont("Helvetica-Bold", 7.2)
-                c.setFillColor(colors.HexColor("#93C5FD"))
+                c.setFillColor(colors.HexColor("#1E40AF"))
                 c.drawString(65, y_r, lbl)
                 c.setFont("Helvetica", 7.2)
-                c.setFillColor(colors.HexColor("#E2E8F0"))
+                c.setFillColor(colors.HexColor("#292524"))
                 c.drawString(165, y_r, val)
                 y_r -= 15
 
             y_r = 568
             for lbl, val in rows_c1_right:
                 c.setFont("Helvetica-Bold", 7.2)
-                c.setFillColor(colors.HexColor("#93C5FD"))
+                c.setFillColor(colors.HexColor("#1E40AF"))
                 c.drawString(320, y_r, lbl)
                 c.setFont("Helvetica", 7.2)
-                c.setFillColor(colors.HexColor("#E2E8F0"))
+                c.setFillColor(colors.HexColor("#292524"))
                 c.drawString(425, y_r, val)
                 y_r -= 15
 
             # 5. CARD 2: EXECUTIVE HAZARD SUSCEPTIBILITY CLASSIFICATION (y = 365 to 490)
-            c.setFillColor(colors.HexColor("#111C38"))
+            c.setFillColor(colors.HexColor("#FFFFFF"))
             c.roundRect(50, 365, W - 100, 125, 5, fill=1, stroke=0)
-            c.setStrokeColor(colors.HexColor("#3B82F6"))
+            c.setStrokeColor(colors.HexColor("#D4C5B0"))
             c.setLineWidth(1)
             c.roundRect(50, 365, W - 100, 125, 5, fill=0, stroke=1)
             # Card 2 Header Strip
-            c.setFillColor(colors.HexColor("#1E293B"))
+            c.setFillColor(colors.HexColor("#F3EDE2"))
             c.rect(50, 468, W - 100, 22, fill=1, stroke=0)
             c.setFont("Helvetica-Bold", 8)
-            c.setFillColor(colors.HexColor("#60A5FA"))
+            c.setFillColor(colors.HexColor("#1C1917"))
             c.drawString(65, 475, "2. EXECUTIVE HAZARD SUSCEPTIBILITY CLASSIFICATION (KSDMA HVRA TIERS)")
 
             # 4 Metric Boxes
             metric_configs = [
-                ("HIGH HAZARD (HH)", "Score >= 7.0", str(self.summary.get("HH", 0)), "Priority Action", "#DC2626", "#450A0A", "#EF4444"),
-                ("MODERATE HAZARD (MH)", "Score 4.0 - 6.9", str(self.summary.get("MH", 0)), "Enhanced Monitoring", "#EA580C", "#431407", "#F97316"),
-                ("LOW HAZARD (LH)", "Score 1.5 - 3.9", str(self.summary.get("LH", 0)), "Standard Preparedness", "#D97706", "#451A03", "#FBBF24"),
-                ("NIL HAZARD (NH)", "Score < 1.5", str(self.summary.get("NH", 0)), "Baseline Surveillance", "#10B981", "#064E3B", "#34D399"),
+                ("HIGH HAZARD (HH)", "Score >= 7.0", str(self.summary.get("HH", 0)), "Priority Action", "#DC2626", "#FEF2F2", "#B91C1C", "#991B1B"),
+                ("MODERATE HAZARD (MH)", "Score 4.0 - 6.9", str(self.summary.get("MH", 0)), "Enhanced Monitoring", "#EA580C", "#FFF7ED", "#C2410C", "#9A3412"),
+                ("LOW HAZARD (LH)", "Score 1.5 - 3.9", str(self.summary.get("LH", 0)), "Standard Preparedness", "#D97706", "#FEFCE8", "#B45309", "#854D0E"),
+                ("NIL HAZARD (NH)", "Score < 1.5", str(self.summary.get("NH", 0)), "Baseline Surveillance", "#10B981", "#F0FDF4", "#047857", "#065F46"),
             ]
             box_x = 65
             box_w = 108
             box_h = 58
-            for label, rng, cnt, sub, border_c, bg_c, num_c in metric_configs:
+            for label, rng, cnt, sub, border_c, bg_c, num_c, label_c in metric_configs:
                 c.setFillColor(colors.HexColor(bg_c))
                 c.roundRect(box_x, 400, box_w, box_h, 4, fill=1, stroke=0)
                 c.setStrokeColor(colors.HexColor(border_c))
@@ -1261,37 +1269,37 @@ def generate_assessment_pdf(assessment, report_data: dict) -> io.BytesIO:
                 c.roundRect(box_x, 400, box_w, box_h, 4, fill=0, stroke=1)
 
                 c.setFont("Helvetica-Bold", 6.2)
-                c.setFillColor(colors.white)
+                c.setFillColor(colors.HexColor(label_c))
                 c.drawCentredString(box_x + box_w/2, 447, label)
                 c.setFont("Helvetica", 6.0)
-                c.setFillColor(colors.HexColor("#CBD5E1"))
+                c.setFillColor(colors.HexColor("#57534E"))
                 c.drawCentredString(box_x + box_w/2, 437, rng)
                 c.setFont("Helvetica-Bold", 16)
                 c.setFillColor(colors.HexColor(num_c))
                 c.drawCentredString(box_x + box_w/2, 417, cnt)
                 c.setFont("Helvetica-Oblique", 5.5)
-                c.setFillColor(colors.HexColor("#CBD5E1"))
+                c.setFillColor(colors.HexColor("#78716C"))
                 c.drawCentredString(box_x + box_w/2, 406, sub)
                 box_x += box_w + 12
 
             c.setFont("Helvetica", 7.2)
-            c.setFillColor(colors.HexColor("#CBD5E1"))
+            c.setFillColor(colors.HexColor("#57534E"))
             lh_cnt = self.summary.get("LH", 0)
             nh_cnt = self.summary.get("NH", 0)
             c.drawCentredString(W / 2, 380,
                 f"Official Distribution: {lh_cnt} units classified as Low Hazard (LH) and {nh_cnt} units classified as Nil Hazard (NH) under KSDMA Chapter 3.5.")
 
             # 6. CARD 3: INSTITUTIONAL JURISDICTION & STATUTORY MANDATE (y = 235 to 350)
-            c.setFillColor(colors.HexColor("#111C38"))
+            c.setFillColor(colors.HexColor("#FFFFFF"))
             c.roundRect(50, 235, W - 100, 115, 5, fill=1, stroke=0)
-            c.setStrokeColor(colors.HexColor("#475569"))
+            c.setStrokeColor(colors.HexColor("#D4C5B0"))
             c.setLineWidth(1)
             c.roundRect(50, 235, W - 100, 115, 5, fill=0, stroke=1)
             # Card 3 Header Strip
-            c.setFillColor(colors.HexColor("#1E293B"))
+            c.setFillColor(colors.HexColor("#F3EDE2"))
             c.rect(50, 328, W - 100, 22, fill=1, stroke=0)
             c.setFont("Helvetica-Bold", 8)
-            c.setFillColor(colors.HexColor("#94A3B8"))
+            c.setFillColor(colors.HexColor("#44403C"))
             c.drawString(65, 335, "3. INSTITUTIONAL JURISDICTION & STATUTORY MANDATE")
 
             rows_c3 = [
@@ -1304,55 +1312,55 @@ def generate_assessment_pdf(assessment, report_data: dict) -> io.BytesIO:
             y_r3 = 312
             for lbl, val in rows_c3:
                 c.setFont("Helvetica-Bold", 7.2)
-                c.setFillColor(colors.HexColor("#93C5FD"))
+                c.setFillColor(colors.HexColor("#1E40AF"))
                 c.drawString(65, y_r3, lbl)
                 c.setFont("Helvetica", 7.2)
-                c.setFillColor(colors.HexColor("#E2E8F0"))
+                c.setFillColor(colors.HexColor("#292524"))
                 c.drawString(205, y_r3, val)
                 y_r3 -= 14
 
             # 7. CARD 4: DOCUMENT AUTHENTICATION & RESTRICTION NOTICE (y = 145 to 220)
-            c.setFillColor(colors.HexColor("#0F172A"))
+            c.setFillColor(colors.HexColor("#FEF3C7"))
             c.roundRect(50, 145, W - 100, 75, 4, fill=1, stroke=0)
             c.setStrokeColor(colors.HexColor("#F59E0B"))
             c.setLineWidth(0.8)
             c.roundRect(50, 145, W - 100, 75, 4, fill=0, stroke=1)
             c.setFont("Helvetica-Bold", 7.5)
-            c.setFillColor(colors.HexColor("#F59E0B"))
+            c.setFillColor(colors.HexColor("#92400E"))
             c.drawString(65, 205, "NOTICE: RESTRICTED OFFICIAL PLANNING DOCUMENT")
             c.setFont("Helvetica", 7.0)
-            c.setFillColor(colors.HexColor("#E2E8F0"))
+            c.setFillColor(colors.HexColor("#78350F"))
             c.drawString(65, 191, "This document contains empirical spatial flood hazard susceptibility assessments prepared by the KSDMA Risk Lab.")
-            c.setFillColor(colors.HexColor("#CBD5E1"))
+            c.setFillColor(colors.HexColor("#92400E"))
             c.drawString(65, 178, "The findings are formulated to guide the District Disaster Management Authority (DDMA) in resource pre-positioning,")
             c.drawString(65, 165, "emergency evacuation route planning, and annual monsoon contingency operations. Unauthorized reproduction is prohibited.")
 
             # 8. Bottom Official Footer Strip (y = 0 to 75)
-            c.setFillColor(colors.HexColor("#0A1128"))
+            c.setFillColor(colors.HexColor("#F3EDE2"))
             c.rect(0, 0, W, 75, fill=1, stroke=0)
-            c.setStrokeColor(colors.HexColor("#3B82F6"))
+            c.setStrokeColor(colors.HexColor("#D4C5B0"))
             c.setLineWidth(1.2)
             c.line(0, 75, W, 75)
-            c.setStrokeColor(colors.HexColor("#F59E0B"))
+            c.setStrokeColor(colors.HexColor("#D97706"))
             c.setLineWidth(0.6)
             c.line(0, 73, W, 73)
 
             c.setFont("Helvetica", 7.5)
-            c.setFillColor(colors.HexColor("#94A3B8"))
+            c.setFillColor(colors.HexColor("#57534E"))
             c.drawString(40, 52, f"Date of Publication: {self.now}")
             c.setFont("Helvetica-Bold", 7.5)
-            c.setFillColor(colors.HexColor("#F87171"))
+            c.setFillColor(colors.HexColor("#991B1B"))
             c.drawCentredString(W / 2, 52, "OFFICIAL DISASTER ASSESSMENT -- STRICTLY CONFIDENTIAL")
             c.setFont("Helvetica", 7.5)
-            c.setFillColor(colors.HexColor("#94A3B8"))
+            c.setFillColor(colors.HexColor("#57534E"))
             c.drawRightString(W - 40, 52, "Document ID: KSDMA-HVRA-M1-2026")
 
             c.setFont("Helvetica", 6.8)
-            c.setFillColor(colors.HexColor("#64748B"))
+            c.setFillColor(colors.HexColor("#78716C"))
             c.drawCentredString(W / 2, 34,
                 "Prepared by: KSDMA Risk Lab | State Emergency Operations Centre (KSEOC), Observatory Hills, Thiruvananthapuram")
             c.setFont("Helvetica", 6.2)
-            c.setFillColor(colors.HexColor("#475569"))
+            c.setFillColor(colors.HexColor("#A8A29E"))
             c.drawCentredString(W / 2, 18,
                 "Government of Kerala | Department of Disaster Management | www.sdma.kerala.gov.in")
 

@@ -9,6 +9,22 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import {
+  ShieldCheck,
+  Building2,
+  Landmark,
+  HardHat,
+  Briefcase,
+  UserCheck,
+  User,
+  Lock,
+  Eye,
+  EyeOff,
+  Zap,
+  Loader2,
+  LogIn,
+  AlertTriangle,
+} from 'lucide-react';
 import './Login.css';
 
 interface GovernanceRoleAccount {
@@ -18,7 +34,6 @@ interface GovernanceRoleAccount {
   username: string;
   password: string;
   role: string;
-  icon: string;
   desc: string;
   scope: string;
   category: 'FIELD' | 'ADMIN';
@@ -32,7 +47,6 @@ const GOVERNANCE_ROLES: GovernanceRoleAccount[] = [
     username: 'employee',
     password: 'employee123',
     role: 'DEPARTMENT_OFFICER',
-    icon: '👷‍♂️',
     desc: 'Enters field telemetry, spatial records & submits department surveys',
     scope: 'Line Department / Panchayats',
     category: 'FIELD',
@@ -44,7 +58,6 @@ const GOVERNANCE_ROLES: GovernanceRoleAccount[] = [
     username: 'senior_employee',
     password: 'senior123',
     role: 'SENIOR_OFFICER',
-    icon: '👔',
     desc: 'Verifies baseline records, validates boundaries & line clearance',
     scope: 'Executive Engineer / HoD Office',
     category: 'FIELD',
@@ -56,7 +69,6 @@ const GOVERNANCE_ROLES: GovernanceRoleAccount[] = [
     username: 'manager',
     password: 'manager123',
     role: 'MANAGER',
-    icon: '💼',
     desc: 'Coordinates inter-department sign-offs & reviews Task Force queue',
     scope: 'DEOC Operations / Review Queue',
     category: 'FIELD',
@@ -68,7 +80,6 @@ const GOVERNANCE_ROLES: GovernanceRoleAccount[] = [
     username: 'district_admin',
     password: 'district123',
     role: 'DISTRICT_OFFICIAL',
-    icon: '🏢',
     desc: 'Formally endorses & signs off on district hazard & risk assessments',
     scope: 'District Collectorate / DDMA',
     category: 'ADMIN',
@@ -80,12 +91,28 @@ const GOVERNANCE_ROLES: GovernanceRoleAccount[] = [
     username: 'state_admin',
     password: 'admin123',
     role: 'PLATFORM_ADMIN',
-    icon: '🏛️',
     desc: 'Statewide governance, master policy calibration & system authority',
     scope: 'Kerala State Disaster Management',
     category: 'ADMIN',
   },
 ];
+
+const getRoleIcon = (level: number) => {
+  switch (level) {
+    case 1:
+      return <HardHat size={20} color="#2563eb" />;
+    case 2:
+      return <UserCheck size={20} color="#0d9488" />;
+    case 3:
+      return <Briefcase size={20} color="#7c3aed" />;
+    case 4:
+      return <Building2 size={20} color="#d97706" />;
+    case 5:
+      return <Landmark size={20} color="#1d4ed8" />;
+    default:
+      return <User size={20} color="#2563eb" />;
+  }
+};
 
 export default function Login() {
   const { login } = useAuth();
@@ -148,7 +175,7 @@ export default function Login() {
     setError(null);
   };
 
-  const filteredRoles = GOVERNANCE_ROLES.filter(acc => {
+  const filteredRoles = GOVERNANCE_ROLES.filter((acc) => {
     if (activeTab === 'ALL') return true;
     return acc.category === activeTab;
   });
@@ -163,7 +190,7 @@ export default function Login() {
       <header className="login-topbar">
         <div className="login-brand-left">
           <div className="login-seal">
-            <span>🛡️</span>
+            <ShieldCheck size={24} color="#ffffff" />
           </div>
           <div className="login-brand-titles">
             <span className="login-gov-kerala">Government of Kerala</span>
@@ -183,7 +210,8 @@ export default function Login() {
         {/* Hero Section */}
         <div className="login-hero">
           <div className="login-hero-pill">
-            <span>🏛️ 5-Tier Officer Sign-In</span>
+            <Landmark size={14} color="#1d4ed8" />
+            <span>5-Tier Officer Sign-In</span>
           </div>
           <h1 className="login-hero-title">
             Sign in to the <span>HVRA Command Center</span>
@@ -195,13 +223,13 @@ export default function Login() {
 
         {/* ── Split Grid: Quick-Fill First (Left) + Manual (Right) ── */}
         <div className="login-split-grid">
-
           {/* ── Quick-Fill Panel (PROMINENT FIRST) ── */}
           <div className="login-quick-panel">
             <div className="login-quick-head">
               <div className="login-quick-title-group">
                 <h3>
-                  <span>⚡</span> Quick-Fill &amp; 1-Click Sign-In
+                  <Zap size={18} color="#f59e0b" fill="#f59e0b" />
+                  <span>Quick-Fill &amp; 1-Click Sign-In</span>
                 </h3>
                 <p>Click any officer role to sign in instantly without typing.</p>
               </div>
@@ -245,7 +273,7 @@ export default function Login() {
                       title="Click to fill credentials into the form"
                     >
                       <div className="login-role-left">
-                        <div className="login-role-icon">{acc.icon}</div>
+                        <div className="login-role-icon">{getRoleIcon(acc.level)}</div>
                         <div className="login-role-meta">
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                             <span className="login-role-name">{acc.label}</span>
@@ -254,7 +282,9 @@ export default function Login() {
                             </span>
                           </div>
                           <span className="login-role-desc">{acc.desc}</span>
-                          <span className="login-role-user">@{acc.username} · {acc.scope}</span>
+                          <span className="login-role-user">
+                            @{acc.username} · {acc.scope}
+                          </span>
                         </div>
                       </div>
 
@@ -267,8 +297,10 @@ export default function Login() {
                         }}
                         disabled={busy}
                         title={`Sign in immediately as ${acc.label}`}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
                       >
-                        ⚡ Sign In
+                        <Zap size={12} fill="currentColor" />
+                        <span>Sign In</span>
                       </button>
                     </div>
                   );
@@ -286,7 +318,7 @@ export default function Login() {
 
             {error && (
               <div className="login-alert-error">
-                <span>⚠️</span>
+                <AlertTriangle size={18} color="#dc2626" style={{ flexShrink: 0 }} />
                 <div>{error}</div>
               </div>
             )}
@@ -297,7 +329,9 @@ export default function Login() {
                   Official Username
                 </label>
                 <div className="login-input-wrap">
-                  <span className="login-input-icon">👤</span>
+                  <span className="login-input-icon">
+                    <User size={16} color="#64748b" />
+                  </span>
                   <input
                     id="login-username"
                     className="login-input"
@@ -316,7 +350,9 @@ export default function Login() {
                   <span>Secure Password</span>
                 </label>
                 <div className="login-input-wrap">
-                  <span className="login-input-icon">🔒</span>
+                  <span className="login-input-icon">
+                    <Lock size={16} color="#64748b" />
+                  </span>
                   <input
                     id="login-password"
                     className="login-input"
@@ -332,7 +368,7 @@ export default function Login() {
                     onClick={() => setShowPassword(!showPassword)}
                     title={showPassword ? 'Hide password' : 'Show password'}
                   >
-                    {showPassword ? '👁️' : '👁️‍🗨️'}
+                    {showPassword ? <EyeOff size={16} color="#64748b" /> : <Eye size={16} color="#64748b" />}
                   </button>
                 </div>
               </div>
@@ -341,8 +377,19 @@ export default function Login() {
                 type="submit"
                 className="login-submit-btn"
                 disabled={busy}
+                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
               >
-                {busy ? '⏳ Authenticating…' : '🔐 Sign In to Portal'}
+                {busy ? (
+                  <>
+                    <Loader2 size={18} style={{ animation: 'spin 0.8s linear infinite' }} />
+                    <span>Authenticating…</span>
+                  </>
+                ) : (
+                  <>
+                    <LogIn size={18} />
+                    <span>Sign In to Portal</span>
+                  </>
+                )}
               </button>
             </form>
 
@@ -353,12 +400,11 @@ export default function Login() {
               </Link>
 
               <div className="login-compliance-badge">
-                <span>🛡️</span>
+                <ShieldCheck size={16} color="#059669" />
                 <span>Protected by KSDMA Role-Based Security Framework (HVRA §2)</span>
               </div>
             </div>
           </div>
-
         </div>
       </main>
 

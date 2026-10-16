@@ -113,7 +113,7 @@
   background: var(--color-primary);
   border-color: var(--color-primary);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(180, 83, 9, 0.3);
+  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.3);
 }
 
 /* ---------- sections ---------- */
@@ -156,7 +156,7 @@
   background: var(--color-primary);
   border-color: var(--color-primary);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(180, 83, 9, 0.35);
+  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.35);
 }
 
 /* ---------- Q2 fields ---------- */
@@ -182,7 +182,7 @@
 .qb-field select:focus,
 .qb-field input:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.15);
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.15);
 }
 .qb-grow { flex: 1 1 240px; }
 .qb-search { min-width: 140px; }
@@ -247,7 +247,7 @@
   border-radius: 6px;
   transition: background var(--transition-fast);
 }
-.qb-ind.on { background: rgba(180, 83, 9, 0.05); }
+.qb-ind.on { background: rgba(26, 115, 232, 0.05); }
 .qb-ind-title { font-weight: 600; color: var(--text-heading); line-height: 1.25; }
 .qb-ind-desc {
   font-size: 0.74rem;
@@ -303,7 +303,7 @@
 .qb-ds.active {
   border-color: var(--color-primary);
   background: var(--bg-surface);
-  box-shadow: 0 0 0 2px rgba(180, 83, 9, 0.2);
+  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
 }
 .qb-uploadbtn { white-space: nowrap; }
 
@@ -327,12 +327,12 @@
   font-size: 0.92rem;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(180, 83, 9, 0.3);
+  box-shadow: 0 4px 14px rgba(26, 115, 232, 0.3);
   transition: all var(--transition-fast);
 }
 .qb-generate-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(180, 83, 9, 0.4);
+  box-shadow: 0 8px 24px rgba(26, 115, 232, 0.4);
 }
 .qb-generate-btn:disabled {
   background: #a8a29e;

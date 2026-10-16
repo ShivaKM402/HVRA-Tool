@@ -63,36 +63,39 @@ export default function Register() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      background: 'radial-gradient(circle at 15% 20%, rgba(37, 99, 235, 0.18) 0%, rgba(9, 14, 26, 0.98) 70%), linear-gradient(135deg, #090e1a 0%, #0f172a 50%, #1e293b 100%)',
-      padding: '2.5rem 1rem'
+      background: 'var(--bg-base, #f8fafc)',
+      padding: '2.5rem 1rem',
+      position: 'relative',
+      overflow: 'hidden',
     }}>
-      <div className="card" style={{
+      {/* Ambient Animated Mesh Glows */}
+      <div className="login-bg-glow" />
+      <div className="login-bg-glow-2" />
+
+      <div className="card hover-elevate" style={{
         width: '100%',
-        maxWidth: 500,
-        boxShadow: '0 24px 60px -12px rgba(0, 0, 0, 0.45)',
-        border: '1px solid rgba(255, 255, 255, 0.12)',
-        borderRadius: 'var(--radius-2xl)',
+        maxWidth: 520,
+        boxShadow: '0 20px 50px -10px rgba(15, 23, 42, 0.12), 0 4px 12px rgba(15, 23, 42, 0.04)',
+        border: '1.5px solid var(--border-default, #e2e8f0)',
+        borderRadius: '20px',
         background: '#ffffff',
-        animation: 'fadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+        animation: 'pageEntrance 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        zIndex: 10,
+        position: 'relative',
       }}>
         <div className="card-header" style={{
           textAlign: 'center',
           flexDirection: 'column',
-          padding: '2rem 2rem 1.25rem',
+          padding: '2.25rem 2rem 1.25rem',
           borderBottom: '1px solid #f1f5f9',
           background: 'linear-gradient(180deg, #ffffff 0%, #fafbfd 100%)'
         }}>
-          <div style={{
-            width: 50,
-            height: 50,
+          <div className="login-seal" style={{
+            width: 52,
+            height: 52,
             borderRadius: '14px',
-            background: 'var(--color-primary-gradient)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '1.6rem',
+            fontSize: '1.65rem',
             margin: '0 auto 0.85rem',
-            boxShadow: '0 4px 14px rgba(37, 99, 235, 0.35)'
           }}>
             🌊
           </div>

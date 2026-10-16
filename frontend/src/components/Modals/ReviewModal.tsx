@@ -34,11 +34,10 @@ const REVIEW_ITEMS = [
 ];
 
 const SEND_TO_OPTIONS = [
-  { value: 'district_collector', label: 'District Collector' },
-  { value: 'ksdma_officer', label: 'KSDMA Senior Officer' },
-  { value: 'state_coordinator', label: 'State Disaster Coordinator' },
-  { value: 'task_force_lead', label: 'Task Force Lead' },
-  { value: 'department_head', label: 'Department Head' },
+  { value: 'Senior Department Reviewer (Level 2 Technical Review)', label: 'Senior Department Reviewer (Level 2 Technical Review)' },
+  { value: 'Executive Manager / Approving Authority (Level 3 Endorsement)', label: 'Executive Manager / Approving Authority (Level 3 Endorsement)' },
+  { value: 'District Collector / DDMA Chairperson (Level 4 Statutory Clearance)', label: 'District Collector / DDMA Chairperson (Level 4 Statutory Clearance)' },
+  { value: 'State Disaster Management Authority (KSDMA Lead)', label: 'State Disaster Management Authority (KSDMA Lead)' },
 ];
 
 export default function ReviewModal({
@@ -55,7 +54,7 @@ export default function ReviewModal({
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [checkedItems, setCheckedItems] = useState<Set<number>>(new Set());
-  const [sendTo, setSendTo] = useState('district_collector');
+  const [sendTo, setSendTo] = useState(SEND_TO_OPTIONS[0].value);
   const [note, setNote] = useState('');
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -83,14 +82,19 @@ export default function ReviewModal({
   const handleSubmit = async () => {
     try {
       setLoading(true);
-      if (isRisk) {
-        await submitRiskForReview(assessmentId);
-      } else {
-        await submitAssessmentForReview(assessmentId);
-      }
       const recipient = SEND_TO_OPTIONS.find(o => o.value === sendTo)?.label || sendTo;
+      const payload = {
+        sent_to: recipient,
+        note: note,
+        reviewer_org: 'Kerala State Disaster Management Authority (KSDMA)',
+      };
+      if (isRisk) {
+        await submitRiskForReview(assessmentId, payload);
+      } else {
+        await submitAssessmentForReview(assessmentId, payload);
+      }
       showToast({
-        title: 'Sent for Review ✓',
+        title: 'Dispatched for Review ✓',
         message: `Report sent to ${recipient}.`,
         type: 'success',
       });

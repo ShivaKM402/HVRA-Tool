@@ -1,0 +1,510 @@
+/**
+ * LiveWeather.css — Open-Meteo Live Weather & Flood Hydrology Dashboard
+ */
+
+.weather-page-container {
+  padding: 1.5rem 2rem;
+  max-width: 1380px;
+  margin: 0 auto;
+  font-family: var(--font-sans, system-ui, -apple-system, sans-serif);
+  color: #0f172a;
+}
+
+/* Header Bar */
+.weather-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.weather-title-area h1 {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.weather-subtitle {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.weather-source-badge {
+  background: #f1f5f9;
+  color: #0284c7;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.weather-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.district-picker-select {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1.5px solid #cbd5e1;
+  background: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1e293b;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.district-picker-select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.refresh-weather-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.refresh-weather-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+/* Alert Banner */
+.weather-alert-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  border-left: 6px solid;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.alert-icon-box {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.alert-content-box h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.alert-content-box p {
+  margin: 0.25rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+/* Primary Weather Overview Card */
+.weather-overview-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 2fr;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 960px) {
+  .weather-overview-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.current-hero-card {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #ffffff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.15);
+}
+
+.hero-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.hero-temp-large {
+  font-family: var(--font-numeric);
+  font-feature-settings: 'tnum' 1;
+  font-variant-numeric: tabular-nums;
+  font-size: 3.2rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #ffffff;
+}
+
+.hero-condition-desc {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #94a3b8;
+  margin-top: 0.35rem;
+}
+
+.hero-weather-icon {
+  font-size: 3.5rem;
+  line-height: 1;
+}
+
+.hero-metrics-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.hero-mini-stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.hero-stat-label {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.hero-stat-val {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin-top: 2px;
+}
+
+/* Quick Metrics Grid */
+.telemetry-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.telemetry-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.telemetry-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+}
+
+.telemetry-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.telemetry-card-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.telemetry-card-icon {
+  font-size: 1.25rem;
+}
+
+.telemetry-card-val {
+  font-family: var(--font-numeric);
+  font-feature-settings: 'tnum' 1;
+  font-variant-numeric: tabular-nums;
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0.6rem 0 0.2rem;
+}
+
+.telemetry-card-sub {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+/* Hourly Timeline Strip */
+.timeline-section-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.timeline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.timeline-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.hourly-timeline-scroll {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.hourly-timeline-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+.hourly-timeline-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+.hourly-cell {
+  flex: 0 0 76px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.65rem 0.4rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.hourly-time {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.hourly-icon {
+  font-size: 1.3rem;
+}
+
+.hourly-temp {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.hourly-rain {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #0284c7;
+  background: #e0f2fe;
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+
+/* 7-Day Forecast Grid */
+.forecast-section-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.daily-forecast-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.daily-forecast-item {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1rem 0.75rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.15s ease;
+}
+
+.daily-forecast-item:hover {
+  background: #ffffff;
+  border-color: #bfdbfe;
+  box-shadow: 0 3px 8px rgba(37, 99, 235, 0.08);
+}
+
+.daily-date-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.daily-icon-large {
+  font-size: 2rem;
+  line-height: 1;
+  margin: 0.2rem 0;
+}
+
+.daily-temp-range {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.daily-temp-min {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.daily-rain-pill {
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* GloFAS River Discharge Section */
+.discharge-section-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.discharge-header-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.discharge-header-strip h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.discharge-status-pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.discharge-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  margin-top: 0.75rem;
+}
+
+.discharge-table th {
+  background: #f1f5f9;
+  color: #475569;
+  font-weight: 700;
+  text-align: left;
+  padding: 0.6rem 0.8rem;
+  border-bottom: 1px solid #cbd5e1;
+}
+
+.discharge-table td {
+  padding: 0.65rem 0.8rem;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+}
+
+.discharge-table tr:hover td {
+  background: #f8fafc;
+}
+
+/* Nav Dropdown Mini Weather Box in Layout */
+.nav-weather-dropdown-card {
+  padding: 0.85rem 1rem;
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+  color: #ffffff;
+  border-radius: 10px;
+  margin: 0.35rem 0.5rem 0.5rem;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+}
+
+.nav-weather-card-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nav-weather-district {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.nav-weather-temp {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #38bdf8;
+}
+
+.nav-weather-sub {
+  font-size: 0.72rem;
+  color: #cbd5e1;
+  margin-top: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}

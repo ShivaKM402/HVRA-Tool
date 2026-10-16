@@ -29,6 +29,11 @@ DEMO_USERS = [
     ("ernakulam", "district123", "Ernakulam", "District", UserRole.DISTRICT_OFFICIAL, "DDMA Ernakulam", "Ernakulam"),
     ("analyst", "analyst123", "GIS", "Analyst", UserRole.ANALYST, "SEOC", None),
     ("viewer", "viewer123", "Public", "Viewer", UserRole.VIEWER, "Citizen", None),
+    ("employee", "employee123", "Employee", "", UserRole.DEPARTMENT_OFFICER, "Water Resources Department", None),
+    ("senior_employee", "senior123", "Senior Employee", "", UserRole.SENIOR_OFFICER, "Executive Engineer Office", None),
+    ("manager", "manager123", "Operations", "Manager", UserRole.MANAGER, "District Collectorate / DEOC", None),
+    ("district_admin", "district_admin123", "District", "Administrator", UserRole.DISTRICT_OFFICIAL, "DDMA District Emergency Operations", "Ernakulam"),
+    ("state_admin", "state_admin123", "State", "Administrator", UserRole.PLATFORM_ADMIN, "Kerala State Disaster Management Authority", None),
 ]
 
 

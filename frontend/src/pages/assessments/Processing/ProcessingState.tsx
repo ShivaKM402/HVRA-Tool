@@ -76,7 +76,13 @@ export default function ProcessingState() {
     <div className="processing-container">
       <div className="processing-card">
         <div className="processing-header">
-          <div className="spinner-large" />
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
+            <div className="radar-screen" style={{ width: 88, height: 88 }}>
+              <div className="radar-beam" />
+              <div className="radar-ping-ring" />
+              <div className="radar-center-blip" />
+            </div>
+          </div>
           <h2 className="processing-title">Generating Assessment: {assessmentName}</h2>
           <p className="processing-desc">
             The mathematical scoring and GIS intersection engine is running defensible spatial algorithms for your selected territory.

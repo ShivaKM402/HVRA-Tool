@@ -4,7 +4,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     HazardTypeViewSet, HazardEventViewSet, HazardLayerViewSet,
     HazardIndicatorViewSet, ClimateContextViewSet, RecommendationViewSet,
-    FloodBlockSummaryView,
+    FloodBlockSummaryView, DisasterAlertsView,
 )
 
 router = DefaultRouter()
@@ -17,5 +17,7 @@ router.register(r"recommendations", RecommendationViewSet, basename="recommendat
 
 urlpatterns = [
     path("flood/block-summary/", FloodBlockSummaryView.as_view(), name="flood-block-summary"),
+    path("disaster-alerts/", DisasterAlertsView.as_view(), name="disaster-alerts"),
+    path("live-alerts/", DisasterAlertsView.as_view(), name="live-alerts"),
     path("", include(router.urls)),
 ]

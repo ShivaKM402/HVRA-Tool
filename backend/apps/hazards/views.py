@@ -215,3 +215,55 @@ class FloodBlockSummaryView(APIView):
         
         response_data = list(results.values())
         return Response(response_data)
+
+
+class DisasterAlertsView(APIView):
+    """
+    Live Disaster News & Official Alerts API (HVRA Dashboard Upgrade)
+    
+    Returns consolidated real-time alerts from:
+    1. NDMA SACHET CAP 1.2 XML feed (Official KSDMA / IMD alerts)
+    2. USGS Earthquake Hazards Program (Observed regional seismic occurrences)
+    3. Kerala Disaster News monitoring (Curated media feed)
+    4. KSDMA & IMD official portal directory & 24/7 SEOC emergency helplines
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        from .alerts_service import get_live_disaster_dashboard_feed
+        
+        force_refresh = request.query_params.get("force_refresh", "").lower() in ("1", "true", "yes")
+        district = request.query_params.get("district", "").strip().lower()
+        hazard_type = request.query_params.get("hazard_type", "").strip().upper()
+        source_type = request.query_params.get("source_type", "").strip().upper()
+        severity = request.query_params.get("severity", "").strip().upper()
+
+        feed_data = get_live_disaster_dashboard_feed(force_refresh=force_refresh)
+        alerts = feed_data.get("alerts", [])
+
+        if district and district != "all":
+            clean_dist = district.replace("district", "").strip()
+            alerts = [
+                a for a in alerts
+                if any(clean_dist in d.lower() for d in a.get("affected_districts", []))
+                or "statewide" in a.get("affected_district", "").lower()
+            ]
+
+        if hazard_type and hazard_type != "ALL":
+            alerts = [a for a in alerts if a.get("hazard_type") == hazard_type]
+
+        if source_type and source_type != "ALL":
+            if source_type in ("OFFICIAL", "OFFICIAL_ALERT"):
+                alerts = [a for a in alerts if a.get("is_official")]
+            elif source_type in ("NEWS", "NEWS_REPORT"):
+                alerts = [a for a in alerts if a.get("source_type") == "NEWS_REPORT"]
+            else:
+                alerts = [a for a in alerts if a.get("source_type") == source_type]
+
+        if severity and severity != "ALL":
+            alerts = [a for a in alerts if a.get("severity") == severity]
+
+        response_copy = dict(feed_data)
+        response_copy["alerts"] = alerts
+        response_copy["filtered_count"] = len(alerts)
+        return Response(response_copy)

@@ -22,7 +22,7 @@ import type {
 import './IncidentWorkflowHub.css';
 
 export const IncidentWorkflowHub: React.FC = () => {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { showToast } = useToast();
   const { activeHazard } = useHazard();
 
@@ -392,13 +392,15 @@ export const IncidentWorkflowHub: React.FC = () => {
           </button>
         )}
 
-        <button
-          className={`hub-nav-tab ${activeTab === 'rules' ? 'active' : ''}`}
-          onClick={() => setActiveTab('rules')}
-        >
-          <span>⚙️</span> Jurisdiction Assignment Rules
-          <span className="tab-count-pill">{assignmentRules.length}</span>
-        </button>
+        {isAdmin && (
+          <button
+            className={`hub-nav-tab ${activeTab === 'rules' ? 'active' : ''}`}
+            onClick={() => setActiveTab('rules')}
+          >
+            <span>⚙️</span> Jurisdiction Assignment Rules
+            <span className="tab-count-pill">{assignmentRules.length}</span>
+          </button>
+        )}
       </div>
 
       {/* =========================================================================

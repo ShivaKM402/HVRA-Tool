@@ -6,9 +6,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import { DistrictProvider } from './context/DistrictContext';
 import { HazardProvider } from './context/HazardContext';
-import { AIKeyProvider } from './context/AIKeyContext';
 import Layout from './components/Layout/Layout';
-import AICopilot from './components/AI/AICopilot';
 
 // Domain Pages
 import { Login, Register } from '@/pages/auth';
@@ -26,6 +24,7 @@ import {
 } from '@/pages/data-governance';
 import { Profile, Settings, Notifications, Help } from '@/pages/portal';
 import { IncidentWorkflowHub } from '@/pages/issues';
+import { LiveWeather } from '@/pages/weather';
 
 function RequireAuth() {
   const { isAuthenticated, loading } = useAuth();
@@ -33,10 +32,51 @@ function RequireAuth() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', background: '#0f172a', color: '#38bdf8' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-          <div className="spinner" />
-          <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Loading Command Center…</span>
+      <div
+        style={{
+          display: 'flex',
+          height: '100vh',
+          width: '100vw',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.45) 0%, rgba(15, 23, 42, 0.70) 100%), url("/kerala-command-backdrop.jpg") center/cover no-repeat fixed',
+          color: '#38bdf8',
+          position: 'fixed',
+          inset: 0,
+          zIndex: 99999,
+          fontFamily: 'var(--font-sans)',
+        }}
+      >
+        <div className="radar-command-loader">
+          <div className="radar-screen">
+            <div className="radar-beam" />
+            <div className="radar-ping-ring" />
+            <div className="radar-center-blip" />
+          </div>
+
+          <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.45rem' }}>
+            <div
+              style={{
+                fontSize: '0.75rem',
+                fontWeight: 800,
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                color: '#38bdf8',
+                background: 'rgba(56, 189, 248, 0.12)',
+                border: '1px solid rgba(56, 189, 248, 0.35)',
+                padding: '0.25rem 0.85rem',
+                borderRadius: '999px',
+              }}
+            >
+              🛰️ KSDMA State Emergency Operations Center
+            </div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.02em', marginTop: '0.2rem' }}>
+              Initializing Multi-Hazard Risk Command Grid
+            </div>
+            <div style={{ fontSize: '0.84rem', color: '#94a3b8', maxWidth: 420 }}>
+              Calibrating 14 District telemetry feeds, spatial boundaries, and analytical modules…
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -51,8 +91,7 @@ function RequireAuth() {
 
 function App() {
   return (
-    <AIKeyProvider>
-      <AuthProvider>
+    <AuthProvider>
         <ToastProvider>
           <DistrictProvider>
             <HazardProvider>
@@ -98,6 +137,8 @@ function App() {
                   <Route path="/incidents" element={<Navigate to="/issues" replace />} />
 
                   {/* Governance, Data, & Spatial */}
+                  <Route path="/weather" element={<LiveWeather />} />
+                  <Route path="/live-weather" element={<Navigate to="/weather" replace />} />
                   <Route path="/review-queue" element={<ReviewQueue />} />
                   <Route path="/saved-queries" element={<SavedQueries />} />
                   <Route path="/data-library" element={<DataLibrary />} />
@@ -123,14 +164,11 @@ function App() {
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
               </Routes>
 
-              {/* Global AI Copilot — floating across all pages */}
-              <AICopilot />
             </BrowserRouter>
           </HazardProvider>
         </DistrictProvider>
         </ToastProvider>
       </AuthProvider>
-    </AIKeyProvider>
   );
 }
 

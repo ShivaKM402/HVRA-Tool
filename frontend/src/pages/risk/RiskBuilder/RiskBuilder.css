@@ -63,18 +63,19 @@
   border-radius: var(--radius-lg);
   padding: 1.2rem 1.4rem;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 1px 3px rgba(120, 53, 15, 0.04);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
 }
 
 .module-selector-box:hover {
   border-color: var(--border-bright);
-  box-shadow: 0 4px 14px rgba(120, 53, 15, 0.06);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+  transform: translateY(-2px);
 }
 
 .module-selector-box.selected {
   border-color: var(--color-primary);
-  background: var(--bg-surface);
-  box-shadow: 0 0 0 2px rgba(180, 83, 9, 0.2);
+  background: #eff6ff;
+  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.25), 0 4px 12px rgba(26, 115, 232, 0.1);
 }
 
 /* Weight Sliders */

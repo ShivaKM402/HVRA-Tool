@@ -173,7 +173,7 @@
 
 .adm-input-wrap:focus-within {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.15);
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.18);
   background: var(--bg-card);
 }
 

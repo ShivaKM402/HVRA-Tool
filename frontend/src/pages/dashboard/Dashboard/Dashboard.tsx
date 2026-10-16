@@ -3,16 +3,68 @@
  * Modernized UI/UX per HVRA Sections 3 & 4
  */
 import { MapIcon } from '@/components/MapIcon/MapIcon';
-import { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { checkHealth, getAssessments, getHazards, getDistricts, deleteAssessment } from '@/services/api';
 import type { Assessment, HealthCheckResponse, HazardType, AdministrativeUnit } from '@/types';
 import { useHazard, HAZARD_CATALOG, type HazardCode } from '@/context/HazardContext';
 import KeralaMap from '@/components/Map/KeralaMap';
+import {
+  Waves,
+  Mountain,
+  Compass,
+  Zap,
+  Landmark,
+  Building2,
+  ArrowRight,
+  ArrowLeft,
+  Radio,
+  FileText,
+  CheckCircle2,
+  BarChart3,
+  AlertTriangle,
+  Plus,
+  MapPin,
+  TrendingUp,
+  Activity,
+  Trash2,
+  Layers,
+  Search,
+} from 'lucide-react';
 import './Dashboard.css';
 
+// ── Hazard Icon Component Helper ──
+export const renderHazardIcon = (code: HazardCode | null, size = 20) => {
+  if (!code) return <Layers size={size} />;
+  switch (code) {
+    case 'FLOOD':
+      return <Waves size={size} />;
+    case 'LANDSLIDE':
+      return <Mountain size={size} />;
+    case 'COASTAL':
+      return <Compass size={size} />;
+    case 'EXTREME_WEATHER':
+      return <Zap size={size} />;
+    default:
+      return <Layers size={size} />;
+  }
+};
+
+// ── Hazard Card High-Resolution Imagery Mapping ──
+export const HAZARD_CARD_IMAGES: Record<HazardCode, string> = {
+  FLOOD: '/flood-card-bg.jpg',
+  LANDSLIDE: '/landslide-card-bg.jpg',
+  COASTAL: '/coastal-card-bg.jpg',
+  EXTREME_WEATHER: '/lightning-card-bg.jpg',
+};
+
 // ── 3-dot Card Actions Menu ──────────────────────────────────
-interface CardMenuItem { label: string; icon: string; onClick: () => void; }
+interface CardMenuItem {
+  label: string;
+  icon: React.ReactNode;
+  onClick: () => void;
+}
+
 function CardMenu({ items }: { items: CardMenuItem[] }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -27,7 +79,10 @@ function CardMenu({ items }: { items: CardMenuItem[] }) {
     <div className="section-menu-wrapper" ref={ref}>
       <button
         className="section-dots-btn"
-        onClick={(e) => { e.stopPropagation(); setOpen(v => !v); }}
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((v) => !v);
+        }}
         title="Card options"
         style={{ fontSize: '1.3rem', letterSpacing: '0.05em', padding: '2px 6px' }}
       >
@@ -36,8 +91,17 @@ function CardMenu({ items }: { items: CardMenuItem[] }) {
       {open && (
         <div className="section-dots-menu">
           {items.map((item) => (
-            <button key={item.label} className="section-dots-menu-item" onClick={() => { item.onClick(); setOpen(false); }}>
-              <span style={{ marginRight: '0.35rem' }}>{item.icon}</span>{item.label}
+            <button
+              key={item.label}
+              className="section-dots-menu-item"
+              onClick={() => {
+                item.onClick();
+                setOpen(false);
+              }}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}
+            >
+              <span style={{ display: 'inline-flex', alignItems: 'center' }}>{item.icon}</span>
+              {item.label}
             </button>
           ))}
         </div>
@@ -311,10 +375,13 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="loading-overlay">
-        <div className="spinner" />
-        <span style={{ fontFamily: 'var(--font-heading)', fontSize: '1.05rem', marginTop: '0.5rem' }}>
+      <div className="loading-overlay" style={{ minHeight: '65vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="spinner-orbital" />
+        <span style={{ fontFamily: 'var(--font-heading)', fontSize: '1.1rem', marginTop: '1.25rem', fontWeight: 800, color: 'var(--text-heading, #0f172a)' }}>
           Initializing Kerala Spatial Intelligence Center…
+        </span>
+        <span style={{ fontSize: '0.84rem', color: 'var(--text-muted, #64748b)', marginTop: '0.25rem' }}>
+          Calibrating 14 District telemetry feeds, spatial boundaries, and analytical modules…
         </span>
       </div>
     );
@@ -324,7 +391,7 @@ export default function Dashboard() {
     return (
       <div style={{ maxWidth: 760, margin: '2rem auto' }}>
         <div className="alert alert-error mb-6">
-          <span style={{ fontSize: '1.5rem' }}>❌</span>
+          <AlertTriangle size={24} color="#dc2626" style={{ flexShrink: 0 }} />
           <div>
             <strong style={{ fontSize: '1.05rem' }}>Backend Connection Failure</strong>
             <p style={{ marginTop: '0.35rem' }}>{error}</p>
@@ -358,12 +425,14 @@ export default function Dashboard() {
           {/* Official Emblem & State Header */}
           <div className="hazard-portal-header">
             <div className="hazard-emblem-badge">
-              <span style={{ fontSize: '1.4rem' }}>🏛️</span>
+              <div className="hazard-emblem-icon-box">
+                <Landmark size={22} color="#ffffff" />
+              </div>
               <div>
-                <div style={{ fontWeight: 800, letterSpacing: '0.04em', fontSize: '0.85rem', color: '#1e3a8a', textTransform: 'uppercase' }}>
+                <div className="hazard-emblem-gov-title">
                   Government of Kerala • Disaster Management Department
                 </div>
-                <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                <div className="hazard-emblem-gov-sub">
                   Kerala State Disaster Management Authority (KSDMA) • State Emergency Operations Center
                 </div>
               </div>
@@ -376,8 +445,9 @@ export default function Dashboard() {
 
           {/* Central Hero Heading */}
           <div className="hazard-portal-hero">
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: '#dbeafe', color: '#1e40af', padding: '0.35rem 0.9rem', borderRadius: '999px', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.75rem' }}>
-              <span>🏛️</span> KERALA STATE DISASTER MANAGEMENT AUTHORITY (KSDMA)
+            <div className="hazard-portal-agency-chip">
+              <Building2 size={13} color="#93c5fd" />
+              <span>KERALA STATE DISASTER MANAGEMENT AUTHORITY (KSDMA)</span>
             </div>
             <h1 className="hazard-portal-title">
               Select a Hazard Domain to Enter
@@ -397,31 +467,106 @@ export default function Dashboard() {
               return (
                 <div
                   key={code}
-                  className="hazard-gateway-box"
+                  className={`hazard-gateway-box hazard-gateway-box--${code}`}
                   style={{
                     '--box-color': meta.color,
                     '--box-bg': `${meta.color}15`,
                   } as React.CSSProperties}
                   onClick={() => setActiveHazard(code)}
                 >
-                  <div className="hazard-box-icon-bubble">{meta.icon}</div>
-                  <h3 className="hazard-box-title">{meta.name}</h3>
-                  <div className="hazard-box-tagline">{meta.tagline}</div>
-
-                  <div className="hazard-box-bottom-area" style={{ marginTop: 'auto', paddingTop: '1.25rem' }}>
-                    <div className="hazard-box-stats-row" style={{ border: 'none', padding: '0.4rem 0' }}>
-                      <span><strong>{indCount}</strong> Indicators</span>
-                      <span><strong>{stats.count}</strong> Runs</span>
+                  {/* Dedicated 100% Visible Photo Banner */}
+                  <div className="hazard-card-photo-banner">
+                    <img
+                      src={HAZARD_CARD_IMAGES[code]}
+                      alt={meta.name}
+                      className="hazard-card-banner-img"
+                      loading="lazy"
+                    />
+                    <div className="hazard-card-photo-overlay" />
+                    <div className="hazard-box-icon-bubble">
+                      {code === 'FLOOD' && <Waves size={24} color="#ffffff" />}
+                      {code === 'LANDSLIDE' && <Mountain size={24} color="#ffffff" />}
+                      {code === 'COASTAL' && <Compass size={24} color="#ffffff" />}
+                      {code === 'EXTREME_WEATHER' && <Zap size={24} color="#ffffff" fill="#ffffff" />}
                     </div>
+                    <div className="hazard-card-photo-chip">
+                      <span className="hazard-card-photo-dot" />
+                      <span>Live Telemetry</span>
+                    </div>
+                  </div>
 
-                    <button className="hazard-box-btn" type="button">
-                      <span>Open {meta.shortName} Portal</span>
-                      <span>➔</span>
-                    </button>
+                  {/* Card Content & Actions */}
+                  <div className="hazard-card-body">
+                    <h3 className="hazard-box-title">{meta.name}</h3>
+                    <div className="hazard-box-tagline">{meta.tagline}</div>
+
+                    <div className="hazard-box-bottom-area" style={{ marginTop: 'auto', paddingTop: '1.15rem' }}>
+                      <div className="hazard-box-stats-row" style={{ border: 'none', padding: '0.4rem 0' }}>
+                        <span><strong>{indCount}</strong> Indicators</span>
+                        <span><strong>{stats.count}</strong> Runs</span>
+                      </div>
+
+                      <button className="hazard-box-btn" type="button" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
+                        <span>Open {meta.shortName} Portal</span>
+                        <ArrowRight size={14} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
             })}
+          </div>
+
+          {/* Real-time Disaster Intelligence Strip */}
+          <div
+            style={{
+              marginTop: '1.75rem',
+              padding: '1.1rem 1.45rem',
+              borderRadius: '16px',
+              background: '#ffffff',
+              border: '1.5px solid #e2e8f0',
+              boxShadow: '0 4px 18px rgba(0,0,0,0.04)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '1rem',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.9rem' }}>
+              <div
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  background: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Radio size={22} color="#dc2626" />
+              </div>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0f172a' }}>
+                  Real-time Disaster Monitoring &amp; Official Alert Feeds Active
+                </div>
+                <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                  Consolidated multi-hazard bulletins from NDMA SACHET, IMD-KSDMA, USGS Seismology &amp; statewide verified news.
+                </div>
+              </div>
+            </div>
+
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={() => navigate('/weather?tab=live-alerts')}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontWeight: 800 }}
+            >
+              <span>Open Live Disaster Operations</span>
+              <ArrowRight size={14} />
+            </button>
           </div>
         </div>
       </div>
@@ -431,11 +576,18 @@ export default function Dashboard() {
   // ── 2. DEDICATED HAZARD-SCOPED WORKSPACE (When a hazard box was clicked) ──
   return (
     <div className="dashboard-wrapper">
-      {/* ── Google-Style Clean Header (100% Scoped to Active Hazard Domain) ── */}
-      <div className="dashboard-page-header">
+      <div
+        className="dashboard-page-header"
+        style={{
+          backgroundImage: `linear-gradient(135deg, rgba(9, 14, 26, 0.40) 0%, rgba(15, 23, 42, 0.45) 50%, rgba(30, 41, 59, 0.55) 100%), url("${HAZARD_CARD_IMAGES[activeHazard] || '/kerala-hero-bg.jpg'}")`,
+        }}
+      >
         <div className="dashboard-header-text">
           <div className="dashboard-header-pill">
-            {activeHazardMeta?.icon} Kerala State Disaster Management Authority • {activeHazardMeta?.shortName} Domain Console
+            <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+              {renderHazardIcon(activeHazard, 15)}
+            </span>
+            <span>Kerala State Disaster Management Authority • {activeHazardMeta?.shortName} Domain Console</span>
           </div>
           <h1 className="dashboard-header-title">
             {activeHazardMeta?.name} &amp; Risk Intelligence
@@ -450,145 +602,263 @@ export default function Dashboard() {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '0.4rem',
+              gap: '0.45rem',
               background: activeHazardMeta?.color,
               borderColor: activeHazardMeta?.color,
+              fontWeight: 700,
             }}
             onClick={() => navigate(`/new-assessment?module=HAZARD&hazard=${activeHazard}`)}
           >
-            <span>+</span> Run {activeHazardMeta?.shortName} Assessment
+            <Plus size={15} />
+            <span>Run {activeHazardMeta?.shortName} Assessment</span>
           </button>
           <button
             className="btn btn-secondary btn-sm"
-            style={{ color: activeHazardMeta?.color, borderColor: `${activeHazardMeta?.color}40`, background: `${activeHazardMeta?.color}0a`, fontWeight: 700 }}
-            onClick={() => navigate(hazardStats[activeHazard].primaryId ? `/department-coordination?assessmentId=${hazardStats[activeHazard].primaryId}` : `/department-coordination?hazard=${activeHazard}`)}
+            style={{
+              color: activeHazardMeta?.color,
+              borderColor: `${activeHazardMeta?.color}40`,
+              background: `${activeHazardMeta?.color}0a`,
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+            }}
+            onClick={() =>
+              navigate(
+                hazardStats[activeHazard].primaryId
+                  ? `/department-coordination?assessmentId=${hazardStats[activeHazard].primaryId}`
+                  : `/department-coordination?hazard=${activeHazard}`
+              )
+            }
             title="Departmental Data Coordination for this hazard"
           >
-            🏛️ {activeHazardMeta?.shortName} Dept Tasks
+            <Building2 size={15} />
+            <span>{activeHazardMeta?.shortName} Dept Tasks</span>
+          </button>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => navigate('/weather?tab=live-alerts')}
+            title="Live Disaster Alerts, Official Warnings & Incident Feeds"
+            style={{
+              fontWeight: 700,
+              color: '#dc2626',
+              background: '#fef2f2',
+              borderColor: '#fca5a5',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+            }}
+          >
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#dc2626', display: 'inline-block' }} />
+            <Radio size={14} />
+            <span>Live Alerts</span>
           </button>
           <button
             className="btn btn-secondary btn-sm"
             onClick={() => clearHazard()}
             title="Return to 4-Column Hazard Selection Gateway"
-            style={{ fontWeight: 700, color: '#1d4ed8', background: '#eff6ff', borderColor: '#bfdbfe' }}
+            style={{
+              fontWeight: 700,
+              color: '#1d4ed8',
+              background: '#eff6ff',
+              borderColor: '#bfdbfe',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+            }}
           >
-            ⬅ Change Hazard (4 Columns)
+            <ArrowLeft size={14} />
+            <span>Change Hazard (4 Columns)</span>
           </button>
         </div>
       </div>
 
       <div className="dashboard">
         {/* ── 1. Executive KPI Metrics Grid (Scoped to Domain) ── */}
-      <div className="kpi-grid">
-        <div className="kpi-card" style={{ '--kpi-accent': activeHazardMeta?.color || '#4f46e5', '--kpi-bg': activeHazardMeta ? `${activeHazardMeta.color}10` : '#eff0ff', position: 'relative' } as React.CSSProperties}>
-          <div style={{ position: 'absolute', top: '0.6rem', right: '0.6rem' }}>
-            <CardMenu items={[
-              { icon: '📋', label: 'View All Reports', onClick: () => navigate('/reports') },
-              { icon: '➕', label: 'New Assessment', onClick: () => navigate(activeHazard ? `/new-assessment?module=HAZARD&hazard=${activeHazard}` : '/new-assessment?module=HAZARD') },
-            ]} />
-          </div>
-          <div className="kpi-header">
-            <div className="kpi-icon-bubble">{activeHazardMeta?.icon || '📋'}</div>
-            <span className="badge badge-info" style={{ fontSize: '0.68rem' }}>
-              {activeHazardMeta ? `${activeHazardMeta.shortName} Domain` : 'All Modules'}
-            </span>
-          </div>
-          <div className="kpi-value">{scopedAssessments.length}</div>
-          <div className="kpi-label">
-            {activeHazardMeta ? `${activeHazardMeta.shortName} Risk Assessments` : 'Total Risk Assessments'}
-          </div>
-          <div className="kpi-subtext">
-            <span>⚡ Continuous ledger updates</span>
-          </div>
-        </div>
-
-        <div className="kpi-card" style={{ '--kpi-accent': '#10b981', '--kpi-bg': '#ecfdf5', position: 'relative' } as React.CSSProperties}>
-          <div style={{ position: 'absolute', top: '0.6rem', right: '0.6rem' }}>
-            <CardMenu items={[
-              { icon: '✅', label: 'View Completed', onClick: () => navigate('/reports') },
-            ]} />
-          </div>
-          <div className="kpi-header">
-            <div className="kpi-icon-bubble">✅</div>
-            <span className="badge badge-success" style={{ fontSize: '0.68rem' }}>100% Validated</span>
-          </div>
-          <div className="kpi-value">{completedCount}</div>
-          <div className="kpi-label">
-            {activeHazardMeta ? `${activeHazardMeta.shortName} Validated Syntheses` : 'Completed Syntheses'}
-          </div>
-          <div className="kpi-subtext">
-            <span>📄 Ready for statutory report export</span>
-          </div>
-        </div>
-
-        <div className="kpi-card" style={{ '--kpi-accent': '#f59e0b', '--kpi-bg': '#fffbeb', position: 'relative' } as React.CSSProperties}>
-          <div style={{ position: 'absolute', top: '0.6rem', right: '0.6rem' }}>
-            <CardMenu items={[
-              { icon: '⚠️', label: 'View Hazards', onClick: () => navigate('/data-library') },
-              { icon: '🌊', label: 'Run Hazard Assessment', onClick: () => navigate(activeHazard ? `/new-assessment?module=HAZARD&hazard=${activeHazard}` : '/new-assessment?module=HAZARD') },
-            ]} />
-          </div>
-          <div className="kpi-header">
-            <div className="kpi-icon-bubble">📊</div>
-            <span className="badge badge-warning" style={{ fontSize: '0.68rem' }}>Monitored</span>
-          </div>
-          <div className="kpi-value">
-            {activeHazard === 'FLOOD' ? 21 : activeHazard === 'LANDSLIDE' ? 4 : activeHazard === 'COASTAL' ? 3 : activeHazard === 'EXTREME_WEATHER' ? 3 : activeHazards}
-          </div>
-          <div className="kpi-label">
-            {activeHazardMeta ? `${activeHazardMeta.shortName} Key Indicators` : 'Active Kerala Hazards'}
-          </div>
-          <div className="kpi-subtext">
-            <span>{activeHazardMeta ? `Lead: ${activeHazardMeta.leadAgency.split('(')[0]}` : '🌊 Riverine, Pluvial & Flash Flood Risk'}</span>
-          </div>
-        </div>
-
-        <div className="kpi-card" style={{ '--kpi-accent': '#8b5cf6', '--kpi-bg': '#f5f3ff', position: 'relative' } as React.CSSProperties}>
-          <div style={{ position: 'absolute', top: '0.6rem', right: '0.6rem' }}>
-            <CardMenu items={[
-              { icon: '🗺️', label: 'Explore Districts', onClick: () => navigate('/admin-units') },
-            ]} />
-          </div>
-          <div className="kpi-header">
-            <div className="kpi-icon-bubble">🏛️</div>
-            <span className="badge badge-completed" style={{ fontSize: '0.68rem' }}>
-              {activeHazard ? 'Coordinated' : 'Full Coverage'}
-            </span>
-          </div>
-          <div className="kpi-value">
-            {activeHazard ? (HAZARD_DEPARTMENT_TASKS[activeHazard]?.length || 4) : districts.length}
-          </div>
-          <div className="kpi-label">
-            {activeHazardMeta ? 'Responsible Line Departments' : 'Revenue Districts Synced'}
-          </div>
-          <div className="kpi-subtext">
-            <span>{activeHazardMeta ? 'Multi-agency indicator validation' : '📍 Taluka & Grama Panchayat resolution'}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ── 3. Spatial Intelligence & District Inspector ── */}
-      <div className="spatial-command-layout">
-        <div className="spatial-theater-card" id="geospatial-theater-anchor">
-          <div className="spatial-theater-header">
-            <div className="spatial-theater-title">
-              <span style={{ fontSize: '1.3rem' }}>🗺️</span>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#0f172a', fontWeight: 800 }}>
-                  Geospatial Flood Risk &amp; Territory Intelligence Center
-                </h3>
-                <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                  State-wide administrative boundaries, flood inundation zones, and telemetry monitoring
-                </div>
-              </div>
+        <div className="kpi-grid">
+          <div
+            className="kpi-card"
+            style={
+              {
+                '--kpi-accent': activeHazardMeta?.color || '#4f46e5',
+                '--kpi-bg': activeHazardMeta ? `${activeHazardMeta.color}10` : '#eff0ff',
+                position: 'relative',
+              } as React.CSSProperties
+            }
+          >
+            <div style={{ position: 'absolute', top: '0.6rem', right: '0.6rem' }}>
+              <CardMenu
+                items={[
+                  { icon: <FileText size={14} />, label: 'View All Reports', onClick: () => navigate('/reports') },
+                  {
+                    icon: <Plus size={14} />,
+                    label: 'New Assessment',
+                    onClick: () =>
+                      navigate(
+                        activeHazard
+                          ? `/new-assessment?module=HAZARD&hazard=${activeHazard}`
+                          : '/new-assessment?module=HAZARD'
+                      ),
+                  },
+                ]}
+              />
             </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-              <span className="badge badge-info" style={{ fontSize: '0.72rem' }}>
-                {selectedDistrict ? selectedDistrict.name.replace(' [DEMO]', '') : 'All Districts'}
+            <div className="kpi-header">
+              <div className="kpi-icon-bubble">
+                {activeHazardMeta ? renderHazardIcon(activeHazard, 22) : <FileText size={22} />}
+              </div>
+              <span className="badge badge-info" style={{ fontSize: '0.68rem' }}>
+                {activeHazardMeta ? `${activeHazardMeta.shortName} Domain` : 'All Modules'}
+              </span>
+            </div>
+            <div className="kpi-value">{scopedAssessments.length}</div>
+            <div className="kpi-label">
+              {activeHazardMeta ? `${activeHazardMeta.shortName} Risk Assessments` : 'Total Risk Assessments'}
+            </div>
+            <div className="kpi-subtext">
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                <TrendingUp size={13} color={activeHazardMeta?.color || '#3b82f6'} />
+                <span>Continuous ledger updates</span>
               </span>
             </div>
           </div>
+
+          <div
+            className="kpi-card"
+            style={{ '--kpi-accent': '#10b981', '--kpi-bg': '#ecfdf5', position: 'relative' } as React.CSSProperties}
+          >
+            <div style={{ position: 'absolute', top: '0.6rem', right: '0.6rem' }}>
+              <CardMenu
+                items={[{ icon: <CheckCircle2 size={14} />, label: 'View Completed', onClick: () => navigate('/reports') }]}
+              />
+            </div>
+            <div className="kpi-header">
+              <div className="kpi-icon-bubble">
+                <CheckCircle2 size={22} color="#10b981" />
+              </div>
+              <span className="badge badge-success" style={{ fontSize: '0.68rem' }}>
+                100% Validated
+              </span>
+            </div>
+            <div className="kpi-value">{completedCount}</div>
+            <div className="kpi-label">
+              {activeHazardMeta ? `${activeHazardMeta.shortName} Validated Syntheses` : 'Completed Syntheses'}
+            </div>
+            <div className="kpi-subtext">
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                <FileText size={13} color="#10b981" />
+                <span>Ready for statutory report export</span>
+              </span>
+            </div>
+          </div>
+
+          <div
+            className="kpi-card"
+            style={{ '--kpi-accent': '#f59e0b', '--kpi-bg': '#fffbeb', position: 'relative' } as React.CSSProperties}
+          >
+            <div style={{ position: 'absolute', top: '0.6rem', right: '0.6rem' }}>
+              <CardMenu
+                items={[
+                  { icon: <AlertTriangle size={14} />, label: 'View Hazards', onClick: () => navigate('/data-library') },
+                  {
+                    icon: <Plus size={14} />,
+                    label: 'Run Hazard Assessment',
+                    onClick: () =>
+                      navigate(
+                        activeHazard
+                          ? `/new-assessment?module=HAZARD&hazard=${activeHazard}`
+                          : '/new-assessment?module=HAZARD'
+                      ),
+                  },
+                ]}
+              />
+            </div>
+            <div className="kpi-header">
+              <div className="kpi-icon-bubble">
+                <BarChart3 size={22} color="#f59e0b" />
+              </div>
+              <span className="badge badge-warning" style={{ fontSize: '0.68rem' }}>
+                Monitored
+              </span>
+            </div>
+            <div className="kpi-value">
+              {activeHazard === 'FLOOD'
+                ? 21
+                : activeHazard === 'LANDSLIDE'
+                ? 4
+                : activeHazard === 'COASTAL'
+                ? 3
+                : activeHazard === 'EXTREME_WEATHER'
+                ? 3
+                : activeHazards}
+            </div>
+            <div className="kpi-label">
+              {activeHazardMeta ? `${activeHazardMeta.shortName} Key Indicators` : 'Active Kerala Hazards'}
+            </div>
+            <div className="kpi-subtext">
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                <Activity size={13} color="#f59e0b" />
+                <span>{activeHazardMeta ? `Lead: ${activeHazardMeta.leadAgency.split('(')[0]}` : 'Riverine, Pluvial & Flash Flood Risk'}</span>
+              </span>
+            </div>
+          </div>
+
+          <div
+            className="kpi-card"
+            style={{ '--kpi-accent': '#8b5cf6', '--kpi-bg': '#f5f3ff', position: 'relative' } as React.CSSProperties}
+          >
+            <div style={{ position: 'absolute', top: '0.6rem', right: '0.6rem' }}>
+              <CardMenu
+                items={[
+                  { icon: <MapPin size={14} />, label: 'Explore Districts', onClick: () => navigate('/admin-units') },
+                ]}
+              />
+            </div>
+            <div className="kpi-header">
+              <div className="kpi-icon-bubble">
+                <Building2 size={22} color="#8b5cf6" />
+              </div>
+              <span className="badge badge-completed" style={{ fontSize: '0.68rem' }}>
+                {activeHazard ? 'Coordinated' : 'Full Coverage'}
+              </span>
+            </div>
+            <div className="kpi-value">
+              {activeHazard ? HAZARD_DEPARTMENT_TASKS[activeHazard]?.length || 4 : districts.length}
+            </div>
+            <div className="kpi-label">
+              {activeHazardMeta ? 'Responsible Line Departments' : 'Revenue Districts Synced'}
+            </div>
+            <div className="kpi-subtext">
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                <MapPin size={13} color="#8b5cf6" />
+                <span>{activeHazardMeta ? 'Multi-agency indicator validation' : 'Taluka & Grama Panchayat resolution'}</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* ── 3. Spatial Intelligence & District Inspector ── */}
+        <div className="spatial-command-layout">
+          <div className="spatial-theater-card" id="geospatial-theater-anchor">
+            <div className="spatial-theater-header">
+              <div className="spatial-theater-title">
+                <MapPin size={22} color="#1a73e8" style={{ flexShrink: 0 }} />
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#0f172a', fontWeight: 800 }}>
+                    Geospatial Flood Risk &amp; Territory Intelligence Center
+                  </h3>
+                  <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                    State-wide administrative boundaries, flood inundation zones, and telemetry monitoring
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <span className="badge badge-info" style={{ fontSize: '0.72rem' }}>
+                  {selectedDistrict ? selectedDistrict.name.replace(' [DEMO]', '') : 'All Districts'}
+                </span>
+              </div>
+            </div>
 
           {/* Quick District Selector Pills */}
           <div className="district-pill-scroll">
@@ -651,7 +921,7 @@ export default function Dashboard() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
             <button
               className="btn btn-primary btn-sm"
-              style={{ width: '100%' }}
+              style={{ width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem' }}
               onClick={() => {
                 if (selectedDistrict) {
                   navigate(`/new-assessment?module=HAZARD&district=${selectedDistrict.id}`);
@@ -660,14 +930,16 @@ export default function Dashboard() {
                 }
               }}
             >
-              🌊 Run Hazard Run for this District
+              <Plus size={15} />
+              <span>Run {activeHazardMeta ? activeHazardMeta.shortName : 'Hazard'} Assessment for this District</span>
             </button>
             <button
               className="btn btn-secondary btn-sm"
-              style={{ width: '100%' }}
+              style={{ width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem' }}
               onClick={() => navigate('/dashboard/compare')}
             >
-              📊 Benchmark Against State Average
+              <BarChart3 size={15} />
+              <span>Benchmark Against State Average</span>
             </button>
           </div>
         </div>
@@ -678,7 +950,9 @@ export default function Dashboard() {
         <div className="ledger-header">
           <div>
             <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span>{activeHazardMeta ? activeHazardMeta.icon : '📋'}</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                {activeHazard ? renderHazardIcon(activeHazard, 18) : <FileText size={18} />}
+              </span>
               <span>
                 {activeHazardMeta ? `${activeHazardMeta.shortName} Assessment Ledger` : 'Recent Assessments & 3-Output Pipeline'}
               </span>
@@ -716,7 +990,7 @@ export default function Dashboard() {
             </div>
 
             <div className="ledger-search-box">
-              <span>🔍</span>
+              <Search size={15} color="#94a3b8" />
               <input
                 type="text"
                 placeholder="Search assessments, districts..."
@@ -738,8 +1012,10 @@ export default function Dashboard() {
               className="btn btn-primary btn-sm"
               onClick={() => navigate(activeHazard ? `/new-assessment?module=HAZARD&hazard=${activeHazard}` : '/new-assessment')}
               id="btn-new-assessment-table"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
             >
-              + New {activeHazardMeta ? activeHazardMeta.shortName : ''} Assessment
+              <Plus size={14} />
+              <span>New {activeHazardMeta ? activeHazardMeta.shortName : ''} Assessment</span>
             </button>
           </div>
         </div>
@@ -747,7 +1023,9 @@ export default function Dashboard() {
         <div className="table-responsive" style={{ border: 'none', borderRadius: 0 }}>
           {filteredAssessments.length === 0 ? (
             <div className="empty-state" style={{ margin: '2rem' }}>
-              <div className="empty-state-icon">{activeHazardMeta?.icon || '📋'}</div>
+              <div className="empty-state-icon">
+                {activeHazard ? renderHazardIcon(activeHazard, 32) : <FileText size={32} />}
+              </div>
               <div className="empty-state-title">
                 {searchQuery
                   ? 'No matching assessments found'
@@ -761,9 +1039,10 @@ export default function Dashboard() {
               <button
                 className="btn btn-primary"
                 onClick={() => navigate(activeHazard ? `/new-assessment?module=HAZARD&hazard=${activeHazard}` : '/new-assessment')}
-                style={{ marginTop: '0.85rem' }}
+                style={{ marginTop: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
               >
-                + Start {activeHazardMeta ? activeHazardMeta.shortName : ''} Assessment
+                <Plus size={15} />
+                <span>Start {activeHazardMeta ? activeHazardMeta.shortName : ''} Assessment</span>
               </button>
             </div>
           ) : (
@@ -815,9 +1094,17 @@ export default function Dashboard() {
                           className="pipeline-btn"
                           onClick={() => navigate(`/department-coordination?assessmentId=${a.id}`)}
                           title="View Line Department Data Coordination"
-                          style={{ background: '#f0fdfa', color: '#0d9488', borderColor: '#ccfbf1' }}
+                          style={{
+                            background: '#f0fdfa',
+                            color: '#0d9488',
+                            borderColor: '#ccfbf1',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.3rem',
+                          }}
                         >
-                          🏛️ Tasks
+                          <Building2 size={12} />
+                          <span>Tasks</span>
                         </button>
                         <button
                           className="pipeline-btn pipeline-btn-map"
@@ -830,15 +1117,19 @@ export default function Dashboard() {
                           className="pipeline-btn pipeline-btn-classes"
                           onClick={() => navigate(`/assessments/${a.id}/results?tab=classification`)}
                           title="View Administrative Breakdown Matrix"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
                         >
-                          📊 Classes
+                          <BarChart3 size={12} />
+                          <span>Classes</span>
                         </button>
                         <button
                           className="pipeline-btn pipeline-btn-report"
                           onClick={() => navigate(`/assessments/${a.id}/report`)}
                           title="Generate Official Statutory Dossier"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
                         >
-                          📄 Dossier
+                          <FileText size={12} />
+                          <span>Dossier</span>
                         </button>
                         <button
                           className="pipeline-btn"
@@ -848,9 +1139,12 @@ export default function Dashboard() {
                             background: '#fef2f2',
                             color: '#dc2626',
                             borderColor: '#fecaca',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
                           }}
                         >
-                          🗑️
+                          <Trash2 size={13} />
                         </button>
                       </div>
                     </td>

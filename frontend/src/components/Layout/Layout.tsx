@@ -12,8 +12,47 @@ import { useToast } from '../../context/ToastContext';
 import CommandPalette from '../CommandPalette/CommandPalette';
 import OnboardingTour from '../OnboardingTour/OnboardingTour';
 import ToastStack from '../Toast/ToastStack';
-import AIPanel from '../AI/AIPanel';
+import { fetchDistrictWeather, type DistrictWeatherReport } from '../../services/weatherService';
+import {
+  Waves,
+  Mountain,
+  Compass,
+  Zap,
+  Landmark,
+  Building2,
+  MapPin,
+  Search,
+  Bell,
+  ChevronDown,
+  User,
+  LogOut,
+  LogIn,
+  ArrowLeft,
+  Sparkles,
+  FileText,
+  Sliders,
+  Radio,
+  ClipboardCheck,
+  Bookmark,
+  Database,
+  Settings,
+} from 'lucide-react';
 import './Layout.css';
+
+const renderHazardIcon = (code: string | null, size = 18) => {
+  switch (code) {
+    case 'FLOOD':
+      return <Waves size={size} />;
+    case 'LANDSLIDE':
+      return <Mountain size={size} />;
+    case 'COASTAL':
+      return <Compass size={size} />;
+    case 'EXTREME_WEATHER':
+      return <Zap size={size} />;
+    default:
+      return <Landmark size={size} />;
+  }
+};
 
 export default function Layout() {
   const location = useLocation();
@@ -28,10 +67,28 @@ export default function Layout() {
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isOnboardingTourOpen, setIsOnboardingTourOpen] = useState(false);
   const [openNavDropdown, setOpenNavDropdown] = useState<'hazard' | 'dept' | 'data' | null>(null);
+  const [quickWeather, setQuickWeather] = useState<DistrictWeatherReport | null>(null);
+
+  // Active district display name
+  const currentDistrictObj = districts.find((d) => d.id === activeDistrictId);
+  const currentDistrictName = currentDistrictObj ? currentDistrictObj.name.replace(/ District/i, '') : 'Thiruvananthapuram';
+
+  useEffect(() => {
+    let mounted = true;
+    fetchDistrictWeather(currentDistrictName)
+      .then((data) => {
+        if (mounted) setQuickWeather(data);
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, [currentDistrictName]);
 
   // Close nav dropdown on route change
   useEffect(() => {
     setOpenNavDropdown(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [location.pathname, location.search]);
 
   // Close nav dropdown when clicking outside
@@ -111,7 +168,9 @@ export default function Layout() {
     } else if (path === '/data-library') {
       crumbs.push({ label: 'Data Library & Catalog', to: `/data-library${activeHazard ? `?hazard=${activeHazard}` : ''}` });
     } else if (path === '/reports') {
-      crumbs.push({ label: 'Reports Gallery', to: `/reports${activeHazard ? `?hazard=${activeHazard}` : ''}` });
+      crumbs.push({ label: 'Generated & Saved Reports', to: `/reports${activeHazard ? `?hazard=${activeHazard}` : ''}` });
+    } else if (path.startsWith('/weather') || path.startsWith('/live-weather')) {
+      crumbs.push({ label: 'Live Disaster Operations, News & Weather', to: '/weather' });
     } else if (path === '/dashboard/compare') {
       crumbs.push({ label: 'Compare Dashboards', to: '/dashboard/compare' });
     } else if (path === '/admin-units') {
@@ -145,9 +204,12 @@ export default function Layout() {
                 className="google-brand-icon"
                 style={{
                   background: activeHazardMeta ? activeHazardMeta.color : undefined,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
               >
-                {activeHazardMeta ? activeHazardMeta.icon : '🏛️'}
+                {activeHazard ? renderHazardIcon(activeHazard, 20) : <Landmark size={20} color="#ffffff" />}
               </div>
               <span className="google-brand-title">
                 {activeHazardMeta ? `HVRA ${activeHazardMeta.shortName} Portal` : 'Kerala Multi-Hazard HVRA'}
@@ -165,11 +227,11 @@ export default function Layout() {
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '0.4rem',
+                  gap: '0.45rem',
                   background: '#eff6ff',
                   border: '1.5px solid #bfdbfe',
                   borderRadius: '8px',
-                  padding: '0.28rem 0.75rem',
+                  padding: '0.3rem 0.8rem',
                   fontSize: '0.78rem',
                   fontWeight: 800,
                   color: '#1d4ed8',
@@ -180,13 +242,14 @@ export default function Layout() {
                 }}
                 title="Return to the 4-column hazard selection first page"
               >
-                <span>⬅</span> Change Hazard (4 Columns)
+                <ArrowLeft size={14} />
+                <span>Change Hazard (4 Columns)</span>
               </button>
             )}
 
             {/* Context Switcher for District */}
             <div className="district-switcher">
-              <span style={{ fontSize: '0.8rem', color: '#64748b' }}>📍</span>
+              <MapPin size={15} color="#64748b" style={{ flexShrink: 0 }} />
               <select
                 className="district-select"
                 value={activeDistrictId || ''}
@@ -209,7 +272,10 @@ export default function Layout() {
                 onClick={() => setIsCommandPaletteOpen(true)}
                 title="Global search (Ctrl+K)"
               >
-                <span>🔍 Search {activeHazardMeta?.shortName} assessments, taluks, indicators...</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}>
+                  <Search size={14} color="#64748b" />
+                  <span>Search {activeHazardMeta?.shortName} assessments, taluks, indicators...</span>
+                </span>
                 <kbd className="cmd-kbd">Ctrl+K</kbd>
               </button>
             ) : (
@@ -225,41 +291,27 @@ export default function Layout() {
                   borderRadius: '999px',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.4rem',
+                  gap: '0.45rem',
                   boxShadow: '0 1px 2px rgba(37,99,235,0.06)',
                 }}
               >
-                <span>✨</span> First Page: Select 1 of the 4 Hazard Boxes Below
+                <Sparkles size={14} color="#1d4ed8" />
+                <span>First Page: Select 1 of the 4 Hazard Boxes Below</span>
               </div>
             )}
           </div>
 
           <div className="google-top-right">
-            {activeHazard && (
-              <>
-                {/* AI Assistant */}
-                <AIPanel />
-
-                {/* Notification Center */}
-                <Link to="/notifications" className="topbar-icon-btn" title="Notification Center">
-                  🔔
-                  {unreadCount > 0 && <span className="notif-badge">{unreadCount}</span>}
-                </Link>
-
-                {/* Primary Action Button for active hazard */}
-                <NavLink
-                  to={`/new-assessment?module=HAZARD&hazard=${activeHazard}`}
-                  className="btn btn-primary btn-sm"
-                  style={{
-                    whiteSpace: 'nowrap',
-                    background: activeHazardMeta?.color,
-                    borderColor: activeHazardMeta?.color,
-                  }}
-                >
-                  + New {activeHazardMeta?.shortName} Assessment
-                </NavLink>
-              </>
-            )}
+            {/* Notification Center */}
+            <Link
+              to="/notifications"
+              className="topbar-icon-btn"
+              title="Notification Center"
+              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Bell size={18} />
+              {unreadCount > 0 && <span className="notif-badge">{unreadCount}</span>}
+            </Link>
 
             {/* Profile / Auth Menu */}
             {isAuthenticated && user ? (
@@ -267,6 +319,7 @@ export default function Layout() {
                 <button
                   className="user-profile-btn"
                   onClick={() => setProfileMenuOpen((v) => !v)}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
                 >
                   <span className="user-avatar">
                     {(user.first_name?.[0] || user.username[0] || 'U').toUpperCase()}
@@ -274,7 +327,7 @@ export default function Layout() {
                   <span className="user-name">
                     {user.first_name || user.username}
                   </span>
-                  <span style={{ fontSize: '0.7rem' }}>▾</span>
+                  <ChevronDown size={14} color="#64748b" />
                 </button>
 
                 {profileMenuOpen && (
@@ -295,8 +348,10 @@ export default function Layout() {
                         to="/profile"
                         className="dropdown-item"
                         onClick={() => setProfileMenuOpen(false)}
+                        style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}
                       >
-                        👤 View Profile &amp; Jurisdiction
+                        <User size={15} />
+                        <span>View Profile &amp; Jurisdiction</span>
                       </Link>
                       {/* Task Force Review Queue — only visible to reviewing authorities (Managers, District/State Admins) */}
                       {(isAdmin || user.profile?.role_code === 'MANAGER' || user.profile?.role_code === 'DISTRICT_OFFICIAL') && (
@@ -304,16 +359,29 @@ export default function Layout() {
                           to="/review-queue"
                           className="dropdown-item"
                           onClick={() => setProfileMenuOpen(false)}
+                          style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}
                         >
-                          🏛️ Task Force Review Queue
+                          <ClipboardCheck size={15} />
+                          <span>Task Force Review Queue</span>
                         </Link>
                       )}
                       <button
                         className="dropdown-item"
-                        style={{ color: '#dc2626', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                        style={{
+                          color: '#dc2626',
+                          width: '100%',
+                          textAlign: 'left',
+                          background: 'transparent',
+                          border: 'none',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.45rem',
+                        }}
                         onClick={handleLogout}
                       >
-                        🚪 Sign Out
+                        <LogOut size={15} />
+                        <span>Sign Out</span>
                       </button>
                     </div>
                   </div>
@@ -321,15 +389,19 @@ export default function Layout() {
               </div>
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', whiteSpace: 'nowrap' }}>
-                <NavLink to="/login" className="btn btn-secondary btn-sm" style={{ whiteSpace: 'nowrap' }}>
-                  🔐 Sign In
+                <NavLink
+                  to="/login"
+                  className="btn btn-secondary btn-sm"
+                  style={{ whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                >
+                  <LogIn size={14} />
+                  <span>Sign In</span>
                 </NavLink>
               </div>
             )}
           </div>
         </div>
 
-        {/* Tier 2: Navigation Bar (ONLY shown when a hazard is active!) */}
         {/* Tier 2: Navigation Bar (Grouped into 3 Clean Dropdowns when a hazard is active!) */}
         {activeHazard && (
           <div className="google-nav-bar">
@@ -343,8 +415,7 @@ export default function Layout() {
                     location.pathname.startsWith('/new-assessment') ||
                     location.pathname.startsWith('/assessments') ||
                     location.pathname.startsWith('/risk-builder') ||
-                    location.pathname.startsWith('/risk-assessments') ||
-                    location.pathname.startsWith('/reports')
+                    location.pathname.startsWith('/risk-assessments')
                       ? 'active'
                       : ''
                   } ${openNavDropdown === 'hazard' ? 'open' : ''}`}
@@ -354,9 +425,9 @@ export default function Layout() {
                   }}
                   title={`${activeHazardMeta?.shortName || 'Hazard'} Operations & Assessments`}
                 >
-                  <span className="google-nav-dropdown-icon">{activeHazardMeta?.icon || '🌊'}</span>
+                  <span className="google-nav-dropdown-icon">{renderHazardIcon(activeHazard, 16)}</span>
                   <span>{activeHazardMeta?.shortName || 'Hazard'} Hub</span>
-                  <span className="google-nav-arrow">▾</span>
+                  <ChevronDown size={13} className="google-nav-arrow" />
                 </button>
 
                 {openNavDropdown === 'hazard' && (
@@ -368,7 +439,7 @@ export default function Layout() {
                       }
                       onClick={() => setOpenNavDropdown(null)}
                     >
-                      <span className="google-nav-menu-icon">{activeHazardMeta?.icon || '🌊'}</span>
+                      <span className="google-nav-menu-icon">{renderHazardIcon(activeHazard, 18)}</span>
                       <div className="google-nav-menu-text">
                         <span className="google-nav-menu-title">{activeHazardMeta?.shortName} Dashboard</span>
                         <span className="google-nav-menu-desc">District situation summary &amp; hazard intelligence</span>
@@ -382,7 +453,9 @@ export default function Layout() {
                       }
                       onClick={() => setOpenNavDropdown(null)}
                     >
-                      <span className="google-nav-menu-icon">📋</span>
+                      <span className="google-nav-menu-icon">
+                        <FileText size={18} color="#2563eb" />
+                      </span>
                       <div className="google-nav-menu-text">
                         <span className="google-nav-menu-title">{activeHazardMeta?.shortName} Assessments</span>
                         <span className="google-nav-menu-desc">Run Module 1-3 baseline assessments &amp; maps</span>
@@ -396,24 +469,12 @@ export default function Layout() {
                       }
                       onClick={() => setOpenNavDropdown(null)}
                     >
-                      <span className="google-nav-menu-icon">🎛️</span>
+                      <span className="google-nav-menu-icon">
+                        <Sliders size={18} color="#7c3aed" />
+                      </span>
                       <div className="google-nav-menu-text">
                         <span className="google-nav-menu-title">Composite Risk Builder</span>
                         <span className="google-nav-menu-desc">Module 4 Multi-criteria weighted risk (R = H × V × E)</span>
-                      </div>
-                    </NavLink>
-
-                    <NavLink
-                      to={`/reports?hazard=${activeHazard}`}
-                      className={({ isActive }) =>
-                        `google-nav-menu-item ${isActive && location.pathname === '/reports' ? 'active' : ''}`
-                      }
-                      onClick={() => setOpenNavDropdown(null)}
-                    >
-                      <span className="google-nav-menu-icon">📑</span>
-                      <div className="google-nav-menu-text">
-                        <span className="google-nav-menu-title">Reports &amp; Dossiers</span>
-                        <span className="google-nav-menu-desc">Official 10-chapter dossiers, maps &amp; exports</span>
                       </div>
                     </NavLink>
                   </div>
@@ -438,9 +499,11 @@ export default function Layout() {
                   }}
                   title="Department Tasks, Field Incidents & Approvals"
                 >
-                  <span className="google-nav-dropdown-icon">🏛️</span>
+                  <span className="google-nav-dropdown-icon">
+                    <Building2 size={16} />
+                  </span>
                   <span>Department &amp; Field</span>
-                  <span className="google-nav-arrow">▾</span>
+                  <ChevronDown size={13} className="google-nav-arrow" />
                 </button>
 
                 {openNavDropdown === 'dept' && (
@@ -452,7 +515,9 @@ export default function Layout() {
                       }
                       onClick={() => setOpenNavDropdown(null)}
                     >
-                      <span className="google-nav-menu-icon">🚨</span>
+                      <span className="google-nav-menu-icon">
+                        <Radio size={18} color="#dc2626" />
+                      </span>
                       <div className="google-nav-menu-text">
                         <span className="google-nav-menu-title">Field Incidents &amp; Workflow</span>
                         <span className="google-nav-menu-desc">Ground incident logs &amp; 3-tier departmental approvals</span>
@@ -466,7 +531,9 @@ export default function Layout() {
                       }
                       onClick={() => setOpenNavDropdown(null)}
                     >
-                      <span className="google-nav-menu-icon">🏛️</span>
+                      <span className="google-nav-menu-icon">
+                        <Building2 size={18} color="#0d9488" />
+                      </span>
                       <div className="google-nav-menu-text">
                         <span className="google-nav-menu-title">Department Data Tasks</span>
                         <span className="google-nav-menu-desc">Line agency indicators, telemetry &amp; task tracking</span>
@@ -480,7 +547,9 @@ export default function Layout() {
                       }
                       onClick={() => setOpenNavDropdown(null)}
                     >
-                      <span className="google-nav-menu-icon">📋</span>
+                      <span className="google-nav-menu-icon">
+                        <ClipboardCheck size={18} color="#2563eb" />
+                      </span>
                       <div className="google-nav-menu-text">
                         <span className="google-nav-menu-title">Task Force Review Queue</span>
                         <span className="google-nav-menu-desc">Inter-departmental endorsements &amp; official sign-offs</span>
@@ -495,9 +564,9 @@ export default function Layout() {
                 <button
                   type="button"
                   className={`google-nav-dropdown-btn ${
+                    location.pathname.startsWith('/reports') ||
                     location.pathname.startsWith('/data-library') ||
                     location.pathname.startsWith('/flood-data') ||
-                    location.pathname.startsWith('/libraries') ||
                     location.pathname.startsWith('/saved-queries')
                       ? 'active'
                       : ''
@@ -506,15 +575,33 @@ export default function Layout() {
                     e.stopPropagation();
                     setOpenNavDropdown((prev) => (prev === 'data' ? null : 'data'));
                   }}
-                  title="Spatial Layers, Indicators, Datasets & Saved Queries"
+                  title="Generated Reports, Spatial Layers, Datasets & Saved Queries"
                 >
-                  <span className="google-nav-dropdown-icon">📁</span>
+                  <span className="google-nav-dropdown-icon">
+                    <Database size={16} />
+                  </span>
                   <span>Data &amp; Libraries</span>
-                  <span className="google-nav-arrow">▾</span>
+                  <ChevronDown size={13} className="google-nav-arrow" />
                 </button>
 
                 {openNavDropdown === 'data' && (
                   <div className="google-nav-menu">
+                    <NavLink
+                      to={`/reports?hazard=${activeHazard}`}
+                      className={({ isActive }) =>
+                        `google-nav-menu-item ${isActive && location.pathname === '/reports' ? 'active' : ''}`
+                      }
+                      onClick={() => setOpenNavDropdown(null)}
+                    >
+                      <span className="google-nav-menu-icon">
+                        <FileText size={18} color="#0284c7" />
+                      </span>
+                      <div className="google-nav-menu-text">
+                        <span className="google-nav-menu-title">Generated &amp; Saved Reports</span>
+                        <span className="google-nav-menu-desc">Unified statutory reports, composite risk dossiers &amp; review routing</span>
+                      </div>
+                    </NavLink>
+
                     <NavLink
                       to={`/data-library?hazard=${activeHazard}`}
                       className={({ isActive }) =>
@@ -522,24 +609,12 @@ export default function Layout() {
                       }
                       onClick={() => setOpenNavDropdown(null)}
                     >
-                      <span className="google-nav-menu-icon">📁</span>
+                      <span className="google-nav-menu-icon">
+                        <Database size={18} color="#0d9488" />
+                      </span>
                       <div className="google-nav-menu-text">
                         <span className="google-nav-menu-title">Spatial Data Library</span>
                         <span className="google-nav-menu-desc">GIS shapefiles, GeoJSON catalogues &amp; layer inspector</span>
-                      </div>
-                    </NavLink>
-
-                    <NavLink
-                      to={`/libraries?hazard=${activeHazard}`}
-                      className={({ isActive }) =>
-                        `google-nav-menu-item ${isActive && location.pathname === '/libraries' ? 'active' : ''}`
-                      }
-                      onClick={() => setOpenNavDropdown(null)}
-                    >
-                      <span className="google-nav-menu-icon">📊</span>
-                      <div className="google-nav-menu-text">
-                        <span className="google-nav-menu-title">Approved Indicators &amp; Mapping</span>
-                        <span className="google-nav-menu-desc">Multi-hazard thresholds, formulas &amp; agency weights</span>
                       </div>
                     </NavLink>
 
@@ -550,7 +625,9 @@ export default function Layout() {
                       }
                       onClick={() => setOpenNavDropdown(null)}
                     >
-                      <span className="google-nav-menu-icon">🔖</span>
+                      <span className="google-nav-menu-icon">
+                        <Bookmark size={18} color="#f59e0b" />
+                      </span>
                       <div className="google-nav-menu-text">
                         <span className="google-nav-menu-title">Saved Queries &amp; Templates</span>
                         <span className="google-nav-menu-desc">Reusable spatial query templates &amp; shareable links</span>
@@ -560,9 +637,32 @@ export default function Layout() {
                 )}
               </div>
 
+              {/* Direct Live Disaster Alerts & Weather Navigation Button */}
+              <NavLink
+                to="/weather"
+                className={({ isActive }) =>
+                  `google-nav-item ${isActive || location.pathname.startsWith('/weather') || location.pathname.startsWith('/live-weather') ? 'active' : ''}`
+                }
+                title="Live Disaster News, Official Alerts & Weather Radar"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', textDecoration: 'none' }}
+              >
+                <Radio size={15} color="#dc2626" />
+                <span>Live Disaster &amp; Weather</span>
+                {quickWeather && (
+                  <span style={{ fontSize: '0.72rem', background: '#fee2e2', color: '#991b1b', padding: '1px 6px', borderRadius: '999px', fontWeight: 800 }}>
+                    LIVE
+                  </span>
+                )}
+              </NavLink>
+
               {isAdmin && (
-                <NavLink to="/settings" className={({ isActive }) => `google-nav-item ${isActive ? 'active' : ''}`}>
-                  ⚙️ Settings
+                <NavLink
+                  to="/settings"
+                  className={({ isActive }) => `google-nav-item ${isActive ? 'active' : ''}`}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                >
+                  <Settings size={15} />
+                  <span>Settings</span>
                 </NavLink>
               )}
             </nav>
@@ -590,9 +690,11 @@ export default function Layout() {
 
       {/* Main Content Area */}
       <div className="main-content">
-        {/* Page Content */}
+        {/* Page Content with Silk-smooth Route Transitions */}
         <main className="page-content">
-          <Outlet />
+          <div key={location.pathname} className="page-transition-wrapper">
+            <Outlet />
+          </div>
         </main>
       </div>
 

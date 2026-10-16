@@ -517,10 +517,34 @@ class AssessmentViewSet(viewsets.ModelViewSet):
                 {"message": f"Assessment has already been {assessment.approval_status.lower()}."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        sent_to = (
+            request.data.get("sent_to")
+            or request.data.get("reviewer_name")
+        )
+        if not sent_to:
+            user_profile = getattr(request.user, "profile", None) if getattr(request, "user", None) and request.user.is_authenticated else None
+            role = user_profile.role if user_profile else None
+            if role in ("DEPARTMENT_OFFICER", "ANALYST"):
+                sent_to = "Senior Department Officer (Level 2 Technical Review)"
+            elif role == "SENIOR_OFFICER":
+                sent_to = "Executive Manager / DDMA (Level 3 Administrative Endorsement)"
+            elif role == "MANAGER":
+                sent_to = "District Collector / DDMA Chairperson"
+            else:
+                sent_to = "Senior Department Reviewer (Level 2)"
+
+        comment = request.data.get("review_comment") or request.data.get("note", "")
+        reviewer_org = request.data.get("reviewer_org") or "Disaster Management Authority"
+
         assessment.approval_status = "SUBMITTED"
         assessment.submitted_at = timezone.now()
-        assessment.save(update_fields=["approval_status", "submitted_at"])
-        return Response({"message": "Assessment submitted for Task Force review.", "assessment": self._approval_payload(assessment)})
+        assessment.reviewer_name = sent_to
+        assessment.reviewer_org = reviewer_org
+        if comment:
+            assessment.review_comment = comment
+        assessment.save(update_fields=["approval_status", "submitted_at", "reviewer_name", "reviewer_org", "review_comment"])
+        return Response({"message": f"Assessment submitted for review and routed to {sent_to}.", "assessment": self._approval_payload(assessment)})
 
     @action(detail=True, methods=["post"])
     def approve(self, request, pk=None):
@@ -1747,10 +1771,34 @@ class RiskAssessmentViewSet(viewsets.ModelViewSet):
                 {"message": f"Risk assessment has already been {risk.approval_status.lower()}."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        sent_to = (
+            request.data.get("sent_to")
+            or request.data.get("reviewer_name")
+        )
+        if not sent_to:
+            user_profile = getattr(request.user, "profile", None) if getattr(request, "user", None) and request.user.is_authenticated else None
+            role = user_profile.role if user_profile else None
+            if role in ("DEPARTMENT_OFFICER", "ANALYST"):
+                sent_to = "Senior Department Officer (Level 2 Technical Review)"
+            elif role == "SENIOR_OFFICER":
+                sent_to = "Executive Manager / DDMA (Level 3 Administrative Endorsement)"
+            elif role == "MANAGER":
+                sent_to = "District Collector / DDMA Chairperson"
+            else:
+                sent_to = "Senior Department Reviewer (Level 2)"
+
+        comment = request.data.get("review_comment") or request.data.get("note", "")
+        reviewer_org = request.data.get("reviewer_org") or "Disaster Management Authority"
+
         risk.approval_status = "SUBMITTED"
         risk.submitted_at = timezone.now()
-        risk.save(update_fields=["approval_status", "submitted_at"])
-        return Response({"message": "Risk assessment submitted for Task Force review.", "risk_assessment": self._approval_payload(risk)})
+        risk.reviewer_name = sent_to
+        risk.reviewer_org = reviewer_org
+        if comment:
+            risk.review_comment = comment
+        risk.save(update_fields=["approval_status", "submitted_at", "reviewer_name", "reviewer_org", "review_comment"])
+        return Response({"message": f"Risk assessment submitted for review and routed to {sent_to}.", "risk_assessment": self._approval_payload(risk)})
 
     @action(detail=True, methods=["post"])
     def approve(self, request, pk=None):

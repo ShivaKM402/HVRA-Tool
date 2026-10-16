@@ -134,6 +134,7 @@ export interface ApprovalFields {
   review_comment: string;
   reviewed_at: string | null;
   created_by_name: string | null;
+  sent_to?: string | null;
 }
 
 export interface AssessmentIndicatorConfig {
@@ -177,6 +178,7 @@ export interface Assessment {
   review_comment: string;
   reviewed_at: string | null;
   created_by_name: string | null;
+  sent_to?: string | null;
   indicators: AssessmentIndicatorConfig[];
   result_count: number;
   created_at: string;
@@ -307,6 +309,7 @@ export interface RiskAssessment {
   review_comment: string;
   reviewed_at: string | null;
   created_by_name: string | null;
+  sent_to?: string | null;
   result_count: number;
   created_at: string;
   updated_at: string;
@@ -803,5 +806,98 @@ export interface CreateIssuePayload {
 export interface ReviewActionPayload {
   action: 'APPROVE' | 'REQUEST_REVISION';
   remarks: string;
+}
+
+// -------------------------------------------------------
+// Real-time Disaster News & Official Alerts Feed
+// -------------------------------------------------------
+export type AlertSeverity = 'RED' | 'ORANGE' | 'YELLOW' | 'GREEN' | 'INFO';
+export type AlertSourceType = 'OFFICIAL_ALERT' | 'NEWS_REPORT' | 'SEISMIC_OBSERVATION';
+export type AlertHazardType = 'FLOOD' | 'HEAVY_RAIN' | 'LANDSLIDE' | 'CYCLONE' | 'EARTHQUAKE' | 'LIGHTNING' | 'WIND' | 'GENERAL';
+
+export interface DisasterAlertItem {
+  id: string;
+  headline: string;
+  title: string;
+  description: string;
+  instruction: string;
+  source_type: AlertSourceType;
+  source_name: string;
+  source_url: string;
+  published_at: string;
+  issued_at: string;
+  effective_at?: string;
+  expires_at?: string;
+  affected_district: string;
+  affected_districts: string[];
+  coordinates: [number, number]; // [lat, lon]
+  hazard_type: AlertHazardType;
+  hazard_label: string;
+  hazard_icon: string;
+  severity: AlertSeverity;
+  severity_label: string;
+  severity_color: string;
+  magnitude?: number;
+  depth_km?: number;
+  urgency?: string;
+  certainty?: string;
+  msg_type?: string;
+  is_active?: boolean;
+  is_expired?: boolean;
+  is_official: boolean;
+  is_forecast: boolean;
+  is_demo: boolean;
+}
+
+export interface SourceStatusItem {
+  source?: string;
+  name?: string;
+  endpoint?: string;
+  status: 'ONLINE' | 'DEGRADED' | 'OFFLINE' | 'ERROR' | 'MONITORED';
+  items_count?: number;
+  latency_ms?: number;
+  attribution?: string;
+  error?: string;
+}
+
+export interface OfficialDirectoryEntity {
+  name: string;
+  role: string;
+  url: string;
+  emergency_helpline?: string;
+  district_helpline?: string;
+  police_fire_ambulance?: string;
+  status: string;
+}
+
+export interface DisasterAlertsResponse {
+  status: string;
+  last_refreshed_at: string;
+  cache_ttl_seconds: number;
+  is_cached: boolean;
+  cache_age_seconds: number;
+  total_count: number;
+  active_count?: number;
+  expired_count?: number;
+  filtered_count?: number;
+  official_count: number;
+  news_count: number;
+  seismic_count: number;
+  sources_status: {
+    ndma_sachet: SourceStatusItem;
+    usgs_seismic: SourceStatusItem;
+    disaster_news: SourceStatusItem;
+  };
+  official_directory: Record<string, OfficialDirectoryEntity>;
+  kerala_districts: string[];
+  alerts: DisasterAlertItem[];
+}
+
+export interface DisasterAlertsFilterParams {
+  district?: string;
+  hazard_type?: string;
+  source_type?: string;
+  severity?: string;
+  force_refresh?: boolean;
 }
 

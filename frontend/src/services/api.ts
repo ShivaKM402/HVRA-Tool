@@ -41,6 +41,8 @@ import type {
   IssueAttachment,
   CreateIssuePayload,
   WorkflowAssignmentRule,
+  DisasterAlertsResponse,
+  DisasterAlertsFilterParams,
 } from '../types';
 
 const isProd = import.meta.env.PROD;
@@ -642,10 +644,18 @@ export const getRoles = async (): Promise<RoleOption[]> => {
 };
 
 // -------------------------------------------------------
-// Task Force Approval Workflow (HVRA §8.2)
-// -------------------------------------------------------
-export const submitAssessmentForReview = async (id: number): Promise<SubmitForReviewResponse> => {
-  const response = await api.post<SubmitForReviewResponse>(`/assessments/${id}/submit-for-review/`);
+export interface SubmitReviewPayload {
+  sent_to?: string;
+  note?: string;
+  review_comment?: string;
+  reviewer_org?: string;
+}
+
+export const submitAssessmentForReview = async (
+  id: number,
+  payload?: SubmitReviewPayload
+): Promise<SubmitForReviewResponse> => {
+  const response = await api.post<SubmitForReviewResponse>(`/assessments/${id}/submit-for-review/`, payload || {});
   return response.data;
 };
 
@@ -677,8 +687,11 @@ export const rejectAssessment = async (
   return response.data;
 };
 
-export const submitRiskForReview = async (id: number): Promise<SubmitForReviewResponse> => {
-  const response = await api.post<SubmitForReviewResponse>(`/risk-assessments/${id}/submit-for-review/`);
+export const submitRiskForReview = async (
+  id: number,
+  payload?: SubmitReviewPayload
+): Promise<SubmitForReviewResponse> => {
+  const response = await api.post<SubmitForReviewResponse>(`/risk-assessments/${id}/submit-for-review/`, payload || {});
   return response.data;
 };
 
@@ -944,6 +957,26 @@ export const uploadIssueAttachment = async (
 
 export const getWorkflowAssignmentRules = async (): Promise<PaginatedResponse<WorkflowAssignmentRule>> => {
   const response = await api.get<PaginatedResponse<WorkflowAssignmentRule>>('/issues/assignment-rules/');
+  return response.data;
+};
+
+/**
+ * Real-time Disaster News & Official Alerts Feed
+ * Queries backend endpoint /api/disaster-alerts/ which consolidates
+ * NDMA SACHET (CAP 1.2), USGS Earthquake network, and Kerala Disaster News.
+ */
+export const getDisasterAlerts = async (
+  params?: DisasterAlertsFilterParams
+): Promise<DisasterAlertsResponse> => {
+  const response = await api.get<DisasterAlertsResponse>('/disaster-alerts/', {
+    params: {
+      district: params?.district || undefined,
+      hazard_type: params?.hazard_type || undefined,
+      source_type: params?.source_type || undefined,
+      severity: params?.severity || undefined,
+      force_refresh: params?.force_refresh ? 'true' : undefined,
+    },
+  });
   return response.data;
 };
 

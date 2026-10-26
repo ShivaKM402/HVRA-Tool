@@ -181,7 +181,7 @@ export default function Register() {
 
           <div style={{ textAlign: 'center', marginTop: '1.25rem', fontSize: '0.86rem', color: '#64748b' }}>
             Already have credentials?{' '}
-            <Link to="/login" style={{ color: '#2563eb', fontWeight: 700 }}>
+            <Link to="/login" style={{ color: '#dc2626', fontWeight: 700 }}>
               Sign in
             </Link>
           </div>

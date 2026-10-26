@@ -28,7 +28,6 @@ import {
   LogOut,
   LogIn,
   ArrowLeft,
-  Sparkles,
   FileText,
   Sliders,
   Radio,
@@ -192,122 +191,91 @@ export default function Layout() {
 
   const breadcrumbs = getBreadcrumbs();
 
+  const isLandingPage = !activeHazard && location.pathname === '/dashboard';
+  const isDashboard = location.pathname === '/dashboard';
+  const isWeatherPage = location.pathname.startsWith('/weather') || location.pathname.startsWith('/live-weather');
+
   return (
-    <div className="app-layout">
+    <div className={`app-layout ${isLandingPage ? 'app-layout--landing' : ''} ${isDashboard ? 'app-layout--dashboard' : ''} ${isWeatherPage ? 'app-layout--weather' : ''}`}>
       {/* Google-Style Two-Tier Clean Console Header */}
-      <header className="google-header-container">
+      <header className={`google-header-container ${isLandingPage ? 'google-header-container--landing' : ''}`}>
         {/* Tier 1: System Bar */}
         <div className="google-top-bar">
           <div className="google-top-left">
-            <Link to={activeHazard ? `/dashboard?hazard=${activeHazard}` : '/dashboard'} className="google-brand">
-              <div
-                className="google-brand-icon"
-                style={{
-                  background: activeHazardMeta ? activeHazardMeta.color : undefined,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                {activeHazard ? renderHazardIcon(activeHazard, 20) : <Landmark size={20} color="#ffffff" />}
+            <Link to={activeHazard ? `/dashboard?hazard=${activeHazard}` : '/dashboard'} className="portal-brand-link">
+              <img src="/assets/hvra/logo.png" alt="HVRA Logo" className="portal-topbar-logo" />
+              <div className="portal-topbar-titles">
+                <span className="portal-gov-title">Government of Kerala</span>
+                <span className="portal-app-title">HVRA Multi-Hazard Command Portal</span>
+                <span className="portal-agency-title">Kerala State Disaster Management Authority (KSDMA)</span>
               </div>
-              <span className="google-brand-title">
-                {activeHazardMeta ? `HVRA ${activeHazardMeta.shortName} Portal` : 'Kerala Multi-Hazard HVRA'}
-              </span>
             </Link>
-
-            {/* When a hazard is selected, show prominent [⬅ Change Hazard (4 Columns)] button */}
-            {activeHazard && (
-              <button
-                onClick={() => {
-                  clearHazard();
-                  navigate('/dashboard');
-                }}
-                className="btn-hazard-firstpage-switch"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.45rem',
-                  background: '#eff6ff',
-                  border: '1.5px solid #bfdbfe',
-                  borderRadius: '8px',
-                  padding: '0.3rem 0.8rem',
-                  fontSize: '0.78rem',
-                  fontWeight: 800,
-                  color: '#1d4ed8',
-                  cursor: 'pointer',
-                  marginLeft: '0.5rem',
-                  boxShadow: '0 1px 3px rgba(37,99,235,0.1)',
-                  transition: 'all 0.15s ease',
-                }}
-                title="Return to the 4-column hazard selection first page"
-              >
-                <ArrowLeft size={14} />
-                <span>Change Hazard (4 Columns)</span>
-              </button>
-            )}
-
-            {/* Context Switcher for District */}
-            <div className="district-switcher">
-              <MapPin size={15} color="#64748b" style={{ flexShrink: 0 }} />
-              <select
-                className="district-select"
-                value={activeDistrictId || ''}
-                onChange={(e) => setActiveDistrictId(e.target.value ? parseInt(e.target.value, 10) : null)}
-                title="Switch territory"
-              >
-                <option value="">All Kerala Districts</option>
-                {districts.map((d) => (
-                  <option key={d.id} value={d.id}>{d.name} District</option>
-                ))}
-              </select>
-            </div>
           </div>
 
           <div className="google-top-center">
             {activeHazard ? (
-              /* Quick Search Trigger */
-              <button
-                className="cmd-trigger-btn"
-                onClick={() => setIsCommandPaletteOpen(true)}
-                title="Global search (Ctrl+K)"
-              >
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                {/* Context Switcher for District in active hazard mode */}
+                <div className="portal-district-pill">
+                  <MapPin size={14} color="#dc2626" style={{ flexShrink: 0 }} />
+                  <select
+                    className="portal-district-select"
+                    value={activeDistrictId || ''}
+                    onChange={(e) => setActiveDistrictId(e.target.value ? parseInt(e.target.value, 10) : null)}
+                    title="Switch territory"
+                  >
+                    <option value="">Thiruvananthapuram</option>
+                    {districts.map((d) => (
+                      <option key={d.id} value={d.id}>{d.name.replace(' [DEMO]', '')}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={13} color="#64748b" style={{ flexShrink: 0, pointerEvents: 'none', marginLeft: '0.25rem' }} />
+                </div>
+
+                {/* Quick Search Trigger */}
+                <button
+                  className="portal-search-pill"
+                  onClick={() => setIsCommandPaletteOpen(true)}
+                  title="Global search (Ctrl+K)"
+                >
                   <Search size={14} color="#64748b" />
-                  <span>Search {activeHazardMeta?.shortName} assessments, taluks, indicators...</span>
-                </span>
-                <kbd className="cmd-kbd">Ctrl+K</kbd>
-              </button>
+                  <span>Search {activeHazardMeta?.shortName || 'Flood'} assessments, taluks, indicators...</span>
+                </button>
+              </div>
             ) : (
-              /* Informative Banner Pill on First Page */
-              <div
-                style={{
-                  fontSize: '0.82rem',
-                  fontWeight: 700,
-                  color: '#1e3a8a',
-                  background: '#eff6ff',
-                  border: '1px solid #bfdbfe',
-                  padding: '0.35rem 1.1rem',
-                  borderRadius: '999px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.45rem',
-                  boxShadow: '0 1px 2px rgba(37,99,235,0.06)',
-                }}
-              >
-                <Sparkles size={14} color="#1d4ed8" />
-                <span>First Page: Select 1 of the 4 Hazard Boxes Below</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                {/* District Switcher on Landing Page */}
+                <div className="portal-district-pill portal-district-pill--landing">
+                  <MapPin size={14} color="#dc2626" style={{ flexShrink: 0 }} />
+                  <select
+                    className="portal-district-select"
+                    value={activeDistrictId || ''}
+                    onChange={(e) => setActiveDistrictId(e.target.value ? parseInt(e.target.value, 10) : null)}
+                    title="Switch territory"
+                  >
+                    <option value="">Thiruvananthapuram</option>
+                    {districts.map((d) => (
+                      <option key={d.id} value={d.id}>{d.name.replace(' [DEMO]', '')}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={13} color="#64748b" style={{ flexShrink: 0, pointerEvents: 'none', marginLeft: '0.25rem' }} />
+                </div>
+
+                {/* 14 Revenue Districts Connected Badge */}
+                <div className="portal-districts-connected-badge">
+                  <span className="portal-pulse-dot" />
+                  <span>14 Revenue Districts Connected</span>
+                </div>
               </div>
             )}
           </div>
 
           <div className="google-top-right">
-            {/* Notification Center */}
+            {/* Notification Center Circular Button */}
             <Link
               to="/notifications"
-              className="topbar-icon-btn"
+              className="portal-circle-icon-btn"
               title="Notification Center"
-              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
             >
               <Bell size={18} />
               {unreadCount > 0 && <span className="notif-badge">{unreadCount}</span>}
@@ -317,15 +285,14 @@ export default function Layout() {
             {isAuthenticated && user ? (
               <div style={{ position: 'relative' }}>
                 <button
-                  className="user-profile-btn"
+                  className="portal-user-badge-btn"
                   onClick={() => setProfileMenuOpen((v) => !v)}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}
                 >
-                  <span className="user-avatar">
-                    {(user.first_name?.[0] || user.username[0] || 'U').toUpperCase()}
+                  <span className="portal-user-avatar-circle">
+                    {(user.first_name?.[0] || user.username[0] || 'S').toUpperCase()}
                   </span>
-                  <span className="user-name">
-                    {user.first_name || user.username}
+                  <span className="portal-user-badge-name">
+                    {user.profile?.role_label || 'Senior Employee'}
                   </span>
                   <ChevronDown size={14} color="#64748b" />
                 </button>
@@ -405,11 +372,25 @@ export default function Layout() {
         {/* Tier 2: Navigation Bar (Grouped into 3 Clean Dropdowns when a hazard is active!) */}
         {activeHazard && (
           <div className="google-nav-bar">
-            <nav className="google-nav-links">
-              {/* Dropdown 1: Hazard Operations (Flood / Landslide / Coastal / Drought) */}
-              <div className="google-nav-dropdown-wrap">
-                <button
-                  type="button"
+            <div className="google-nav-bar-inner">
+              <button
+                type="button"
+                className="portal-tier2-back-title"
+                onClick={() => {
+                  clearHazard();
+                  navigate('/dashboard');
+                }}
+                title="Return to 4-Column Hazard Gateway"
+              >
+                <ArrowLeft size={16} />
+                <span>HVRA {activeHazardMeta?.shortName || 'Flood'} Portal</span>
+              </button>
+
+              <nav className="google-nav-links">
+                {/* Dropdown 1: Hazard Operations (Flood / Landslide / Coastal / Drought) */}
+                <div className="google-nav-dropdown-wrap">
+                  <button
+                    type="button"
                   className={`google-nav-dropdown-btn ${
                     (location.pathname === '/dashboard' && Boolean(activeHazard)) ||
                     location.pathname.startsWith('/new-assessment') ||
@@ -454,7 +435,7 @@ export default function Layout() {
                       onClick={() => setOpenNavDropdown(null)}
                     >
                       <span className="google-nav-menu-icon">
-                        <FileText size={18} color="#2563eb" />
+                        <FileText size={18} color="#dc2626" />
                       </span>
                       <div className="google-nav-menu-text">
                         <span className="google-nav-menu-title">{activeHazardMeta?.shortName} Assessments</span>
@@ -548,7 +529,7 @@ export default function Layout() {
                       onClick={() => setOpenNavDropdown(null)}
                     >
                       <span className="google-nav-menu-icon">
-                        <ClipboardCheck size={18} color="#2563eb" />
+                        <ClipboardCheck size={18} color="#dc2626" />
                       </span>
                       <div className="google-nav-menu-text">
                         <span className="google-nav-menu-title">Task Force Review Queue</span>
@@ -666,6 +647,7 @@ export default function Layout() {
                 </NavLink>
               )}
             </nav>
+          </div>
 
             {/* Inline Breadcrumb Trail */}
             {breadcrumbs && (

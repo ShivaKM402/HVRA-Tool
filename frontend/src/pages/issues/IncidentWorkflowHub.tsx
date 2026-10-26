@@ -323,7 +323,7 @@ export const IncidentWorkflowHub: React.FC = () => {
           <span className="step-tier-tag tier-1-tag">Tier 1: Field Employee</span>
           <div className="step-title">
             <span>Ground Incident Report</span>
-            <span className="step-badge" style={{ background: '#eff6ff', color: '#1d4ed8' }}>
+            <span className="step-badge" style={{ background: '#fef2f2', color: '#dc2626' }}>
               Field Collector
             </span>
           </div>

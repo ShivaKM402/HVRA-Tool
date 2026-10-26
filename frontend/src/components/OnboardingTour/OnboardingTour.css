@@ -30,8 +30,8 @@
 }
 
 .onboard-badge {
-  background: #e0e7ff;
-  color: #4338ca;
+  background: #fee2e2;
+  color: #dc2626;
   font-size: 0.75rem;
   font-weight: 700;
   padding: 0.25rem 0.65rem;
@@ -63,13 +63,13 @@
 .onboard-icon-wrapper {
   width: 68px;
   height: 68px;
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 1.25rem;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
 }
 
 .onboard-icon {
@@ -138,7 +138,7 @@
 }
 
 .onboard-dot.active {
-  background: #2563eb;
+  background: #dc2626;
   width: 22px;
   border-radius: 999px;
 }

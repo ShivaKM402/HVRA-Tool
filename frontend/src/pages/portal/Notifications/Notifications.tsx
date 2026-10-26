@@ -55,7 +55,7 @@ export default function Notifications() {
                   alignItems: 'flex-start',
                   gap: '0.85rem',
                   borderLeft: `4px solid ${
-                    n.type === 'success' ? '#16a34a' : n.type === 'error' ? '#dc2626' : n.type === 'warning' ? '#f59e0b' : '#2563eb'
+                    n.type === 'success' ? '#16a34a' : n.type === 'error' ? '#dc2626' : n.type === 'warning' ? '#f59e0b' : '#dc2626'
                   }`,
                 }}
               >
@@ -74,7 +74,7 @@ export default function Notifications() {
                   {n.link && (
                     <Link
                       to={n.link}
-                      style={{ display: 'inline-block', fontSize: '0.78rem', color: '#2563eb', fontWeight: 600, marginTop: '0.35rem' }}
+                      style={{ display: 'inline-block', fontSize: '0.78rem', color: '#dc2626', fontWeight: 600, marginTop: '0.35rem' }}
                     >
                       View Resource →
                     </Link>

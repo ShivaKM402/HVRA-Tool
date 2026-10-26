@@ -202,7 +202,7 @@
 }
 
 .rm-check-row input[type="checkbox"] {
-  accent-color: #1a73e8;
+  accent-color: #dc2626;
   width: 14px;
   height: 14px;
   cursor: pointer;
@@ -222,7 +222,7 @@
   cursor: pointer;
   transition: border-color 0.15s;
 }
-.rm-select:focus { border-color: #1a73e8; }
+.rm-select:focus { border-color: #dc2626; }
 
 /* Input */
 .rm-input {
@@ -236,7 +236,7 @@
   box-sizing: border-box;
   transition: border-color 0.15s;
 }
-.rm-input:focus { border-color: #1a73e8; }
+.rm-input:focus { border-color: #dc2626; }
 
 /* File row */
 .rm-file-row {
@@ -295,7 +295,7 @@
   box-sizing: border-box;
   transition: border-color 0.15s;
 }
-.rm-textarea:focus { border-color: #1a73e8; }
+.rm-textarea:focus { border-color: #dc2626; }
 
 /* Decision toggle */
 .rm-toggle-row {
@@ -352,7 +352,7 @@
 
 .rm-btn-send {
   padding: 0.45rem 1.2rem;
-  background: #1a73e8;
+  background: #dc2626;
   border: none;
   border-radius: 8px;
   font-size: 0.82rem;
@@ -361,6 +361,6 @@
   cursor: pointer;
   transition: all 0.15s;
 }
-.rm-btn-send:hover:not(:disabled) { background: #1557b0; transform: translateY(-1px); }
+.rm-btn-send:hover:not(:disabled) { background: #b91c1c; transform: translateY(-1px); }
 .rm-btn-send:disabled { opacity: 0.55; cursor: not-allowed; }
 

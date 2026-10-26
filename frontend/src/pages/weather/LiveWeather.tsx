@@ -4,9 +4,12 @@ import { useDistrict } from '@/context/DistrictContext';
 import {
   fetchDistrictWeather,
   fetchRiverDischarge,
+  fetchAirQuality,
   KERALA_DISTRICTS,
+  getWeatherCodeInfo,
   type DistrictWeatherReport,
   type RiverDischargeReport,
+  type AirQualityReport,
 } from '@/services/weatherService';
 import { WeatherRadarMap } from '@/components/Weather/WeatherRadarMap';
 import { LiveAlertsFeed } from '@/components/Weather/LiveAlertsFeed';
@@ -31,6 +34,7 @@ export const LiveWeather: React.FC = () => {
 
   const [weatherData, setWeatherData] = useState<DistrictWeatherReport | null>(null);
   const [dischargeData, setDischargeData] = useState<RiverDischargeReport | null>(null);
+  const [aqiData, setAqiData] = useState<AirQualityReport | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,15 +42,20 @@ export const LiveWeather: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const [wReport, dReport] = await Promise.all([
+      const [wReport, dReport, aReport] = await Promise.all([
         fetchDistrictWeather(district),
         fetchRiverDischarge(district).catch((err) => {
           console.warn('Discharge fetch error, falling back:', err);
           return null;
         }),
+        fetchAirQuality(district).catch((err) => {
+          console.warn('AQI fetch error, falling back:', err);
+          return null;
+        }),
       ]);
       setWeatherData(wReport);
       setDischargeData(dReport);
+      setAqiData(aReport);
     } catch (err: any) {
       console.error('Failed to load Open-Meteo telemetry:', err);
       setError(err?.message || 'Failed to connect to Open-Meteo telemetry servers.');
@@ -58,6 +67,17 @@ export const LiveWeather: React.FC = () => {
   useEffect(() => {
     loadWeatherFeeds(selectedDistrict);
   }, [selectedDistrict, loadWeatherFeeds]);
+
+  useEffect(() => {
+    const tabParam = searchParams.get('tab') as WeatherTab;
+    if (tabParam && tabParam !== activeTab) {
+      setActiveTab(tabParam);
+    }
+    const distParam = searchParams.get('district');
+    if (distParam && distParam !== selectedDistrict) {
+      setSelectedDistrict(distParam);
+    }
+  }, [searchParams]);
 
   const handleDistrictChange = (dName: string) => {
     setSelectedDistrict(dName);
@@ -76,80 +96,169 @@ export const LiveWeather: React.FC = () => {
   };
 
   return (
-    <div className="weather-page-container">
-      {/* Header Bar */}
-      <div className="weather-header">
-        <div className="weather-title-area">
-          <h1>
-            <span>🚨</span> Kerala Live Disaster Operations &amp; Weather Dashboard
-          </h1>
-          <p className="weather-subtitle">
-            Real-time multi-hazard surveillance · NDMA SACHET CAP alerts · GloFAS streamflow &amp; Open-Meteo telemetry
-            <span className="weather-source-badge">Live Feeds Active</span>
-          </p>
+    <div className="weather-page-root">
+      {/* 100% EDGE-TO-EDGE FULL-WIDTH HERO BANNER */}
+      <section className="weather-editorial-hero-fullwidth">
+        <div className="hero-inner-container">
+          <div className="hero-content-left">
+            <div className="hero-top-badge">
+              <span className="hero-badge-pill">Live Disaster Operations &amp; Weather</span>
+            </div>
+            <h1 className="hero-main-title">
+              Kerala Live Disaster Operations &amp; Weather Dashboard
+            </h1>
+            <p className="hero-main-subtitle">
+              Real-time multi-hazard surveillance · NDMA SACHET CAP alerts · GloFAS streamflow &amp; Open-Meteo telemetry
+            </p>
+
+            <div className="hero-controls-row">
+              <div className="hero-control-group">
+                <span className="hero-control-label">District:</span>
+                <select
+                  className="hero-district-select"
+                  value={selectedDistrict}
+                  onChange={(e) => handleDistrictChange(e.target.value)}
+                >
+                  <option value="All">📍 All Kerala (14 Districts)</option>
+                  {Object.values(KERALA_DISTRICTS).map((d) => (
+                    <option key={d.name} value={d.name}>
+                      📍 {d.name} District
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                className="hero-refresh-btn"
+                onClick={() => loadWeatherFeeds(selectedDistrict)}
+                title="Refresh Open-Meteo feeds"
+              >
+                🔄 Refresh Feed
+              </button>
+            </div>
+          </div>
+
+          {/* Right Telemetry Frosted Glass Card */}
+          <div className="hero-telemetry-glass-card">
+            <div className="glass-card-header">
+              <div className="weather-cloud-icon">
+                <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25" />
+                  <path d="M8 19v2" />
+                  <path d="M8 13v2" />
+                  <path d="M12 21v2" />
+                  <path d="M12 15v2" />
+                  <path d="M16 19v2" />
+                  <path d="M16 13v2" />
+                </svg>
+              </div>
+              <div className="weather-primary-info">
+                <div className="weather-location-label">
+                  {selectedDistrict === 'All' ? 'Thiruvananthapuram' : selectedDistrict}
+                </div>
+                <div className="weather-temp-display">
+                  {weatherData?.current ? `${Math.round(weatherData.current.temperature)}°C` : '28°C'}
+                </div>
+                <div className="weather-condition-label">
+                  {weatherData?.current ? getWeatherCodeInfo(weatherData.current.weatherCode).description : 'Moderate Rain'}
+                </div>
+              </div>
+            </div>
+
+            <div className="glass-card-metrics-row">
+              <div className="glass-metric-col">
+                <div className="metric-label">Humidity</div>
+                <div className="metric-val">
+                  {weatherData?.current?.humidity !== undefined ? `${weatherData.current.humidity}%` : '86%'}
+                </div>
+              </div>
+              <div className="glass-metric-col">
+                <div className="metric-label">Wind</div>
+                <div className="metric-val">
+                  {weatherData?.current?.windSpeed !== undefined ? `${Math.round(weatherData.current.windSpeed)} km/h` : '12 km/h'}
+                </div>
+              </div>
+              <div className="glass-metric-col">
+                <div className="metric-label">Rainfall(24h)</div>
+                <div className="metric-val">
+                  {weatherData?.daily?.[0]?.precipitationSum !== undefined
+                    ? `${Math.round(weatherData.daily[0].precipitationSum)}mm`
+                    : '78mm'}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
+      </section>
 
-        <div className="weather-controls">
-          <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>
-            District:
-          </label>
-          <select
-            className="district-picker-select"
-            value={selectedDistrict}
-            onChange={(e) => handleDistrictChange(e.target.value)}
-          >
-            <option value="All">All 14 Districts</option>
-            {Object.values(KERALA_DISTRICTS).map((d) => (
-              <option key={d.name} value={d.name}>
-                📍 {d.name} District
-              </option>
-            ))}
-          </select>
-
+      {/* CENTERED BODY CONTAINER FOR SUBTABS, TICKER & FEED */}
+      <div className="weather-body-container">
+        {/* 5 Prominent Sub-Tab Navigation Cards */}
+        <div className="weather-subtabs-row">
           <button
-            className="refresh-weather-btn"
-            onClick={() => loadWeatherFeeds(selectedDistrict)}
-            title="Refresh Open-Meteo Feeds"
-          >
-            🔄 Refresh Feeds
-          </button>
-        </div>
-      </div>
-
-      {/* Navigation Sub-Tabs */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem', flexWrap: 'wrap' }}>
-        <button
-          className={`btn ${activeTab === 'live-alerts' ? 'btn-primary' : 'btn-outline'} btn-sm`}
+            className={`weather-subtab-card ${activeTab === 'live-alerts' ? 'active' : ''}`}
           onClick={() => handleTabChange('live-alerts')}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', fontWeight: 800 }}
         >
-          <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444', boxShadow: '0 0 6px #ef4444' }} />
-          🚨 Live Disaster News &amp; Official Alerts
+          <div className="subtab-icon-wrap">
+            <span className="subtab-beacon-dot" />
+            <span className="subtab-icon">📢</span>
+          </div>
+          <div className="subtab-text">
+            <strong>Live Disaster News</strong>
+            <span>&amp; Official Alerts</span>
+          </div>
         </button>
+
         <button
-          className={`btn ${activeTab === 'radar' ? 'btn-primary' : 'btn-outline'} btn-sm`}
+          className={`weather-subtab-card ${activeTab === 'radar' ? 'active' : ''}`}
           onClick={() => handleTabChange('radar')}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700 }}
         >
-          📡 Live Doppler Radar (TV Movement)
+          <div className="subtab-icon-wrap">
+            <span className="subtab-icon">📡</span>
+          </div>
+          <div className="subtab-text">
+            <strong>Live Doppler Radar</strong>
+            <span className="subtab-sub">(TV Movement)</span>
+          </div>
         </button>
+
         <button
-          className={`btn ${activeTab === 'overview' ? 'btn-primary' : 'btn-outline'} btn-sm`}
+          className={`weather-subtab-card ${activeTab === 'overview' ? 'active' : ''}`}
           onClick={() => handleTabChange('overview')}
         >
-          🌦️ District Weather &amp; 7-Day Forecast
+          <div className="subtab-icon-wrap">
+            <span className="subtab-icon">🌦️</span>
+          </div>
+          <div className="subtab-text">
+            <strong>District Weather</strong>
+            <span className="subtab-sub">&amp; 7-Day Forecast</span>
+          </div>
         </button>
+
         <button
-          className={`btn ${activeTab === 'discharge' ? 'btn-primary' : 'btn-outline'} btn-sm`}
+          className={`weather-subtab-card ${activeTab === 'discharge' ? 'active' : ''}`}
           onClick={() => handleTabChange('discharge')}
         >
-          🌊 GloFAS River Discharge ({dischargeData ? `${dischargeData.peakDischarge.toFixed(1)} m³/s` : 'Live'})
+          <div className="subtab-icon-wrap">
+            <span className="subtab-icon">🌊</span>
+          </div>
+          <div className="subtab-text">
+            <strong>GloFAS River</strong>
+            <span className="subtab-sub">Discharge ({dischargeData ? `${dischargeData.peakDischarge.toFixed(1)} m³/s` : '71.8 m³/s'})</span>
+          </div>
         </button>
+
         <button
-          className={`btn ${activeTab === 'criteria' ? 'btn-primary' : 'btn-outline'} btn-sm`}
+          className={`weather-subtab-card ${activeTab === 'criteria' ? 'active' : ''}`}
           onClick={() => handleTabChange('criteria')}
         >
-          🏛️ IMD/KSDMA Severity Criteria
+          <div className="subtab-icon-wrap">
+            <span className="subtab-icon">📊</span>
+          </div>
+          <div className="subtab-text">
+            <strong>IMD/KSDMA</strong>
+            <span className="subtab-sub">Severity Criteria</span>
+          </div>
         </button>
       </div>
 
@@ -216,6 +325,14 @@ export const LiveWeather: React.FC = () => {
                     onDistrictSelect={handleDistrictChange}
                     windSpeed={weatherData.current.windSpeed}
                     windDirection={weatherData.current.windDirection}
+                    temperature={weatherData.current.temperature}
+                    precipitation={weatherData.current.precipitation}
+                    humidity={weatherData.current.humidity}
+                    aqi={aqiData?.usAqi ?? null}
+                    aqiCategory={aqiData?.category ?? null}
+                    aqiColor={aqiData?.color ?? null}
+                    pm25={aqiData?.pm25 ?? null}
+                    pm10={aqiData?.pm10 ?? null}
                   />
 
               {/* Quick District Telemetry Strip */}
@@ -576,6 +693,7 @@ export const LiveWeather: React.FC = () => {
       ) : null}
         </>
       )}
+      </div>
     </div>
   );
 };

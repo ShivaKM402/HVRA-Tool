@@ -148,9 +148,9 @@ export default function IndicatorsTab({
           <div style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 600 }}>✓ HVRA Official Methodology</div>
         </div>
 
-        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '1rem', borderLeft: '4px solid #3b82f6' }}>
+        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '1rem', borderLeft: '4px solid #dc2626' }}>
           <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>HAZARD ASSESSMENT (M1)</div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#1e40af', margin: '0.2rem 0' }}>{hazardCount}</div>
+          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#b91c1c', margin: '0.2rem 0' }}>{hazardCount}</div>
           <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Primary spatial &amp; frequency metrics</div>
         </div>
 
@@ -188,7 +188,7 @@ export default function IndicatorsTab({
                 style={{
                   fontSize: '0.76rem',
                   fontWeight: 800,
-                  background: HAZARD_CATALOG[activeHazard]?.color || '#2563eb',
+                  background: HAZARD_CATALOG[activeHazard]?.color || '#dc2626',
                   color: '#ffffff',
                   padding: '0.25rem 0.65rem',
                   borderRadius: '6px',

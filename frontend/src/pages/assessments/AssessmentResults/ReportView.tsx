@@ -3,10 +3,13 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getAssessmentReport } from '@/services/api';
 import ResultsMap from '@/components/Map/ResultsMap';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/context/ToastContext';
+import SendDocumentModal from '@/components/Modals/SendDocumentModal';
 import './ReportView.css';
 
 export default function ReportView() {
   const { canDelete } = useAuth();
+  const { showToast } = useToast();
   const { id } = useParams();
   const navigate = useNavigate();
   const [report, setReport] = useState<any>(null);
@@ -17,18 +20,25 @@ export default function ReportView() {
   const [regenerating, setRegenerating] = useState(false);
   const [selectedBlockId, setSelectedBlockId] = useState<number | null>(null);
   const [mapMode, setMapMode] = useState<'all' | 'classification' | 'thematic'>('all');
+  const [isSendModalOpen, setIsSendModalOpen] = useState(false);
   const previewRef = useRef<HTMLDivElement | null>(null);
 
   const handleDeleteReport = async () => {
-    if (!window.confirm('Are you sure you want to permanently delete this report and assessment?')) {
+    const reportName = report?.metadata?.name || 'this report';
+    if (!window.confirm(`Are you sure you want to permanently delete "${reportName}"?\n\nThis will remove the generated report dossier, spatial layers, and indicator results.`)) {
       return;
     }
     try {
       const { deleteAssessment } = await import('@/services/api');
       await deleteAssessment(parseInt(id!, 10));
+      showToast({
+        title: 'Report Deleted',
+        message: `Report "${reportName}" was successfully removed.`,
+        type: 'info',
+      });
       navigate('/reports');
     } catch (err: any) {
-      alert('Failed to delete report: ' + (err.message || 'Error'));
+      alert('Failed to delete report: ' + (err.message || 'Error occurred'));
     }
   };
 
@@ -224,6 +234,23 @@ export default function ReportView() {
 
         <div className="report-action-right">
           <button
+            className="btn btn-sm"
+            style={{
+              background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+              color: '#ffffff',
+              border: 'none',
+              fontWeight: 700,
+              boxShadow: '0 2px 8px rgba(2, 132, 199, 0.35)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+            }}
+            onClick={() => setIsSendModalOpen(true)}
+            title="Send Statutory Report to Senior Reviewer or Manager"
+          >
+            📤 Send to Senior / Manager
+          </button>
+          <button
             className="btn btn-primary btn-sm"
             onClick={handleDownloadPdf}
             disabled={downloadingFormat !== null}
@@ -255,11 +282,20 @@ export default function ReportView() {
           {canDelete && (
             <button
               className="btn btn-secondary btn-sm"
-              style={{ color: '#dc2626', background: '#fef2f2', borderColor: '#fecaca' }}
+              style={{
+                color: '#dc2626',
+                background: '#fef2f2',
+                borderColor: '#fca5a5',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+              }}
               onClick={handleDeleteReport}
-              title="Permanently Delete Report"
+              title="Permanently Delete This Generated Report"
             >
-              🗑️ Delete
+              <span>🗑️</span>
+              <span>Delete Report</span>
             </button>
           )}
         </div>
@@ -423,7 +459,7 @@ export default function ReportView() {
                       {c.vintage && <span style={{ marginLeft: '1rem' }}><strong>Vintage:</strong> {c.vintage}</span>}
                       {c.source_url && (
                         <span style={{ marginLeft: '1rem' }}>
-                          <a href={c.source_url} target="_blank" rel="noreferrer" style={{ color: '#2563eb' }}>Link ↗</a>
+                          <a href={c.source_url} target="_blank" rel="noreferrer" style={{ color: '#dc2626' }}>Link ↗</a>
                         </span>
                       )}
                     </div>
@@ -666,6 +702,21 @@ export default function ReportView() {
 
       </div>
       </div>
+
+      {/* Universal Senior / Manager Dispatch Modal */}
+      {isSendModalOpen && (
+        <SendDocumentModal
+          isOpen={isSendModalOpen}
+          onClose={() => setIsSendModalOpen(false)}
+          documentType="assessment"
+          documentId={parseInt(id!, 10)}
+          documentTitle={report?.metadata?.name || `Assessment #${id}`}
+          subtitle={`District: ${report?.metadata?.district || 'Kerala'} · Hazard: ${report?.metadata?.hazard_type || 'FLOOD'}`}
+          fileFormat="PDF"
+          hazardType={report?.metadata?.hazard_type || 'FLOOD'}
+          districtName={report?.metadata?.district}
+        />
+      )}
     </div>
   );
 }

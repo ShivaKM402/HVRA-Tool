@@ -12,6 +12,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.conf import settings
+from django.utils import timezone
 from apps.accounts.permissions import CanContributeData
 from .models import DataSource, UploadedDataset
 from .serializers import DataSourceSerializer, UploadedDatasetSerializer, DatasetUploadSerializer
@@ -38,6 +39,47 @@ class DataSourceViewSet(viewsets.ModelViewSet):
         from apps.hazards.models import HazardLayer
         HazardLayer.objects.filter(name__icontains=instance.name).delete()
         instance.delete()
+
+    @action(detail=True, methods=["post"])
+    def send_to_reviewer(self, request, pk=None):
+        """Dispatch a spatial layer or dataset dossier to a senior officer or manager."""
+        ds = self.get_object()
+        sent_to = request.data.get("sent_to") or "Senior Department Reviewer (Level 2 Technical Review)"
+        note = request.data.get("note", "")
+        urgency = request.data.get("urgency", "ROUTINE")
+        reviewer_org = request.data.get("reviewer_org") or "Kerala State Disaster Management Authority"
+        custom_recipient = request.data.get("custom_recipient")
+        attachment_name = request.data.get("attachment_name")
+
+        sender = "GIS Specialist"
+        if getattr(request, "user", None) and request.user.is_authenticated:
+            sender = request.user.get_full_name() or request.user.username
+
+        meta = ds.metadata if isinstance(ds.metadata, dict) else {}
+        dispatches = list(meta.get("dispatches", []))
+        dispatch_record = {
+            "id": len(dispatches) + 1,
+            "dispatched_at": timezone.now().isoformat(),
+            "sent_to": sent_to,
+            "sender": sender,
+            "note": note,
+            "urgency": urgency,
+            "reviewer_org": reviewer_org,
+            "custom_recipient": custom_recipient,
+            "attachment_name": attachment_name,
+            "status": "DISPATCHED",
+        }
+        dispatches.append(dispatch_record)
+        meta["dispatches"] = dispatches
+        meta["last_dispatch"] = dispatch_record
+        ds.metadata = meta
+        ds.save(update_fields=["metadata", "updated_at"])
+
+        return Response({
+            "message": f"Dataset '{ds.name}' successfully dispatched to {sent_to}.",
+            "dispatch": dispatch_record,
+            "dataset": DataSourceSerializer(ds).data,
+        })
 
     @action(detail=True, methods=["get"])
     def preview(self, request, pk=None):

@@ -74,8 +74,8 @@
 
 .module-selector-box.selected {
   border-color: var(--color-primary);
-  background: #eff6ff;
-  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.25), 0 4px 12px rgba(26, 115, 232, 0.1);
+  background: #fef2f2;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.25), 0 4px 12px rgba(220, 38, 38, 0.1);
 }
 
 /* Weight Sliders */

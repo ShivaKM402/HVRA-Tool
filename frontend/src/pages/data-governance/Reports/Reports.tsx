@@ -22,6 +22,7 @@ import {
 import type { Assessment, RiskAssessment, SavedQuery, ApprovalStatus } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { useHazard } from '@/context/HazardContext';
+import SendDocumentModal from '@/components/Modals/SendDocumentModal';
 
 const APPROVAL_BADGES: Record<ApprovalStatus, { label: string; cls: string }> = {
   PENDING: { label: 'Pending', cls: 'badge-draft' },
@@ -40,6 +41,7 @@ function TaskForceCell({
   submittedBy,
   reviewerName,
   sentTo,
+  onOpenSendModal,
 }: {
   kind: 'assessment' | 'risk';
   id: number;
@@ -49,6 +51,7 @@ function TaskForceCell({
   submittedBy?: string | null;
   reviewerName?: string;
   sentTo?: string | null;
+  onOpenSendModal?: () => void;
 }) {
   const { isAuthenticated, isAdmin } = useAuth();
   const [busy, setBusy] = useState(false);
@@ -90,9 +93,15 @@ function TaskForceCell({
         <button
           className="btn btn-secondary btn-sm"
           style={{ fontSize: '0.7rem', padding: '0.2rem 0.55rem', whiteSpace: 'nowrap' }}
-          onClick={submit}
+          onClick={() => {
+            if (onOpenSendModal) {
+              onOpenSendModal();
+            } else {
+              submit();
+            }
+          }}
           disabled={busy}
-          title="Submit to Senior Reviewer for Level 2 Technical Verification"
+          title="Submit to Senior Reviewer for Technical Verification & Endorsement"
         >
           {busy ? 'Submitting…' : '📤 Submit to Senior'}
         </button>
@@ -101,7 +110,7 @@ function TaskForceCell({
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.15rem', textAlign: 'center' }}>
           <Link
             to={`/${kind === 'risk' ? 'risk-assessments' : 'assessments'}/${id}/results`}
-            style={{ fontSize: '0.7rem', fontWeight: 700, color: isAdmin ? '#2563eb' : '#b45309', textDecoration: 'none' }}
+            style={{ fontSize: '0.7rem', fontWeight: 700, color: isAdmin ? '#dc2626' : '#b45309', textDecoration: 'none' }}
           >
             {isAdmin ? 'Verify & Review →' : '⏳ In Review'}
           </Link>
@@ -159,6 +168,18 @@ export default function Reports() {
   const [savedQueriesLoading, setSavedQueriesLoading] = useState(false);
   const [savedQueryNotice, setSavedQueryNotice] = useState<string | null>(null);
   const [runningQueryId, setRunningQueryId] = useState<number | null>(null);
+
+  // Senior / Manager Dispatch Modal State
+  const [sendModalConfig, setSendModalConfig] = useState<{
+    isOpen: boolean;
+    documentType: 'assessment' | 'risk_assessment' | 'spatial_dataset' | 'query' | 'document';
+    documentId?: number;
+    documentTitle: string;
+    subtitle?: string;
+    fileFormat?: string;
+    hazardType?: string;
+    districtName?: string;
+  } | null>(null);
 
   const reloadSavedQueries = async () => {
     try {
@@ -428,9 +449,9 @@ export default function Reports() {
               fontSize: '0.78rem',
               fontWeight: 700,
               padding: '0.3rem 0.85rem',
-              background: viewFilter === 'submitted' ? '#2563eb' : '#fff7ed',
+              background: viewFilter === 'submitted' ? '#dc2626' : '#fff7ed',
               color: viewFilter === 'submitted' ? '#fff' : '#c2410c',
-              borderColor: viewFilter === 'submitted' ? '#2563eb' : '#fed7aa',
+              borderColor: viewFilter === 'submitted' ? '#dc2626' : '#fed7aa',
             }}
             onClick={() => setViewFilter('submitted')}
             title="Reports dispatched to Senior Officers & Managers for verification"
@@ -727,6 +748,18 @@ export default function Reports() {
                                   submittedBy={a.created_by_name}
                                   reviewerName={a.reviewer_name}
                                   sentTo={a.sent_to}
+                                  onOpenSendModal={() =>
+                                    setSendModalConfig({
+                                      isOpen: true,
+                                      documentType: 'assessment',
+                                      documentId: a.id,
+                                      documentTitle: a.name,
+                                      subtitle: `District: ${a.district_name || 'Kerala'} · Hazard: ${a.hazard_type || 'FLOOD'}`,
+                                      fileFormat: 'PDF',
+                                      hazardType: a.hazard_type || 'FLOOD',
+                                      districtName: a.district_name,
+                                    })
+                                  }
                                 />
                               </div>
                             )}
@@ -760,7 +793,7 @@ export default function Reports() {
                               </Link>
                               <button
                                 className="btn btn-secondary"
-                                style={{ fontSize: '0.75rem', padding: '0.28rem 0.55rem', color: '#2563eb' }}
+                                style={{ fontSize: '0.75rem', padding: '0.28rem 0.55rem', color: '#b91c1c' }}
                                 title="Download Word DOCX"
                                 onClick={() => handleDownload(a.id, a.name, 'docx')}
                                 disabled={downloadingId === a.id}
@@ -775,6 +808,38 @@ export default function Reports() {
                                 disabled={downloadingId === a.id}
                               >
                                 📥 PDF
+                              </button>
+                              <button
+                                className="btn btn-sm"
+                                style={{
+                                  fontSize: '0.75rem',
+                                  padding: '0.28rem 0.6rem',
+                                  background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                                  color: '#ffffff',
+                                  border: 'none',
+                                  fontWeight: 600,
+                                  borderRadius: '6px',
+                                  boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.25rem',
+                                  whiteSpace: 'nowrap',
+                                }}
+                                title="Send Report & PDF to Senior Reviewer or Manager"
+                                onClick={() =>
+                                  setSendModalConfig({
+                                    isOpen: true,
+                                    documentType: 'assessment',
+                                    documentId: a.id,
+                                    documentTitle: a.name,
+                                    subtitle: `District: ${a.district_name || 'Kerala'} · Hazard: ${a.hazard_type || 'FLOOD'}`,
+                                    fileFormat: 'PDF',
+                                    hazardType: a.hazard_type || 'FLOOD',
+                                    districtName: a.district_name,
+                                  })
+                                }
+                              >
+                                <span>📤</span> Send
                               </button>
                               {canDelete && (
                                 <DeleteButton onClick={() => handleDeleteAssessment(a)} title="Delete Assessment Report" />
@@ -945,6 +1010,18 @@ export default function Reports() {
                                   submittedBy={r.created_by_name}
                                   reviewerName={r.reviewer_name}
                                   sentTo={r.sent_to}
+                                  onOpenSendModal={() =>
+                                    setSendModalConfig({
+                                      isOpen: true,
+                                      documentType: 'risk_assessment',
+                                      documentId: r.id,
+                                      documentTitle: r.name,
+                                      subtitle: `District: ${r.district_name || 'Kerala'} · Multi-Hazard Composite Risk`,
+                                      fileFormat: 'PDF',
+                                      hazardType: 'MULTI-HAZARD',
+                                      districtName: r.district_name,
+                                    })
+                                  }
                                 />
                               </div>
                             )}
@@ -970,7 +1047,7 @@ export default function Reports() {
                               </Link>
                               <button
                                 className="btn btn-secondary"
-                                style={{ fontSize: '0.75rem', padding: '0.28rem 0.55rem', color: '#2563eb' }}
+                                style={{ fontSize: '0.75rem', padding: '0.28rem 0.55rem', color: '#b91c1c' }}
                                 title="Download Word DOCX"
                                 onClick={() => handleRiskDownload(r.id, r.name, 'docx')}
                                 disabled={downloadingId === r.id}
@@ -985,6 +1062,38 @@ export default function Reports() {
                                 disabled={downloadingId === r.id}
                               >
                                 📥 PDF
+                              </button>
+                              <button
+                                className="btn btn-sm"
+                                style={{
+                                  fontSize: '0.75rem',
+                                  padding: '0.28rem 0.6rem',
+                                  background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                                  color: '#ffffff',
+                                  border: 'none',
+                                  fontWeight: 600,
+                                  borderRadius: '6px',
+                                  boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.25rem',
+                                  whiteSpace: 'nowrap',
+                                }}
+                                title="Send Composite Risk Dossier to Senior Reviewer or Manager"
+                                onClick={() =>
+                                  setSendModalConfig({
+                                    isOpen: true,
+                                    documentType: 'risk_assessment',
+                                    documentId: r.id,
+                                    documentTitle: r.name,
+                                    subtitle: `District: ${r.district_name || 'Kerala'} · Multi-Hazard Composite Risk`,
+                                    fileFormat: 'PDF',
+                                    hazardType: 'MULTI-HAZARD',
+                                    districtName: r.district_name,
+                                  })
+                                }
+                              >
+                                <span>📤</span> Send
                               </button>
                               {canDelete && (
                                 <DeleteButton onClick={() => handleDeleteRisk(r)} title="Delete Composite Risk Assessment" />
@@ -1073,7 +1182,7 @@ export default function Reports() {
                               href={q.share_url}
                               target="_blank"
                               rel="noreferrer"
-                              style={{ fontSize: '0.7rem', color: '#2563eb', fontWeight: 600, textDecoration: 'none', wordBreak: 'break-all' }}
+                              style={{ fontSize: '0.7rem', color: '#dc2626', fontWeight: 600, textDecoration: 'none', wordBreak: 'break-all' }}
                             >
                               🔗 Public link
                             </a>
@@ -1128,6 +1237,29 @@ export default function Reports() {
         </div>
       )}
 
+      {/* Universal Senior / Manager Dispatch Modal */}
+      {sendModalConfig && (
+        <SendDocumentModal
+          isOpen={sendModalConfig.isOpen}
+          onClose={() => setSendModalConfig(null)}
+          documentType={sendModalConfig.documentType}
+          documentId={sendModalConfig.documentId}
+          documentTitle={sendModalConfig.documentTitle}
+          subtitle={sendModalConfig.subtitle}
+          fileFormat={sendModalConfig.fileFormat}
+          hazardType={sendModalConfig.hazardType}
+          districtName={sendModalConfig.districtName}
+          onSuccess={() => {
+            if (sendModalConfig.documentType === 'assessment' && sendModalConfig.documentId) {
+              refreshRow(sendModalConfig.documentId);
+            } else if (sendModalConfig.documentType === 'risk_assessment' && sendModalConfig.documentId) {
+              refreshRow(sendModalConfig.documentId);
+            } else {
+              loadAllReports();
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

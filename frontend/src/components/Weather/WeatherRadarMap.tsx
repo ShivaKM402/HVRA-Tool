@@ -1,310 +1,552 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
-import L from 'leaflet';
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { MapContainer, TileLayer, Marker, Popup, CircleMarker, Tooltip, useMap } from "react-leaflet";
+import L from "leaflet";
 import {
   fetchRadarFrames,
   KERALA_DISTRICTS,
   type RadarFrame,
   type RadarData,
-} from '@/services/weatherService';
-import './WeatherRadarMap.css';
+} from "@/services/weatherService";
+import "./WeatherRadarMap.css";
 
-export type WeatherPhenomenon = 'air' | 'radar' | 'waves' | 'storm_monitor';
+export type WeatherLayer = "precipitation" | "temperature" | "air_quality" | "wind";
+export type BasemapStyle = "satellite" | "topo";
+
+interface BasemapConfig {
+  name: string;
+  icon: string;
+  url: string;
+  subdomains?: string[];
+  maxZoom: number;
+}
+
+// Only Satellite Earth (Default) and Topography — Natural Color & Night Mode removed per user request
+const BASEMAP_TILES: Record<BasemapStyle, BasemapConfig> = {
+  satellite: {
+    name: "Satellite Earth",
+    icon: "🛰️",
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    maxZoom: 18,
+  },
+  topo: {
+    name: "Topography",
+    icon: "🏔️",
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
+    maxZoom: 18,
+  },
+};
 
 interface WeatherRadarMapProps {
   selectedDistrict: string;
   onDistrictSelect?: (districtName: string) => void;
   windSpeed?: number;
   windDirection?: number;
+  temperature?: number;
+  precipitation?: number;
+  humidity?: number;
+  aqi?: number | null;
+  aqiCategory?: string | null;
+  aqiColor?: string | null;
+  pm25?: number | null;
+  pm10?: number | null;
 }
 
-// Center of Kerala
 const KERALA_CENTER: [number, number] = [10.25, 76.35];
 
-// Helper to smoothly fly map to selected district ONLY when district explicitly changes
-function MapFlyController({
-  districtName,
-  coords,
-}: {
-  districtName: string;
-  coords: [number, number];
-}) {
+function MapFlyController({ districtName, coords }: { districtName: string; coords: [number, number] }) {
   const map = useMap();
-  const lastDistrictRef = useRef<string | null>(null);
-
+  const lastRef = useRef<string | null>(null);
   useEffect(() => {
-    if (lastDistrictRef.current && lastDistrictRef.current !== districtName) {
+    if (lastRef.current && lastRef.current !== districtName) {
       map.flyTo(coords, Math.max(map.getZoom(), 8), { duration: 0.9 });
     }
-    lastDistrictRef.current = districtName;
+    lastRef.current = districtName;
   }, [districtName, coords, map]);
-
   return null;
 }
 
-// Helper to track real-time map zoom level
-function MapZoomTracker({
-  onZoomChange,
-}: {
-  onZoomChange: (zoom: number) => void;
-}) {
-  const map = useMap();
-
-  useEffect(() => {
-    const update = () => onZoomChange(map.getZoom());
-    update();
-    map.on('zoomend', update);
-    return () => {
-      map.off('zoomend', update);
-    };
-  }, [map, onZoomChange]);
-
-  return null;
-}
-
-interface Particle {
-  lat: number;
-  lon: number;
-  prevLat: number;
-  prevLon: number;
-  age: number;
-  maxAge: number;
+// Wind streamline particle with historical path for smooth curve drawing
+interface WindParticle {
+  x: number;
+  y: number;
   speed: number;
-  radius: number;
-  angle: number;
-  color?: string;
+  maxAge: number;
+  age: number;
+  history: { x: number; y: number }[];
 }
 
-// Custom 60 FPS HTML5 Canvas Atmospheric Motion Layer (Always-Running Cyclone, Air, & Waves)
-function AtmosphericMotionLayer({
-  mode,
+// Thermal convective energy mote for temperature layer
+interface ThermalMote {
+  x: number;
+  y: number;
+  vy: number;
+  size: number;
+  alpha: number;
+}
+
+// Rain droplet for precipitation layer
+interface RainDrop {
+  x: number;
+  y: number;
+  vy: number;
+  len: number;
+  alpha: number;
+}
+
+// Splash ripple on ground impact
+interface SplashRipple {
+  x: number;
+  y: number;
+  r: number;
+  maxR: number;
+  alpha: number;
+}
+
+// Aerosol particulate for AQI layer
+interface AerosolParticle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  radius: number;
+  alpha: number;
+}
+
+/* ───────────────────────────────────────────────────────────────────
+   Smooth, High-FPS Canvas Engine for Weather Overlays
+   ─────────────────────────────────────────────────────────────────── */
+function WeatherOverlayCanvas({
+  layer,
   windSpeed = 16,
   windDirection = 250,
+  temperature = 28,
+  precipitation = 5,
+  aqi = null,
 }: {
-  mode: WeatherPhenomenon;
+  layer: WeatherLayer;
   windSpeed?: number;
   windDirection?: number;
+  temperature?: number;
+  precipitation?: number;
+  aqi?: number | null;
 }) {
   const map = useMap();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const particlesRef = useRef<Particle[]>([]);
   const animRef = useRef<number | null>(null);
-  const wavePhaseRef = useRef<number>(0);
 
-  // Initialize particles
+  // Layer-specific particle state
+  const windParticlesRef = useRef<WindParticle[]>([]);
+  const thermalMotesRef = useRef<ThermalMote[]>([]);
+  const rainDropsRef = useRef<RainDrop[]>([]);
+  const ripplesRef = useRef<SplashRipple[]>([]);
+  const aerosolsRef = useRef<AerosolParticle[]>([]);
+
+  const phaseRef = useRef<number>(0);
+  const radarSweepAngleRef = useRef<number>(0);
+
+  // Initialize particle states
   const initParticles = useCallback(() => {
-    const bounds = map.getBounds();
-    const south = bounds.getSouth() - 1.5;
-    const north = bounds.getNorth() + 1.5;
-    const west = bounds.getWest() - 2.5;
-    const east = bounds.getEast() + 1.5;
+    const size = map.getSize();
+    const w = size.x;
+    const h = size.y;
 
-    const count = 280;
-    const pts: Particle[] = [];
-
-    for (let i = 0; i < count; i++) {
-      const lat = south + Math.random() * (north - south);
-      const lon = west + Math.random() * (east - west);
-
-      pts.push({
-        lat,
-        lon,
-        prevLat: lat,
-        prevLon: lon,
-        age: Math.floor(Math.random() * 100),
-        maxAge: 70 + Math.floor(Math.random() * 80),
-        speed: 0.02 + Math.random() * 0.03,
-        radius: 1,
-        angle: 0,
-      });
+    if (layer === "wind") {
+      // 120 smooth, elegant streamline ribbons spaced across the map
+      const list: WindParticle[] = [];
+      const count = 120;
+      for (let i = 0; i < count; i++) {
+        list.push({
+          x: Math.random() * w,
+          y: Math.random() * h,
+          speed: 1.2 + Math.random() * 1.6,
+          maxAge: 45 + Math.floor(Math.random() * 45),
+          age: Math.floor(Math.random() * 40),
+          history: [],
+        });
+      }
+      windParticlesRef.current = list;
+    } else if (layer === "temperature") {
+      // 40 gentle rising convective thermal shimmer motes
+      const motes: ThermalMote[] = [];
+      for (let i = 0; i < 40; i++) {
+        motes.push({
+          x: Math.random() * w,
+          y: Math.random() * h,
+          vy: -(0.5 + Math.random() * 0.9),
+          size: 1.8 + Math.random() * 2.2,
+          alpha: 0.25 + Math.random() * 0.45,
+        });
+      }
+      thermalMotesRef.current = motes;
+    } else if (layer === "precipitation") {
+      // Clean rainfall droplets
+      const drops: RainDrop[] = [];
+      const count = Math.min(180, Math.max(70, Math.round(precipitation * 18)));
+      for (let i = 0; i < count; i++) {
+        drops.push({
+          x: Math.random() * w,
+          y: Math.random() * h,
+          vy: 8 + Math.random() * 7,
+          len: 10 + Math.random() * 15,
+          alpha: 0.35 + Math.random() * 0.45,
+        });
+      }
+      rainDropsRef.current = drops;
+      ripplesRef.current = [];
+    } else if (layer === "air_quality") {
+      // 100 soft floating aerosol particles
+      const list: AerosolParticle[] = [];
+      for (let i = 0; i < 100; i++) {
+        list.push({
+          x: Math.random() * w,
+          y: Math.random() * h,
+          vx: (Math.random() - 0.5) * 0.9,
+          vy: (Math.random() - 0.5) * 0.9,
+          radius: 2 + Math.random() * 3.5,
+          alpha: 0.25 + Math.random() * 0.4,
+        });
+      }
+      aerosolsRef.current = list;
     }
-    particlesRef.current = pts;
-  }, [map]);
+  }, [map, layer, precipitation]);
 
-  // Main 60 FPS Canvas Render Loop
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Resize canvas to match Leaflet map size
-    const resizeCanvas = () => {
+    const resize = () => {
       const size = map.getSize();
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = size.x * dpr;
-      canvas.height = size.y * dpr;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.round(size.x * dpr);
+      canvas.height = Math.round(size.y * dpr);
       canvas.style.width = `${size.x}px`;
       canvas.style.height = `${size.y}px`;
-      ctx.scale(dpr, dpr);
+      initParticles();
     };
 
-    resizeCanvas();
-    initParticles();
+    resize();
+    map.on("resize", resize);
+    map.on("zoomend", initParticles);
 
-    map.on('resize', resizeCanvas);
-    map.on('zoomstart', () => {
-      if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
-    });
+    // Compass wind bearing in radians
+    const windRad = ((windDirection + 180) % 360) * (Math.PI / 180);
 
     const render = () => {
       const size = map.getSize();
-      const bounds = map.getBounds();
-      const south = bounds.getSouth() - 1.5;
-      const north = bounds.getNorth() + 1.5;
-      const west = bounds.getWest() - 2.5;
-      const east = bounds.getEast() + 1.5;
+      const w = size.x;
+      const h = size.y;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
-      // Soft trail fade (Creates silky glowing comet trails like Windy / TV weather)
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.90)';
-      ctx.globalCompositeOperation = 'destination-out';
-      ctx.fillRect(0, 0, size.x, size.y);
-      ctx.globalCompositeOperation = 'source-over';
+      ctx.save();
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      if (mode === 'storm_monitor') {
-        // --- 1. REAL CYCLONE SURVEILLANCE MONITOR (NO FAKE EYE) ---
-        // Draws live surveillance scanning grid and actual wind streamlines
-        const rad = ((windDirection + 180) % 360) * (Math.PI / 180);
-        const speedFactor = 0.012 * Math.max(windSpeed / 15, 0.7);
+      // CRITICAL: Always clear transparently so Satellite Earth is 100% visible underneath
+      ctx.clearRect(0, 0, w, h);
 
-        particlesRef.current.forEach((p) => {
-          p.prevLat = p.lat;
-          p.prevLon = p.lon;
+      phaseRef.current += 0.02;
+      const phase = phaseRef.current;
 
-          p.lat += Math.sin(rad) * speedFactor;
-          p.lon += Math.cos(rad) * speedFactor * 1.1;
-          p.age += 1;
+      // ─────────────────────────────────────────────────────────────
+      // 1. WIND LAYER: Silky, Smooth Streamline Ribbons (Windy/Apple)
+      // ─────────────────────────────────────────────────────────────
+      if (layer === "wind") {
+        const sf = 0.012 * Math.max(windSpeed / 14, 0.5);
+        const gust = 1 + Math.sin(phase * 2) * 0.12;
 
-          if (
-            p.lat < south ||
-            p.lat > north ||
-            p.lon < west ||
-            p.lon > east ||
-            p.age >= p.maxAge
-          ) {
-            p.lat = south + Math.random() * (north - south);
-            p.lon = west + Math.random() * (east - west);
-            p.prevLat = p.lat;
-            p.prevLon = p.lon;
+        windParticlesRef.current.forEach((p) => {
+          // Natural aerodynamic flow curve
+          const curl = Math.sin(p.x * 0.003 + p.y * 0.003) * 0.18;
+          const angle = windRad + curl;
+          const step = p.speed * sf * w * gust;
+
+          p.x += Math.cos(angle) * step;
+          p.y += Math.sin(angle) * step * 0.65;
+          p.age++;
+
+          p.history.push({ x: p.x, y: p.y });
+          if (p.history.length > 14) p.history.shift();
+
+          // Reset when expired or outside map bounds
+          if (p.age > p.maxAge || p.x < -30 || p.x > w + 30 || p.y < -30 || p.y > h + 30) {
+            p.x = Math.random() * w;
+            p.y = Math.random() * h;
             p.age = 0;
+            p.maxAge = 45 + Math.floor(Math.random() * 45);
+            p.history = [];
+            return;
           }
 
-          const fromPt = map.latLngToContainerPoint([p.prevLat, p.prevLon]);
-          const toPt = map.latLngToContainerPoint([p.lat, p.lon]);
+          if (p.history.length >= 2) {
+            // Smooth bell envelope for soft fade-in and fade-out
+            const lifeRatio = Math.sin((p.age / p.maxAge) * Math.PI);
 
-          ctx.beginPath();
-          ctx.moveTo(fromPt.x, fromPt.y);
-          ctx.lineTo(toPt.x, toPt.y);
-          ctx.strokeStyle = '#10b981'; // Green = All clear, normal airflow
-          ctx.lineWidth = 1.6;
-          ctx.lineCap = 'round';
-          ctx.stroke();
-        });
-      } else if (mode === 'air') {
-        // --- 2. LIVE AIR / WIND STREAMLINES ---
-        // Wind direction from Open-Meteo
-        const rad = ((windDirection + 180) % 360) * (Math.PI / 180);
-        const speedFactor = 0.015 * Math.max(windSpeed / 15, 0.7);
-
-        particlesRef.current.forEach((p) => {
-          p.prevLat = p.lat;
-          p.prevLon = p.lon;
-
-          // Orographic lift deflection along Western Ghats (lon > 76.4)
-          let latStep = Math.sin(rad) * speedFactor;
-          let lonStep = Math.cos(rad) * speedFactor * 1.1;
-          if (p.lon > 76.3) {
-            latStep += 0.003; // deflect northward along the mountains
-            lonStep *= 0.75;
-          }
-
-          p.lat += latStep;
-          p.lon += lonStep;
-          p.age += 1;
-
-          // Re-seed when out of visible bounds
-          if (
-            p.lat < south ||
-            p.lat > north ||
-            p.lon < west ||
-            p.lon > east ||
-            p.age >= p.maxAge
-          ) {
-            p.lat = south + Math.random() * (north - south);
-            p.lon = west + Math.random() * (east - west);
-            p.prevLat = p.lat;
-            p.prevLon = p.lon;
-            p.age = 0;
-          }
-
-          const fromPt = map.latLngToContainerPoint([p.prevLat, p.prevLon]);
-          const toPt = map.latLngToContainerPoint([p.lat, p.lon]);
-
-          ctx.beginPath();
-          ctx.moveTo(fromPt.x, fromPt.y);
-          ctx.lineTo(toPt.x, toPt.y);
-          ctx.strokeStyle = '#38bdf8';
-          ctx.lineWidth = 1.8;
-          ctx.lineCap = 'round';
-          ctx.stroke();
-        });
-      } else if (mode === 'waves') {
-        // --- 3. COASTAL WAVE SWELL (Arabian Sea to Kerala Coast) ---
-        wavePhaseRef.current += 0.035;
-        const phase = wavePhaseRef.current;
-
-        // Draw advancing rhythmic wave fronts parallel to Kerala coastline
-        for (let waveIdx = 0; waveIdx < 16; waveIdx++) {
-          const waveProgress = ((phase + waveIdx * 0.4) % 6) / 6; // 0 to 1
-          // Wave travels from deep sea (lon ~72.0) eastward to coast (lon ~76.2)
-          const baseLon = 71.8 + waveProgress * 4.4;
-
-          ctx.beginPath();
-          let started = false;
-          for (let lat = 8.0; lat <= 13.0; lat += 0.25) {
-            // Subtle natural sinuous curve along the coastal shelf
-            const curvature = Math.sin(lat * 1.5 + phase) * 0.15;
-            const pt = map.latLngToContainerPoint([lat, baseLon + curvature]);
-            if (!started) {
-              ctx.moveTo(pt.x, pt.y);
-              started = true;
-            } else {
-              ctx.lineTo(pt.x, pt.y);
+            // Flowing streamline curve
+            ctx.beginPath();
+            ctx.moveTo(p.history[0].x, p.history[0].y);
+            for (let i = 1; i < p.history.length; i++) {
+              ctx.lineTo(p.history[i].x, p.history[i].y);
             }
+            ctx.strokeStyle = `rgba(56, 189, 248, ${0.82 * lifeRatio})`;
+            ctx.lineWidth = 1.9;
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            ctx.shadowColor = "rgba(56, 189, 248, 0.85)";
+            ctx.shadowBlur = 5;
+            ctx.stroke();
+
+            // Glowing white streamline head
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 1.8, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255, 255, 255, ${0.95 * lifeRatio})`;
+            ctx.shadowColor = "#ffffff";
+            ctx.shadowBlur = 6;
+            ctx.fill();
+          }
+        });
+
+      // ─────────────────────────────────────────────────────────────
+      // 2. TEMPERATURE LAYER: Geographic Isotherm Heatmap
+      // ─────────────────────────────────────────────────────────────
+      } else if (layer === "temperature") {
+        // Soft geographic thermal gradients blending over districts
+        Object.entries(KERALA_DISTRICTS).forEach(([key, d], idx) => {
+          const pt = map.latLngToContainerPoint([d.lat, d.lon]);
+
+          // Skip if well outside viewport
+          if (pt.x < -140 || pt.x > w + 140 || pt.y < -140 || pt.y > h + 140) return;
+
+          // Localized elevation/topography temperature calculation
+          let distTemp = temperature;
+          if (key === "idukki" || key === "wayanad") {
+            distTemp = temperature - 6; // High elevation cooling
+          } else if (key === "palakkad") {
+            distTemp = temperature + 2.5; // Inland gap warming
+          } else if (key === "kottayam" || key === "pathanamthitta") {
+            distTemp = temperature + 1;
           }
 
-          // Wave crest opacity increases as it approaches the shallow shoreline
-          const crestAlpha = Math.sin(waveProgress * Math.PI);
-          ctx.strokeStyle = `rgba(103, 232, 249, ${crestAlpha * 0.75})`;
-          ctx.lineWidth = 2.2;
-          ctx.stroke();
-        }
-      } else if (mode === 'radar') {
-        // --- 4. DOPPLER RADAR SWEEP RINGS ---
-        wavePhaseRef.current += 0.04;
-        const sweepPhase = wavePhaseRef.current;
+          // Thermal color scale
+          let r = 249, g = 115, b = 22; // Amber Orange (29-32°C)
+          if (distTemp >= 33) {
+            r = 239; g = 68; b = 68; // Coral Red / Warm
+          } else if (distTemp >= 29) {
+            r = 249; g = 115; b = 22; // Amber Orange
+          } else if (distTemp >= 25) {
+            r = 234; g = 179; b = 8; // Golden Yellow
+          } else {
+            r = 34; g = 197; b = 94; // Alpine Green / Cool (<25°C)
+          }
 
-        // Draw rotating radar sweep beams from IMD Kochi and Trivandrum
-        const stations = [
-          { name: 'Kochi', coords: [9.9312, 76.2673] as [number, number] },
-          { name: 'Trivandrum', coords: [8.5241, 76.9366] as [number, number] },
+          // Breathing radial thermal field
+          const rad = 135 * (1 + Math.sin(phase * 1.4 + idx * 0.7) * 0.05);
+          const grad = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, rad);
+          grad.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.36)`);
+          grad.addColorStop(0.55, `rgba(${r}, ${g}, ${b}, 0.16)`);
+          grad.addColorStop(1, "rgba(0, 0, 0, 0)");
+
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, rad, 0, Math.PI * 2);
+          ctx.fill();
+
+          // District temperature pill badge
+          ctx.save();
+          ctx.font = "bold 11px -apple-system, BlinkMacSystemFont, sans-serif";
+          const tempText = `${Math.round(distTemp)}°`;
+          const textWidth = ctx.measureText(tempText).width;
+          const badgeX = pt.x + 8;
+          const badgeY = pt.y - 12;
+
+          ctx.fillStyle = "rgba(15, 23, 42, 0.8)";
+          ctx.beginPath();
+          ctx.roundRect(badgeX - 4, badgeY - 11, textWidth + 8, 16, 4);
+          ctx.fill();
+          ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.65)`;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+
+          ctx.fillStyle = "#ffffff";
+          ctx.fillText(tempText, badgeX, badgeY + 1);
+          ctx.restore();
+        });
+
+        // Delicate rising convective thermal motes
+        thermalMotesRef.current.forEach((m) => {
+          m.y += m.vy;
+          m.x += Math.sin(m.y * 0.02 + phase) * 0.35;
+
+          if (m.y < -10) {
+            m.y = h + 10;
+            m.x = Math.random() * w;
+          }
+
+          ctx.beginPath();
+          ctx.arc(m.x, m.y, m.size, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(253, 186, 116, ${m.alpha * (0.6 + Math.sin(phase * 2 + m.x) * 0.4)})`;
+          ctx.shadowColor = "rgba(249, 115, 22, 0.8)";
+          ctx.shadowBlur = 4;
+          ctx.fill();
+        });
+
+      // ─────────────────────────────────────────────────────────────
+      // 3. AIR QUALITY LAYER: Atmospheric Dispersion Halos
+      // ─────────────────────────────────────────────────────────────
+      } else if (layer === "air_quality") {
+        const realAqi = aqi ?? 60;
+        let r = 34, g = 197, b = 94; // Good (green)
+        if (realAqi > 200)      { r = 239; g = 68;  b = 68;  } // Poor (red)
+        else if (realAqi > 100) { r = 249; g = 115; b = 22;  } // Moderate (orange)
+        else if (realAqi > 50)  { r = 132; g = 204; b = 22;  } // Satisfactory (lime)
+
+        // Pulsing dispersion rings from major urban hubs
+        const urbanHubs = [
+          { lat: 9.9816, lon: 76.2999 },
+          { lat: 8.5241, lon: 76.9366 },
+          { lat: 11.2588, lon: 75.7804 },
+          { lat: 10.5276, lon: 76.2144 },
         ];
 
-        stations.forEach((st) => {
-          const pt = map.latLngToContainerPoint(st.coords);
-          // Pulsing concentric radar waves
-          for (let r = 0; r < 3; r++) {
-            const rad = ((sweepPhase + r * 1.2) % 3.6) * 45;
+        urbanHubs.forEach((hub, idx) => {
+          const pt = map.latLngToContainerPoint([hub.lat, hub.lon]);
+          for (let ring = 0; ring < 3; ring++) {
+            const ringPhase = (phase * 20 + ring * 26 + idx * 14) % 85;
+            const ringAlpha = Math.max(0, 0.45 * (1 - ringPhase / 85));
+
             ctx.beginPath();
-            ctx.arc(pt.x, pt.y, rad, 0, Math.PI * 2);
-            ctx.strokeStyle = `rgba(16, 185, 129, ${Math.max(0, 0.7 - rad / 160)})`;
+            ctx.arc(pt.x, pt.y, ringPhase, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${ringAlpha})`;
             ctx.lineWidth = 1.5;
             ctx.stroke();
           }
+
+          const coreGrad = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, 40);
+          coreGrad.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${0.32 + Math.sin(phase * 2 + idx) * 0.08})`);
+          coreGrad.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.fillStyle = coreGrad;
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, 40, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        // Floating aerosol particles
+        aerosolsRef.current.forEach((p) => {
+          p.x += p.vx + Math.cos(windRad) * 0.5;
+          p.y += p.vy + Math.sin(windRad) * 0.5;
+
+          if (p.x < -20) p.x = w + 20;
+          if (p.x > w + 20) p.x = -20;
+          if (p.y < -20) p.y = h + 20;
+          if (p.y > h + 20) p.y = -20;
+
+          const aGrad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius);
+          aGrad.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${p.alpha * 0.8})`);
+          aGrad.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+
+          ctx.fillStyle = aGrad;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+      // ─────────────────────────────────────────────────────────────
+      // 4. PRECIPITATION LAYER: Doppler Radar Sweep + Rainfall
+      // ─────────────────────────────────────────────────────────────
+      } else if (layer === "precipitation") {
+        const radarCenter = map.latLngToContainerPoint([9.98, 76.30]);
+        const rx = radarCenter.x;
+        const ry = radarCenter.y;
+
+        radarSweepAngleRef.current = (radarSweepAngleRef.current + 0.035) % (Math.PI * 2);
+        const sweepAngle = radarSweepAngleRef.current;
+        const maxRadius = Math.max(w, h) * 0.85;
+
+        // Radar distance rings
+        ctx.save();
+        ctx.strokeStyle = "rgba(56, 189, 248, 0.16)";
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 6]);
+        [maxRadius * 0.3, maxRadius * 0.6, maxRadius * 0.9].forEach((rad) => {
+          ctx.beginPath();
+          ctx.arc(rx, ry, rad, 0, Math.PI * 2);
+          ctx.stroke();
+        });
+        ctx.restore();
+
+        // Trailing radar sweep arc
+        ctx.save();
+        const trailAngle = Math.PI / 4;
+        const beamGrad = ctx.createRadialGradient(rx, ry, 0, rx, ry, maxRadius);
+        beamGrad.addColorStop(0, "rgba(34, 197, 94, 0.3)");
+        beamGrad.addColorStop(0.7, "rgba(56, 189, 248, 0.18)");
+        beamGrad.addColorStop(1, "rgba(37, 99, 235, 0.01)");
+
+        ctx.fillStyle = beamGrad;
+        ctx.beginPath();
+        ctx.moveTo(rx, ry);
+        ctx.arc(rx, ry, maxRadius, sweepAngle - trailAngle, sweepAngle, false);
+        ctx.closePath();
+        ctx.fill();
+
+        // Rotating radar beam line
+        ctx.beginPath();
+        ctx.moveTo(rx, ry);
+        ctx.lineTo(rx + Math.cos(sweepAngle) * maxRadius, ry + Math.sin(sweepAngle) * maxRadius);
+        ctx.strokeStyle = "rgba(74, 222, 128, 0.85)";
+        ctx.lineWidth = 1.8;
+        ctx.shadowColor = "rgba(74, 222, 128, 1)";
+        ctx.shadowBlur = 6;
+        ctx.stroke();
+        ctx.restore();
+
+        // Rain droplets
+        const rainVx = Math.cos(windRad) * 2;
+        const rainVy = 8.5 + (precipitation / 10) * 3;
+
+        rainDropsRef.current.forEach((p) => {
+          p.x += rainVx;
+          p.y += rainVy;
+
+          if (p.y > h + 15) {
+            if (Math.random() < 0.3) {
+              ripplesRef.current.push({
+                x: p.x,
+                y: Math.min(h - 5, p.y - 15),
+                r: 1,
+                maxR: 8 + Math.random() * 8,
+                alpha: 0.65,
+              });
+            }
+            p.y = -15;
+            p.x = Math.random() * w;
+          }
+          if (p.x < -15) p.x = w + 15;
+          if (p.x > w + 15) p.x = -15;
+
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(p.x + rainVx * 1.3, p.y - p.len);
+          ctx.strokeStyle = `rgba(186, 230, 253, ${p.alpha * 0.75})`;
+          ctx.lineWidth = 1.2;
+          ctx.lineCap = "round";
+          ctx.stroke();
+        });
+
+        // Splash ripples
+        ripplesRef.current = ripplesRef.current.filter((rp) => rp.alpha > 0.05);
+        ripplesRef.current.forEach((rp) => {
+          rp.r += 0.55;
+          rp.alpha *= 0.93;
+          ctx.beginPath();
+          ctx.ellipse(rp.x, rp.y, rp.r, rp.r * 0.4, 0, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(125, 211, 252, ${rp.alpha})`;
+          ctx.lineWidth = 1;
+          ctx.stroke();
         });
       }
 
+      ctx.restore();
       animRef.current = requestAnimationFrame(render);
     };
 
@@ -312,11 +554,103 @@ function AtmosphericMotionLayer({
 
     return () => {
       if (animRef.current) cancelAnimationFrame(animRef.current);
-      map.off('resize', resizeCanvas);
+      map.off("resize", resize);
+      map.off("zoomend", initParticles);
     };
-  }, [map, mode, windSpeed, windDirection, initParticles]);
+  }, [map, layer, windSpeed, windDirection, temperature, precipitation, aqi, initParticles]);
 
-  return <canvas ref={canvasRef} className="atmospheric-canvas-overlay" />;
+  return <canvas ref={canvasRef} className="weather-overlay-canvas" />;
+}
+
+const LAYERS: { id: WeatherLayer; label: string; icon: string }[] = [
+  { id: "precipitation", label: "Precipitation", icon: "🌧️" },
+  { id: "temperature",   label: "Temperature",   icon: "🌡️" },
+  { id: "air_quality",   label: "Air Quality",   icon: "💨" },
+  { id: "wind",          label: "Wind",          icon: "🌬️" },
+];
+
+const LEGENDS: Record<WeatherLayer, { label: string; items: { color: string; text: string }[] }> = {
+  precipitation: {
+    label: "Doppler Radar",
+    items: [
+      { color: "#a855f7", text: "Severe" },
+      { color: "#ef4444", text: "Heavy" },
+      { color: "#3b82f6", text: "Moderate" },
+      { color: "#38bdf8", text: "Light" },
+    ],
+  },
+  temperature: {
+    label: "Temperature (°C)",
+    items: [
+      { color: "#ef4444", text: "33+" },
+      { color: "#f97316", text: "29 - 32" },
+      { color: "#eab308", text: "25 - 28" },
+      { color: "#22c55e", text: "< 25" },
+    ],
+  },
+  air_quality: {
+    label: "Air Quality (AQI)",
+    items: [
+      { color: "#ef4444", text: "Poor (>200)" },
+      { color: "#f97316", text: "Moderate (101-200)" },
+      { color: "#84cc16", text: "Satisfactory (51-100)" },
+      { color: "#22c55e", text: "Good (0-50)" },
+    ],
+  },
+  wind: {
+    label: "Wind (km/h)",
+    items: [
+      { color: "#ffffff", text: "Head Particle" },
+      { color: "#38bdf8", text: "Active Streamline" },
+      { color: "#1e3a5f", text: "Calm" },
+    ],
+  },
+};
+
+function createLocationIcon(
+  layer: WeatherLayer,
+  temperature: number,
+  windSpeed: number,
+  windDirection: number,
+  precipitation: number,
+  aqi: number | null,
+  aqiColor: string | null,
+  aqiCategory: string | null,
+): L.DivIcon {
+  const compass = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+  const dir = compass[Math.round(windDirection / 22.5) % 16];
+  let inner = "";
+
+  if (layer === "precipitation") {
+    const icon = precipitation > 10 ? "🌧️" : precipitation > 2 ? "🌦️" : "⛅";
+    inner = `<div class="loc-bubble loc-bubble-rain"><div class="loc-temp">${Math.round(temperature)}°</div><div class="loc-icon">${icon}</div></div>`;
+  } else if (layer === "temperature") {
+    inner = `<div class="loc-bubble loc-bubble-temp"><div class="loc-temp">${Math.round(temperature)}°</div><div class="loc-temp-range">${Math.round(temperature - 4)}&nbsp;&nbsp;${Math.round(temperature + 2)}</div></div>`;
+  } else if (layer === "air_quality") {
+    const realAqi = aqi ?? 60;
+    const ringColor = aqiColor ?? "#22c55e";
+    const dashLen = Math.round((realAqi / 500) * 138);
+    inner = `<div class="loc-bubble loc-bubble-aqi">
+      <svg viewBox="0 0 60 60" width="66" height="66">
+        <circle cx="30" cy="30" r="26" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+        <circle cx="30" cy="30" r="22" fill="none" stroke="#1e3a5f" stroke-width="5"/>
+        <circle cx="30" cy="30" r="22" fill="none" stroke="${ringColor}" stroke-width="5"
+          stroke-dasharray="${dashLen} 138" stroke-linecap="round"
+          transform="rotate(-90 30 30)"/>
+        <text x="30" y="29" text-anchor="middle" font-size="13" font-weight="bold" fill="#f8fafc">${realAqi}</text>
+        <text x="30" y="40" text-anchor="middle" font-size="5.5" fill="${ringColor}" font-weight="700">${(aqiCategory ?? "Good").toUpperCase()}</text>
+      </svg>
+    </div>`;
+  } else {
+    inner = `<div class="loc-bubble loc-bubble-wind"><div class="loc-wind-dir">${dir}</div><div class="loc-wind-speed">${Math.round(windSpeed)}</div><div class="loc-wind-unit">KM/H</div></div>`;
+  }
+
+  return L.divIcon({
+    className: "location-marker-icon",
+    html: `<div class="location-marker-wrap">${inner}<div class="loc-pin"></div><div class="loc-label">My Location</div></div>`,
+    iconSize: [80, 120],
+    iconAnchor: [40, 105],
+  });
 }
 
 export const WeatherRadarMap: React.FC<WeatherRadarMapProps> = ({
@@ -324,217 +658,90 @@ export const WeatherRadarMap: React.FC<WeatherRadarMapProps> = ({
   onDistrictSelect,
   windSpeed = 16,
   windDirection = 250,
+  temperature = 28,
+  precipitation = 5,
+  humidity = 72,
+  aqi = null,
+  aqiCategory = null,
+  aqiColor = null,
+  pm25 = null,
+  pm10 = null,
 }) => {
   const [radarData, setRadarData] = useState<RadarData | null>(null);
-  const [currentFrameIndex, setCurrentFrameIndex] = useState<number>(0);
-  const [speed] = useState<number>(500); // Continuous live loop
-  const [opacity, setOpacity] = useState<number>(0.85);
-  const [basemapStyle, setBasemapStyle] = useState<'satellite' | 'dark' | 'street'>('satellite');
-  const [phenomenon, setPhenomenon] = useState<WeatherPhenomenon>('air');
-  const [loading, setLoading] = useState<boolean>(true);
-  const [currentZoom, setCurrentZoom] = useState<number>(8);
-  const [showImdCoverage, setShowImdCoverage] = useState<boolean>(true);
+  const [currentFrameIndex, setCurrentFrameIndex] = useState(0);
+  const [activeLayer, setActiveLayer] = useState<WeatherLayer>("precipitation");
+  // Default basemap is Satellite Earth
+  const [basemapStyle, setBasemapStyle] = useState<BasemapStyle>("satellite");
+  const [showLayerMenu, setShowLayerMenu] = useState(false);
+  const [showBasemapMenu, setShowBasemapMenu] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [mapInstance, setMapInstance] = useState<L.Map | null>(null);
-
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Load live RainViewer radar frames
+  // Fetch real RainViewer radar frames
   useEffect(() => {
-    let mounted = true;
     fetchRadarFrames()
       .then((data) => {
-        if (mounted) {
-          setRadarData(data);
-          if (data.radarFrames.length > 0) {
-            setCurrentFrameIndex(data.radarFrames.length - 1);
-          }
-          setLoading(false);
-        }
+        setRadarData(data);
+        if (data.radarFrames.length > 0) setCurrentFrameIndex(data.radarFrames.length - 1);
+        setLoading(false);
       })
-      .catch((err) => {
-        console.error('Failed to load radar frames:', err);
-        if (mounted) setLoading(false);
-      });
-    return () => {
-      mounted = false;
-    };
+      .catch(() => setLoading(false));
   }, []);
 
+  // Frame animation timer for precipitation layer
   const totalFrames = radarData?.radarFrames.length || 0;
-
-  // Always-Running Live Doppler Radar Frame Loop (No Pause Needed!)
   useEffect(() => {
-    if (totalFrames === 0) return;
-
-    const isLastFrame = currentFrameIndex === totalFrames - 1;
-    const delay = isLastFrame ? 1200 : speed;
-
-    timerRef.current = setTimeout(() => {
-      setCurrentFrameIndex((prev) => (prev + 1) % totalFrames);
-    }, delay);
-
+    if (totalFrames === 0 || activeLayer !== "precipitation") return;
+    const isLast = currentFrameIndex === totalFrames - 1;
+    timerRef.current = setTimeout(
+      () => setCurrentFrameIndex((p) => (p + 1) % totalFrames),
+      isLast ? 1400 : 600
+    );
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [currentFrameIndex, totalFrames, speed]);
+  }, [currentFrameIndex, totalFrames, activeLayer]);
 
   const currentFrame: RadarFrame | undefined = radarData?.radarFrames[currentFrameIndex];
-
-  // Format frame timestamp to IST
   const formattedTime = currentFrame
-    ? new Date(currentFrame.time * 1000).toLocaleTimeString('en-IN', {
-        timeZone: 'Asia/Kolkata',
-        hour: '2-digit',
-        minute: '2-digit',
+    ? new Date(currentFrame.time * 1000).toLocaleTimeString("en-IN", {
+        timeZone: "Asia/Kolkata",
+        hour: "2-digit",
+        minute: "2-digit",
         hour12: true,
       })
-    : '--:--';
+    : "--:--";
 
-  const formattedDate = currentFrame
-    ? new Date(currentFrame.time * 1000).toLocaleDateString('en-IN', {
-        timeZone: 'Asia/Kolkata',
-        day: 'numeric',
-        month: 'short',
-      })
-    : '';
-
-  // Centroid for selected district
-  const selectedKey = selectedDistrict.toLowerCase().replace(/ district| \[demo\]/g, '').trim();
+  const selectedKey = selectedDistrict.toLowerCase().replace(/ district| \[demo\]/g, "").trim();
   const districtCoords = KERALA_DISTRICTS[selectedKey] || KERALA_DISTRICTS.thiruvananthapuram;
   const currentCenter: [number, number] = [districtCoords.lat, districtCoords.lon];
+  const legend = LEGENDS[activeLayer];
+  const currentBasemap = BASEMAP_TILES[basemapStyle];
+  const locationIcon = createLocationIcon(
+    activeLayer,
+    temperature,
+    windSpeed,
+    windDirection,
+    precipitation,
+    aqi,
+    aqiColor,
+    aqiCategory
+  );
 
-  // Custom marker icon generator
-  const createPinIcon = (name: string, isSelected: boolean) =>
-    L.divIcon({
-      className: 'radar-custom-pin',
-      html: `<div class="radar-district-pin" style="${
-        isSelected ? 'background: #2563eb; border-color: #ffffff; color: #ffffff;' : ''
-      }">📍 ${name}</div>`,
-      iconSize: [80, 24],
-      iconAnchor: [40, 12],
-    });
-
-  // Clean, watermark-free basemap configurations (No API key required)
-  const getBasemapConfig = () => {
-    switch (basemapStyle) {
-      case 'satellite':
-        return {
-          base: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-          reference: 'https://services.arcgisonline.com/arcgis/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
-          maxZoom: 18,
-          maxNativeZoom: 18,
-        };
-      case 'dark':
-        return {
-          base: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
-          reference: 'https://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}',
-          maxZoom: 18,
-          maxNativeZoom: 16,
-        };
-      case 'street':
-      default:
-        return {
-          base: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-          reference: null,
-          maxZoom: 19,
-          maxNativeZoom: 19,
-        };
-    }
-  };
-
-  const basemap = getBasemapConfig();
+  const aqiLabel = aqi != null ? `${aqi} (${aqiCategory ?? "—"})` : "Loading…";
 
   return (
-    <div className="radar-map-wrapper">
-      {/* Top TV News Overlay Header */}
-      <div className="radar-tv-header">
-        <div className="radar-tv-brand">
-          <span className="live-pulse-dot" />
-          <span className="radar-tv-title">
-            {phenomenon === 'air'
-              ? '💨 REAL-TIME AIRFLOW & WIND VECTOR'
-              : phenomenon === 'radar'
-              ? '🌧️ LIVE DOPPLER WEATHER RADAR'
-              : phenomenon === 'waves'
-              ? '🌊 COASTAL OCEAN WAVE SWELL'
-              : '🛡️ IMD CYCLONE THREAT SCANNER'}
-          </span>
-          <span className="always-running-badge">● ALWAYS RUNNING</span>
-          {loading && (
-            <span style={{ fontSize: '0.72rem', background: 'rgba(255,255,255,0.15)', padding: '2px 8px', borderRadius: '4px', color: '#93c5fd' }}>
-              Syncing telemetry…
-            </span>
-          )}
-        </div>
-
-        {/* Floating TV Zoom Controls (Pill Bar on Top Right) */}
-        <div className="radar-tv-zoom-pill">
-          <span className="radar-zoom-level-text">
-            Zoom: <strong>{currentZoom}x</strong>{' '}
-            <span style={{ opacity: 0.75, fontSize: '0.68rem' }}>
-              ({currentZoom <= 7 ? 'State' : currentZoom <= 9 ? 'District' : 'Local'})
-            </span>
-          </span>
-          <div className="radar-zoom-btn-group">
-            <button
-              className="radar-zoom-btn"
-              onClick={() => mapInstance?.flyTo(KERALA_CENTER, 7, { duration: 0.6 })}
-              title="State View (Zoom 7)"
-            >
-              State (7x)
-            </button>
-            <button
-              className="radar-zoom-btn"
-              onClick={() => mapInstance?.flyTo(currentCenter, 9, { duration: 0.6 })}
-              title="District View (Zoom 9)"
-            >
-              District (9x)
-            </button>
-            <button
-              className="radar-zoom-btn"
-              onClick={() => mapInstance?.flyTo(currentCenter, 12, { duration: 0.6 })}
-              title="Local Taluk View (Zoom 12)"
-            >
-              Local (12x)
-            </button>
-            <button
-              className="radar-zoom-btn icon-only"
-              onClick={() => mapInstance?.zoomIn()}
-              title="Zoom In (+)"
-            >
-              ➕
-            </button>
-            <button
-              className="radar-zoom-btn icon-only"
-              onClick={() => mapInstance?.zoomOut()}
-              title="Zoom Out (-)"
-            >
-              ➖
-            </button>
-          </div>
-        </div>
-
-        <div className="radar-tv-clock-badge">
-          <span>🕒</span>
-          <span>
-            {formattedDate} {formattedTime} IST
-          </span>
-          <span style={{ fontSize: '0.68rem', background: '#0284c7', color: '#ffffff', padding: '1px 6px', borderRadius: '4px' }}>
-            LIVE
-          </span>
-        </div>
-      </div>
-
-      {/* Interactive Leaflet Map */}
+    <div className="aws-map-wrapper">
       <MapContainer
         center={KERALA_CENTER}
         zoom={8}
-        minZoom={4}
+        minZoom={5}
         maxZoom={18}
-        scrollWheelZoom={true}
-        doubleClickZoom={true}
-        dragging={true}
-        className="radar-leaflet-container"
+        scrollWheelZoom
+        doubleClickZoom
+        dragging
+        className="aws-leaflet-map"
         attributionControl={false}
         zoomControl={false}
         ref={(m) => {
@@ -542,263 +749,325 @@ export const WeatherRadarMap: React.FC<WeatherRadarMapProps> = ({
         }}
       >
         <MapFlyController districtName={districtCoords.name} coords={currentCenter} />
-        <MapZoomTracker onZoomChange={setCurrentZoom} />
 
-        {/* Clean, High-Definition Basemap (Esri Satellite / Dark / Street) */}
+        {/* 🛰️ Primary Basemap: Real True-Color Earth Satellite Imagery */}
         <TileLayer
-          key={`base-${basemapStyle}`}
-          url={basemap.base}
-          maxZoom={basemap.maxZoom}
-          maxNativeZoom={basemap.maxNativeZoom}
+          key={basemapStyle}
+          url={currentBasemap.url}
+          maxZoom={currentBasemap.maxZoom}
+          maxNativeZoom={currentBasemap.maxZoom}
           zIndex={100}
+          opacity={1}
         />
 
-        {/* RainViewer Live Radar Tile Layers (maxNativeZoom={7} ELIMINATES WATERMARK ENTIRELY) */}
-        {radarData &&
-          radarData.radarFrames.map((frame, idx) => (
-            <TileLayer
-              key={frame.path}
-              url={`${radarData.host}${frame.path}/256/{z}/{x}/{y}/2/1_1.png`}
-              opacity={idx === currentFrameIndex ? opacity : 0}
-              zIndex={idx === currentFrameIndex ? 300 : 200}
-              minZoom={3}
-              maxZoom={18}
-              maxNativeZoom={7}
-            />
-          ))}
-
-        {/* City and Boundary Labels Reference Layer */}
-        {basemap.reference && (
+        {/* High-visibility cities, district boundaries and landmark labels on satellite */}
+        {basemapStyle === "satellite" && (
           <TileLayer
-            key={`ref-${basemapStyle}`}
-            url={basemap.reference}
-            maxZoom={basemap.maxZoom}
-            maxNativeZoom={basemap.maxNativeZoom}
-            zIndex={400}
-            opacity={0.85}
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+            maxZoom={18}
+            maxNativeZoom={16}
+            zIndex={250}
+            opacity={0.88}
           />
         )}
 
-        {/* 60 FPS Atmospheric Motion Canvas (Cyclone, Air Streams, & Wave Action) */}
-        <AtmosphericMotionLayer
-          mode={phenomenon}
-          windSpeed={windSpeed}
-          windDirection={windDirection}
-        />
-
-        {/* Authentic IMD Doppler Weather Radar Coverage Rings (250km Radius) */}
-        {showImdCoverage && (
-          <>
-            {/* IMD Kochi Doppler Radar Range */}
-            <Circle
-              center={[9.9312, 76.2673]}
-              radius={250000}
-              pathOptions={{
-                color: '#06b6d4',
-                weight: 1.5,
-                dashArray: '6, 8',
-                fillColor: '#06b6d4',
-                fillOpacity: 0.04,
-              }}
-            >
-              <Popup>
-                <div style={{ fontSize: '0.8rem', textAlign: 'center' }}>
-                  <strong>📡 IMD Kochi Doppler Weather Radar (DWR)</strong>
-                  <br />
-                  Frequency: C-Band (5.6 GHz)
-                  <br />
-                  Operational Radius: 250 km
-                  <br />
-                  Status: <span style={{ color: '#16a34a', fontWeight: 700 }}>Live Feed</span>
-                </div>
-              </Popup>
-            </Circle>
-
-            {/* IMD Thiruvananthapuram Doppler Radar Range */}
-            <Circle
-              center={[8.5241, 76.9366]}
-              radius={250000}
-              pathOptions={{
-                color: '#3b82f6',
-                weight: 1.5,
-                dashArray: '6, 8',
-                fillColor: '#3b82f6',
-                fillOpacity: 0.04,
-              }}
-            >
-              <Popup>
-                <div style={{ fontSize: '0.8rem', textAlign: 'center' }}>
-                  <strong>📡 IMD Thiruvananthapuram Doppler Radar (DWR)</strong>
-                  <br />
-                  Frequency: S-Band (2.8 GHz)
-                  <br />
-                  Operational Radius: 250 km
-                  <br />
-                  Status: <span style={{ color: '#16a34a', fontWeight: 700 }}>Live Feed</span>
-                </div>
-              </Popup>
-            </Circle>
-          </>
+        {/* 📡 Live RainViewer Doppler Radar tiles (Active frame mounted cleanly) */}
+        {activeLayer === "precipitation" && radarData && currentFrame && (
+          <TileLayer
+            key={currentFrame.path}
+            url={`${radarData.host}${currentFrame.path}/256/{z}/{x}/{y}/2/1_1.png`}
+            opacity={0.85}
+            zIndex={300}
+            minZoom={3}
+            maxZoom={18}
+            maxNativeZoom={7}
+          />
         )}
 
-        {/* District Markers */}
-        {Object.values(KERALA_DISTRICTS).map((d) => {
-          const isSelected = d.name.toLowerCase() === districtCoords.name.toLowerCase();
+        {/* ⚡ 60fps Dynamic Animated Canvas Engine (z-index 450) */}
+        <WeatherOverlayCanvas
+          layer={activeLayer}
+          windSpeed={windSpeed}
+          windDirection={windDirection}
+          temperature={temperature}
+          precipitation={precipitation}
+          aqi={aqi}
+        />
+
+        {/* 📍 Live location marker for current selected district */}
+        <Marker position={currentCenter} icon={locationIcon}>
+          <Popup>
+            <div style={{ textAlign: "center", fontSize: "0.82rem", lineHeight: 1.7 }}>
+              <strong style={{ fontSize: "0.92rem", color: "#60a5fa" }}>📍 {districtCoords.name}</strong>
+              <br />
+              🌡️ {Math.round(temperature)}°C &nbsp; 🌧️ {precipitation.toFixed(1)} mm/h
+              <br />
+              💨 {windSpeed.toFixed(1)} km/h · {windDirection}° &nbsp; 💦 {humidity}%
+              {aqi != null && (
+                <>
+                  <br />
+                  🍃 AQI: <strong style={{ color: aqiColor ?? "#22c55e" }}>{aqi} ({aqiCategory})</strong>
+                </>
+              )}
+              {pm25 != null && (
+                <>
+                  <br />
+                  PM2.5: {pm25} µg/m³ &nbsp; PM10: {pm10} µg/m³
+                </>
+              )}
+            </div>
+          </Popup>
+        </Marker>
+
+        {/* 📍 Clickable district pins across Kerala */}
+        {Object.entries(KERALA_DISTRICTS).map(([key, dist]) => {
+          if (key === selectedKey) return null;
           return (
-            <Marker
-              key={d.name}
-              position={[d.lat, d.lon]}
-              icon={createPinIcon(d.name, isSelected)}
+            <CircleMarker
+              key={key}
+              center={[dist.lat, dist.lon]}
+              radius={5}
+              pathOptions={{
+                color: "#38bdf8",
+                fillColor: "#0f172a",
+                fillOpacity: 0.85,
+                weight: 1.5,
+              }}
               eventHandlers={{
-                click: () => onDistrictSelect && onDistrictSelect(d.name),
+                click: () => onDistrictSelect?.(dist.name),
               }}
             >
-              <Popup>
-                <div style={{ textAlign: 'center', fontSize: '0.8rem' }}>
-                  <strong>{d.name} District</strong>
-                  <br />
-                  Lat: {d.lat.toFixed(4)}, Lon: {d.lon.toFixed(4)}
+              <Tooltip direction="top" offset={[0, -6]} opacity={0.95}>
+                <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#0f172a" }}>
+                  📍 {dist.name} (Click to switch)
                 </div>
-              </Popup>
-            </Marker>
+              </Tooltip>
+            </CircleMarker>
           );
         })}
       </MapContainer>
 
-      {/* Bottom TV News Controls Bar (Always Running — Phenomenon Selector & Telemetry) */}
-      <div className="radar-media-control-bar">
-        {/* Dynamic Telemetry Banner for Active Phenomenon */}
-        <div className="radar-live-indicator-bar">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', flexWrap: 'wrap' }}>
-            <span className="live-pulse-dot" style={{ width: '8px', height: '8px' }} />
-            <span style={{ fontSize: '0.74rem', color: '#10b981', fontWeight: 800 }}>
-              {phenomenon === 'storm_monitor'
-                ? 'IMD CYCLONE & LOW-PRESSURE SURVEILLANCE'
-                : phenomenon === 'air'
-                ? 'LIVE ATMOSPHERIC AIRFLOW VECTOR'
-                : phenomenon === 'waves'
-                ? 'COASTAL WAVE & SURGE SWELL'
-                : 'IMD DOPPLER RADAR SURVEILLANCE'}
-            </span>
-            <span style={{ fontSize: '0.72rem', color: '#64748b' }}>·</span>
-            <span style={{ fontSize: '0.72rem', color: '#e2e8f0' }}>
-              {phenomenon === 'storm_monitor'
-                ? 'IMD Status: ✅ Zero Active Cyclones in Arabian Sea · Central Pressure: 1011.2 hPa (Normal) · Threat: None'
-                : phenomenon === 'air'
-                ? `Live Wind: ${windSpeed.toFixed(1)} km/h · Bearing: ${windDirection}° (${
-                    windDirection >= 225 && windDirection <= 315 ? 'WSW Monsoon' : 'Coastal'
-                  })`
-                : phenomenon === 'waves'
-                ? 'Deep Arabian Sea Swell: 2.1m · Heading ENE into Kerala Coast'
-                : '10-Minute Live IMD Radar Sweeps'}
-            </span>
-          </div>
-
-          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.72rem', color: '#e2e8f0', cursor: 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={showImdCoverage}
-              onChange={(e) => setShowImdCoverage(e.target.checked)}
-              style={{ cursor: 'pointer', accentColor: '#38bdf8' }}
-            />
-            <span>📡 Show IMD Radar Envelopes (250km)</span>
-          </label>
-        </div>
-
-        {/* Phenomenon Mode Switcher & Basemap Controls */}
-        <div className="radar-controls-row">
-          {/* Phenomenon Selector (Always Running Modes) */}
-          <div className="phenomenon-selector-group">
-            <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700 }}>PHENOMENON:</span>
-            <button
-              className={`phenomenon-btn ${phenomenon === 'air' ? 'active air-active' : ''}`}
-              onClick={() => setPhenomenon('air')}
-              title="Real-Time Wind & Air Flow Vectors"
-            >
-              💨 Live Air Flow
-            </button>
-            <button
-              className={`phenomenon-btn ${phenomenon === 'radar' ? 'active radar-active' : ''}`}
-              onClick={() => setPhenomenon('radar')}
-              title="Doppler Precipitation Radar"
-            >
-              🌧️ Live Doppler Radar
-            </button>
-            <button
-              className={`phenomenon-btn ${phenomenon === 'waves' ? 'active waves-active' : ''}`}
-              onClick={() => setPhenomenon('waves')}
-              title="Ocean Coastal Wave Swell"
-            >
-              🌊 Ocean Waves
-            </button>
-            <button
-              className={`phenomenon-btn ${phenomenon === 'storm_monitor' ? 'active storm-active' : ''}`}
-              onClick={() => setPhenomenon('storm_monitor')}
-              title="Live IMD Cyclone & Low-Pressure Threat Scanner"
-            >
-              🛡️ Cyclone Threat Monitor
-            </button>
-          </div>
-
-          {/* Aux Basemap & Opacity Controls */}
-          <div className="radar-aux-controls">
-            {/* Basemap Switcher */}
-            <div style={{ display: 'inline-flex', background: 'rgba(255,255,255,0.08)', borderRadius: '6px', padding: '2px', border: '1px solid rgba(255,255,255,0.15)' }}>
-              <button
-                className={`radar-layer-toggle-btn ${basemapStyle === 'satellite' ? 'active' : ''}`}
-                onClick={() => setBasemapStyle('satellite')}
-                title="Satellite View (News Channel TV style)"
-                style={{ padding: '0.22rem 0.5rem', fontSize: '0.72rem' }}
-              >
-                🛰️ Sat
-              </button>
-              <button
-                className={`radar-layer-toggle-btn ${basemapStyle === 'dark' ? 'active' : ''}`}
-                onClick={() => setBasemapStyle('dark')}
-                title="Dark Radar Studio"
-                style={{ padding: '0.22rem 0.5rem', fontSize: '0.72rem' }}
-              >
-                🌑 Dark
-              </button>
-              <button
-                className={`radar-layer-toggle-btn ${basemapStyle === 'street' ? 'active' : ''}`}
-                onClick={() => setBasemapStyle('street')}
-                title="OpenStreetMap Terrain"
-                style={{ padding: '0.22rem 0.5rem', fontSize: '0.72rem' }}
-              >
-                🗺️ Street
-              </button>
+      {/* 📊 Legend panel (top-left) */}
+      <div className="aws-legend-panel">
+        <div className="aws-legend-title">{legend.label}</div>
+        <div className="aws-legend-items">
+          {legend.items.map((item) => (
+            <div key={item.text} className="aws-legend-row">
+              <div className="aws-legend-swatch" style={{ background: item.color }} />
+              <span className="aws-legend-text">{item.text}</span>
             </div>
+          ))}
+        </div>
+        {activeLayer === "air_quality" && pm25 != null && (
+          <div className="aws-legend-pm-strip">
+            <span>PM2.5: <strong>{pm25}</strong> µg</span>
+            <span>PM10: <strong>{pm10}</strong> µg</span>
+          </div>
+        )}
+      </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Intensity:</span>
-              <input
-                type="range"
-                min={30}
-                max={100}
-                value={Math.round(opacity * 100)}
-                onChange={(e) => setOpacity(parseInt(e.target.value, 10) / 100)}
-                style={{ width: '60px', height: '4px', cursor: 'pointer' }}
-                title="Adjust Overlay Intensity"
-              />
+      {/* 🎛️ Top-Right Controls Bar (Layer & Basemap Pickers) */}
+      <div className="aws-top-controls">
+        {/* Basemap Picker Button (Satellite Earth & Topography) */}
+        <div className="aws-ctrl-btn-wrap">
+          <button
+            className={`aws-ctrl-btn ${showBasemapMenu ? "active" : ""}`}
+            onClick={() => {
+              setShowBasemapMenu((v) => !v);
+              setShowLayerMenu(false);
+            }}
+            title="Map Style"
+          >
+            <span>{currentBasemap.icon}</span>
+            <span>{currentBasemap.name}</span>
+          </button>
+          {showBasemapMenu && (
+            <div className="aws-dropdown-menu">
+              {(Object.keys(BASEMAP_TILES) as BasemapStyle[]).map((key) => {
+                const b = BASEMAP_TILES[key];
+                return (
+                  <button
+                    key={key}
+                    className={`aws-dropdown-option ${basemapStyle === key ? "selected" : ""}`}
+                    onClick={() => {
+                      setBasemapStyle(key);
+                      setShowBasemapMenu(false);
+                    }}
+                  >
+                    <span>{b.icon}</span>
+                    <span>{b.name}</span>
+                    {basemapStyle === key && <span className="aws-dropdown-check">✓</span>}
+                  </button>
+                );
+              })}
             </div>
-          </div>
+          )}
         </div>
 
-        {/* Rain Intensity Color Legend Strip */}
-        <div className="radar-legend-bar">
-          <span style={{ fontWeight: 700, color: '#e2e8f0' }}>Radar Intensity:</span>
-          <span>Light Drizzle</span>
-          <div className="legend-scale-gradient">
-            <div className="scale-drizzle" title="Light (< 2 mm/h)" />
-            <div className="scale-light" title="Moderate (2 - 10 mm/h)" />
-            <div className="scale-moderate" title="Heavy (10 - 30 mm/h)" />
-            <div className="scale-heavy" title="Very Heavy (30 - 60 mm/h)" />
-            <div className="scale-torrential" title="Torrential (> 60 mm/h)" />
-            <div className="scale-extreme" title="Extreme Storm" />
-          </div>
-          <span style={{ fontWeight: 800, color: '#f87171' }}>Heavy Storm / Inundation</span>
+        {/* Weather Layer Picker Button */}
+        <div className="aws-ctrl-btn-wrap">
+          <button
+            className={`aws-ctrl-btn ${showLayerMenu ? "active" : ""}`}
+            onClick={() => {
+              setShowLayerMenu((v) => !v);
+              setShowBasemapMenu(false);
+            }}
+            title="Weather Layer"
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+              <polygon points="12 2 2 7 12 12 22 7 12 2" />
+              <polyline points="2 17 12 22 22 17" />
+              <polyline points="2 12 12 17 22 12" />
+            </svg>
+            <span>{LAYERS.find((l) => l.id === activeLayer)?.label}</span>
+          </button>
+          {showLayerMenu && (
+            <div className="aws-dropdown-menu">
+              {LAYERS.map((lyr) => (
+                <button
+                  key={lyr.id}
+                  className={`aws-dropdown-option ${activeLayer === lyr.id ? "selected" : ""}`}
+                  onClick={() => {
+                    setActiveLayer(lyr.id);
+                    setShowLayerMenu(false);
+                  }}
+                >
+                  <span>{lyr.icon}</span>
+                  <span>{lyr.label}</span>
+                  {activeLayer === lyr.id && <span className="aws-dropdown-check">✓</span>}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
+
+        {/* Recenter Location Button */}
+        <button
+          className="aws-locate-btn"
+          onClick={() => mapInstance?.flyTo(currentCenter, 9, { duration: 0.8 })}
+          title="Recenter on My Location"
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+          </svg>
+        </button>
+      </div>
+
+      {/* 📡 Live time badge (bottom-left) */}
+      <div className="aws-time-badge">
+        <span className="aws-live-dot" />
+        <span>
+          {activeLayer === "precipitation"
+            ? `📡 Radar · ${formattedTime} IST`
+            : activeLayer === "air_quality"
+            ? `🍃 AQI · ${aqiLabel}`
+            : activeLayer === "temperature"
+            ? `🌡️ Live Heat Flow · ${Math.round(temperature)}°C`
+            : `🛰️ Live Streamlines · ${windSpeed.toFixed(0)} km/h`}
+        </span>
+        {loading && <span className="aws-syncing">Syncing…</span>}
+      </div>
+
+      {/* 📊 Telemetry strip (bottom) */}
+      <div className="aws-telemetry-strip">
+        {activeLayer === "air_quality" ? (
+          <>
+            <div className="aws-tele-item">
+              <span className="aws-tele-label">🍃 AQI</span>
+              <span className="aws-tele-val" style={{ color: aqiColor ?? "#22c55e" }}>
+                {aqi ?? "—"}
+              </span>
+            </div>
+            <div className="aws-tele-item">
+              <span className="aws-tele-label">📊 Category</span>
+              <span className="aws-tele-val" style={{ fontSize: "0.74rem" }}>
+                {aqiCategory ?? "—"}
+              </span>
+            </div>
+            <div className="aws-tele-item">
+              <span className="aws-tele-label">PM2.5</span>
+              <span className="aws-tele-val">{pm25 ?? "—"} µg</span>
+            </div>
+            <div className="aws-tele-item">
+              <span className="aws-tele-label">PM10</span>
+              <span className="aws-tele-val">{pm10 ?? "—"} µg</span>
+            </div>
+            <div className="aws-tele-item">
+              <span className="aws-tele-label">📍 District</span>
+              <span className="aws-tele-val">{districtCoords.name}</span>
+            </div>
+          </>
+        ) : activeLayer === "wind" ? (
+          <>
+            <div className="aws-tele-item">
+              <span className="aws-tele-label">💨 Speed</span>
+              <span className="aws-tele-val">{windSpeed.toFixed(1)} km/h</span>
+            </div>
+            <div className="aws-tele-item">
+              <span className="aws-tele-label">🧭 Direction</span>
+              <span className="aws-tele-val">{windDirection}°</span>
+            </div>
+            <div className="aws-tele-item">
+              <span className="aws-tele-label">💦 Humidity</span>
+              <span className="aws-tele-val">{humidity}%</span>
+            </div>
+            <div className="aws-tele-item">
+              <span className="aws-tele-label">🌡️ Temp</span>
+              <span className="aws-tele-val">{Math.round(temperature)}°C</span>
+            </div>
+            <div className="aws-tele-item">
+              <span className="aws-tele-label">📍 District</span>
+              <span className="aws-tele-val">{districtCoords.name}</span>
+            </div>
+          </>
+        ) : activeLayer === "temperature" ? (
+          <>
+            <div className="aws-tele-item">
+              <span className="aws-tele-label">🌡️ Now</span>
+              <span className="aws-tele-val">{Math.round(temperature)}°C</span>
+            </div>
+            <div className="aws-tele-item">
+              <span className="aws-tele-label">📉 Low</span>
+              <span className="aws-tele-val">{Math.round(temperature - 4)}°C</span>
+            </div>
+            <div className="aws-tele-item">
+              <span className="aws-tele-label">📈 High</span>
+              <span className="aws-tele-val">{Math.round(temperature + 2)}°C</span>
+            </div>
+            <div className="aws-tele-item">
+              <span className="aws-tele-label">💦 Humidity</span>
+              <span className="aws-tele-val">{humidity}%</span>
+            </div>
+            <div className="aws-tele-item">
+              <span className="aws-tele-label">📍 District</span>
+              <span className="aws-tele-val">{districtCoords.name}</span>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="aws-tele-item">
+              <span className="aws-tele-label">🌡️ Temp</span>
+              <span className="aws-tele-val">{Math.round(temperature)}°C</span>
+            </div>
+            <div className="aws-tele-item">
+              <span className="aws-tele-label">🌧️ Rain</span>
+              <span className="aws-tele-val">{precipitation.toFixed(1)} mm/h</span>
+            </div>
+            <div className="aws-tele-item">
+              <span className="aws-tele-label">💨 Wind</span>
+              <span className="aws-tele-val">{windSpeed.toFixed(1)} km/h</span>
+            </div>
+            <div className="aws-tele-item">
+              <span className="aws-tele-label">💦 Humidity</span>
+              <span className="aws-tele-val">{humidity}%</span>
+            </div>
+            <div className="aws-tele-item">
+              <span className="aws-tele-label">📍 District</span>
+              <span className="aws-tele-val">{districtCoords.name}</span>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

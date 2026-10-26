@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { getRiskAssessmentReport, downloadRiskReportDocx, downloadRiskReportPdf } from '@/services/api';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { getRiskAssessmentReport, downloadRiskReportDocx, downloadRiskReportPdf, deleteRiskAssessment } from '@/services/api';
+import SendDocumentModal from '@/components/Modals/SendDocumentModal';
+import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/context/ToastContext';
 
 const RISK_COLORS: Record<string, string> = {
   VERY_HIGH: '#7f1d1d',
@@ -13,10 +16,32 @@ const CLASS_ORDER = ['VERY_HIGH', 'HIGH', 'MODERATE', 'LOW'] as const;
 
 export default function RiskReportView() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { canDelete } = useAuth();
+  const { showToast } = useToast();
   const [report, setReport] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloadingFormat, setDownloadingFormat] = useState<string | null>(null);
+  const [isSendModalOpen, setIsSendModalOpen] = useState(false);
+
+  const handleDeleteRiskReport = async () => {
+    const reportName = report?.metadata?.name || 'this composite risk report';
+    if (!window.confirm(`Are you sure you want to permanently delete "${reportName}"?\n\nThis will remove the composite risk profile, classification matrix, and generated results.`)) {
+      return;
+    }
+    try {
+      await deleteRiskAssessment(parseInt(id!, 10));
+      showToast({
+        title: 'Report Deleted',
+        message: `Composite risk report "${reportName}" was successfully removed.`,
+        type: 'info',
+      });
+      navigate('/reports');
+    } catch (err: any) {
+      alert('Failed to delete risk report: ' + (err.message || 'Error occurred'));
+    }
+  };
 
   useEffect(() => {
     async function fetchReport() {
@@ -105,8 +130,28 @@ export default function RiskReportView() {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
           <button
+            className="btn btn-sm"
+            style={{
+              fontSize: '0.85rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+              color: '#ffffff',
+              border: 'none',
+              fontWeight: 700,
+              boxShadow: '0 2px 8px rgba(2, 132, 199, 0.35)',
+              padding: '0.45rem 0.95rem',
+              borderRadius: '6px',
+            }}
+            onClick={() => setIsSendModalOpen(true)}
+            title="Send Composite Risk Dossier to Senior Reviewer or Manager"
+          >
+            📤 Send to Senior / Manager
+          </button>
+          <button
             className="btn btn-primary"
-            style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem', background: '#2563eb' }}
+            style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem', background: '#b91c1c' }}
             onClick={handleDownloadDocx}
             disabled={downloadingFormat !== null}
           >
@@ -127,6 +172,26 @@ export default function RiskReportView() {
           >
             🖨️ Print
           </button>
+          {canDelete && (
+            <button
+              className="btn btn-secondary"
+              style={{
+                fontSize: '0.85rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                color: '#dc2626',
+                background: '#fef2f2',
+                borderColor: '#fca5a5',
+                fontWeight: 700,
+              }}
+              onClick={handleDeleteRiskReport}
+              title="Permanently Delete This Generated Risk Report"
+            >
+              <span>🗑️</span>
+              <span>Delete Report</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -208,7 +273,7 @@ export default function RiskReportView() {
                         {c.vintage && <span style={{ marginLeft: '0.75rem' }}><strong>Vintage:</strong> {c.vintage}</span>}
                         {c.source_url && (
                           <span style={{ marginLeft: '0.75rem' }}>
-                            <a href={c.source_url} target="_blank" rel="noreferrer" style={{ color: '#2563eb' }}>Link ↗</a>
+                            <a href={c.source_url} target="_blank" rel="noreferrer" style={{ color: '#dc2626' }}>Link ↗</a>
                           </span>
                         )}
                       </div>
@@ -319,6 +384,21 @@ export default function RiskReportView() {
           </section>
         </div>
       </div>
+
+      {/* Universal Senior / Manager Dispatch Modal */}
+      {isSendModalOpen && (
+        <SendDocumentModal
+          isOpen={isSendModalOpen}
+          onClose={() => setIsSendModalOpen(false)}
+          documentType="risk_assessment"
+          documentId={parseInt(id!, 10)}
+          documentTitle={metadata?.name || `Composite Risk Assessment #${id}`}
+          subtitle={`District: ${metadata?.district || 'Kerala'} · Multi-Hazard Composite Risk (H × V × E)`}
+          fileFormat="PDF"
+          hazardType="MULTI-HAZARD"
+          districtName={metadata?.district}
+        />
+      )}
     </div>
   );
 }

@@ -24,7 +24,7 @@
   align-items: flex-start;
   gap: 0.85rem;
   animation: toastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
-  border-left: 5px solid #2563eb;
+  border-left: 5px solid #dc2626;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -43,7 +43,7 @@
   border-left-color: #f59e0b;
 }
 .toast-card.toast-info {
-  border-left-color: #2563eb;
+  border-left-color: #dc2626;
 }
 
 .toast-icon {
@@ -72,8 +72,8 @@
   color: #b45309;
 }
 .toast-info .toast-icon {
-  background: #dbeafe;
-  color: #1d4ed8;
+  background: #fee2e2;
+  color: #b91c1c;
 }
 
 .toast-body {
@@ -97,7 +97,7 @@
   display: inline-block;
   font-size: 0.78rem;
   font-weight: 600;
-  color: #2563eb;
+  color: #dc2626;
   margin-top: 0.35rem;
   text-decoration: underline;
 }

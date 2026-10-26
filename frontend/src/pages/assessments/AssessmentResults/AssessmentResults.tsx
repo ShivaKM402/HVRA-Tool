@@ -219,10 +219,11 @@ export default function AssessmentResults() {
               <button
                 className="btn btn-secondary btn-sm"
                 onClick={handleDeleteThisAssessment}
-                style={{ color: '#dc2626', borderColor: '#fecaca', background: '#fef2f2' }}
-                title="Permanently Delete Assessment"
+                style={{ color: '#dc2626', borderColor: '#fca5a5', background: '#fef2f2', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                title="Permanently Delete This Generated Assessment & Report"
               >
-                🗑️ Delete
+                <span>🗑️</span>
+                <span>Delete Report</span>
               </button>
             )}
             <Link to="/dashboard" className="btn btn-secondary btn-sm">

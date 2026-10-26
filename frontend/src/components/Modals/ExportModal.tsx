@@ -4,6 +4,7 @@
  */
 import { useState } from 'react';
 import { useToast } from '../../context/ToastContext';
+import SendDocumentModal from './SendDocumentModal';
 import './Modals.css';
 
 interface ExportModalProps {
@@ -17,6 +18,7 @@ interface ExportModalProps {
 export default function ExportModal({ isOpen, onClose, assessmentId, assessmentName, isRisk = false }: ExportModalProps) {
   const { showToast } = useToast();
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [isSendModalOpen, setIsSendModalOpen] = useState(false);
 
   if (!isOpen) return null;
 
@@ -187,6 +189,43 @@ export default function ExportModal({ isOpen, onClose, assessmentId, assessmentN
               Print
             </span>
           </div>
+
+          <div
+            onClick={() => {
+              setIsSendModalOpen(true);
+            }}
+            style={{
+              padding: '0.85rem 1rem',
+              borderRadius: 8,
+              border: '1.5px solid #bae6fd',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1rem',
+              background: '#f0f9ff',
+              transition: 'all 0.15s ease',
+            }}
+            className="hover-card"
+          >
+            <span style={{ fontSize: '1.75rem' }}>📤</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, fontSize: '0.92rem', color: '#0369a1' }}>
+                Send to Senior Reviewer / Manager
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#0284c7' }}>
+                Directly dispatch official dossier with review checklist & notes to designated authority.
+              </div>
+            </div>
+            <span
+              className="btn btn-primary btn-sm"
+              style={{
+                pointerEvents: 'none',
+                background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+              }}
+            >
+              Dispatch →
+            </span>
+          </div>
         </div>
 
         <div className="onboard-footer" style={{ justifyContent: 'flex-end' }}>
@@ -195,6 +234,24 @@ export default function ExportModal({ isOpen, onClose, assessmentId, assessmentN
           </button>
         </div>
       </div>
+
+      {isSendModalOpen && (
+        <SendDocumentModal
+          isOpen={isSendModalOpen}
+          onClose={() => {
+            setIsSendModalOpen(false);
+            onClose();
+          }}
+          documentType={isRisk ? 'risk_assessment' : 'assessment'}
+          documentId={assessmentId}
+          documentTitle={assessmentName}
+          fileFormat="PDF"
+          onSuccess={() => {
+            setIsSendModalOpen(false);
+            onClose();
+          }}
+        />
+      )}
     </div>
   );
 }

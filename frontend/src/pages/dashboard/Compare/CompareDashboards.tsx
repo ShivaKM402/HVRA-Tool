@@ -153,7 +153,7 @@ export default function CompareDashboards() {
               <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.84rem', color: '#334155' }}>
                 {d1Assessments.map((a) => (
                   <li key={a.id} style={{ marginBottom: '0.35rem' }}>
-                    <Link to={`/assessments/${a.id}/results?tab=classification`} style={{ color: '#2563eb', fontWeight: 600 }}>
+                    <Link to={`/assessments/${a.id}/results?tab=classification`} style={{ color: '#dc2626', fontWeight: 600 }}>
                       {a.name}
                     </Link>{' '}
                     ({a.module_type})
@@ -197,7 +197,7 @@ export default function CompareDashboards() {
             {d2Assessments.length === 0 ? (
               <div style={{ fontSize: '0.82rem', color: '#94a3b8' }}>
                 No assessments generated yet.{' '}
-                <Link to={`/new-assessment?district=${d2?.id}`} style={{ color: '#2563eb' }}>
+                <Link to={`/new-assessment?district=${d2?.id}`} style={{ color: '#dc2626' }}>
                   Run assessment now →
                 </Link>
               </div>
@@ -205,7 +205,7 @@ export default function CompareDashboards() {
               <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.84rem', color: '#334155' }}>
                 {d2Assessments.map((a) => (
                   <li key={a.id} style={{ marginBottom: '0.35rem' }}>
-                    <Link to={`/assessments/${a.id}/results?tab=classification`} style={{ color: '#2563eb', fontWeight: 600 }}>
+                    <Link to={`/assessments/${a.id}/results?tab=classification`} style={{ color: '#dc2626', fontWeight: 600 }}>
                       {a.name}
                     </Link>{' '}
                     ({a.module_type})

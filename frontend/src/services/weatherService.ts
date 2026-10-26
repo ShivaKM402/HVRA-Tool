@@ -321,3 +321,80 @@ export async function fetchRadarFrames(): Promise<RadarData> {
     generated: data.generated || Math.floor(Date.now() / 1000),
   };
 }
+
+// ─── Air Quality ─────────────────────────────────────────────────────────────
+
+export interface AirQualityReport {
+  district: string;
+  usAqi: number;          // 0–500 US AQI (same scale as India NAQI)
+  europeanAqi: number;    // 0–100 European AQI
+  pm25: number;           // µg/m³
+  pm10: number;           // µg/m³
+  no2: number;            // µg/m³
+  ozone: number;          // µg/m³
+  so2: number;            // µg/m³
+  uvIndex: number;
+  category: string;       // Good / Moderate / Unhealthy etc.
+  color: string;          // Hex badge colour
+}
+
+/** Classify US/India AQI (0–500) into human-readable category + colour */
+function classifyAqi(aqi: number): { category: string; color: string } {
+  if (aqi <= 50)  return { category: 'Good',                 color: '#22c55e' };
+  if (aqi <= 100) return { category: 'Satisfactory',         color: '#84cc16' };
+  if (aqi <= 200) return { category: 'Moderate',             color: '#eab308' };
+  if (aqi <= 300) return { category: 'Poor',                 color: '#f97316' };
+  if (aqi <= 400) return { category: 'Very Poor',            color: '#dc2626' };
+  return           { category: 'Severe / Hazardous',         color: '#7f1d1d' };
+}
+
+const aqiCache = new Map<string, { timestamp: number; data: AirQualityReport }>();
+const AQI_CACHE_TTL_MS = 10 * 60 * 1000; // 10-minute cache
+
+/**
+ * Fetch real-time air quality from Open-Meteo Air Quality API (free, no key).
+ * Returns PM2.5, PM10, NO2, O3, SO2, UV index and US AQI.
+ */
+export async function fetchAirQuality(districtNameOrId?: string | number): Promise<AirQualityReport> {
+  const coords = resolveCoords(districtNameOrId);
+  const cacheKey = coords.name.toLowerCase();
+
+  const cached = aqiCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < AQI_CACHE_TTL_MS) {
+    return cached.data;
+  }
+
+  const url =
+    `https://air-quality-api.open-meteo.com/v1/air-quality` +
+    `?latitude=${coords.lat}&longitude=${coords.lon}` +
+    `&current=pm10,pm2_5,nitrogen_dioxide,sulphur_dioxide,ozone,us_aqi,european_aqi,uv_index` +
+    `&timezone=Asia%2FKolkata`;
+
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Open-Meteo Air Quality API returned ${res.status}`);
+
+  const data = await res.json();
+  const c = data.current || {};
+
+  const usAqi        = Math.round(c.us_aqi        ?? 60);
+  const europeanAqi  = Math.round(c.european_aqi  ?? 40);
+  const pm25         = parseFloat((c.pm2_5         ?? 20).toFixed(1));
+  const pm10         = parseFloat((c.pm10          ?? 35).toFixed(1));
+  const no2          = parseFloat((c.nitrogen_dioxide ?? 15).toFixed(1));
+  const ozone        = parseFloat((c.ozone         ?? 60).toFixed(1));
+  const so2          = parseFloat((c.sulphur_dioxide ?? 5).toFixed(1));
+  const uvIndex      = parseFloat((c.uv_index      ?? 5).toFixed(1));
+
+  const { category, color } = classifyAqi(usAqi);
+
+  const report: AirQualityReport = {
+    district: coords.name,
+    usAqi, europeanAqi,
+    pm25, pm10, no2, ozone, so2,
+    uvIndex,
+    category, color,
+  };
+
+  aqiCache.set(cacheKey, { timestamp: Date.now(), data: report });
+  return report;
+}

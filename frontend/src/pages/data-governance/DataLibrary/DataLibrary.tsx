@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useHazard } from '@/context/HazardContext';
 import type { DataSource } from '@/types';
 import { DeleteButton } from '@/components/DeleteButton/DeleteButton';
+import SendDocumentModal from '@/components/Modals/SendDocumentModal';
 import './DataLibrary.css';
 
 type CategoryFilter = 'ALL' | 'HAZARD' | 'EXPOSURE' | 'VULNERABILITY' | 'ADMIN' | 'CUSTOM';
@@ -28,6 +29,9 @@ export default function DataLibrary() {
   const [previewData, setPreviewData] = useState<DataSourcePreviewResponse | null>(null);
   const [previewLoading, setPreviewLoading] = useState<boolean>(false);
   const [inspectorTab, setInspectorTab] = useState<'records' | 'geometry' | 'metadata'>('records');
+
+  // Senior / Manager Dispatch Modal State
+  const [sendModalSource, setSendModalSource] = useState<DataSource | null>(null);
 
   // Upload Modal State
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -268,8 +272,8 @@ export default function DataLibrary() {
               <button
                 className="btn btn-primary"
                 style={{
-                  background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                  boxShadow: '0 4px 14px rgba(37,99,235,0.4)',
+                  background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+                  boxShadow: '0 4px 14px rgba(220,38,38,0.4)',
                   padding: '0.6rem 1.15rem',
                   fontSize: '0.9rem',
                 }}
@@ -297,7 +301,7 @@ export default function DataLibrary() {
       {/* ── 2. Metric KPI Cards ── */}
       <div className="data-lib-stats-grid">
         <div className="data-lib-stat-card">
-          <div className="data-lib-stat-icon" style={{ background: '#eff6ff', color: '#2563eb' }}>
+          <div className="data-lib-stat-icon" style={{ background: '#fef2f2', color: '#dc2626' }}>
             📚
           </div>
           <div>
@@ -491,6 +495,24 @@ export default function DataLibrary() {
                           <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '0.2rem', maxWidth: 460 }}>
                             {src.description || 'Geospatial vector layer formatted for HVRA spatial queries.'}
                           </div>
+                          {src.metadata?.last_dispatch && (
+                            <div style={{ marginTop: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                              <span
+                                style={{
+                                  fontSize: '0.68rem',
+                                  color: '#0369a1',
+                                  background: '#e0f2fe',
+                                  border: '1px solid #bae6fd',
+                                  padding: '0.12rem 0.45rem',
+                                  borderRadius: '4px',
+                                  fontWeight: 600,
+                                }}
+                                title={`Dispatched to: ${src.metadata.last_dispatch.sent_to}`}
+                              >
+                                📤 Sent to: {src.metadata.last_dispatch.sent_to.split('(')[0].trim()}
+                              </span>
+                            </div>
+                          )}
                         </td>
 
                         <td style={{ padding: '1rem' }}>
@@ -511,7 +533,7 @@ export default function DataLibrary() {
                               href={src.source_url}
                               target="_blank"
                               rel="noreferrer"
-                              style={{ fontSize: '0.72rem', color: '#2563eb', textDecoration: 'none' }}
+                              style={{ fontSize: '0.72rem', color: '#dc2626', textDecoration: 'none' }}
                             >
                               Official Portal ↗
                             </a>
@@ -547,6 +569,28 @@ export default function DataLibrary() {
                               title="Inspect Records, Geometries & Metadata"
                             >
                               👁️ Inspect
+                            </button>
+                            <button
+                              className="btn btn-sm"
+                              onClick={() => setSendModalSource(src)}
+                              title="Send spatial layer & metadata dossier to Senior Reviewer / Manager"
+                              style={{
+                                background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                                color: '#ffffff',
+                                border: 'none',
+                                fontSize: '0.76rem',
+                                padding: '0.32rem 0.65rem',
+                                fontWeight: 600,
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.3rem',
+                                boxShadow: '0 2px 6px rgba(2, 132, 199, 0.25)',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              <span>📤</span> Send to Senior
                             </button>
                             {canDelete && (
                               <DeleteButton 
@@ -593,7 +637,7 @@ export default function DataLibrary() {
                 </div>
                 <div className="data-lib-inspector-pill">
                   <span className="data-lib-pill-k">Record Count</span>
-                  <span className="data-lib-pill-v" style={{ color: '#2563eb' }}>
+                  <span className="data-lib-pill-v" style={{ color: '#dc2626' }}>
                     {previewLoading
                       ? 'Loading…'
                       : previewData
@@ -693,7 +737,7 @@ export default function DataLibrary() {
                                     {String(f.properties?.[k] ?? '—')}
                                   </td>
                                 ))}
-                                <td style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: '0.76rem', color: '#2563eb' }}>
+                                <td style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: '0.76rem', color: '#dc2626' }}>
                                   {f.geometry?.type === 'Point' && f.geometry.coordinates
                                     ? `[${Number(f.geometry.coordinates[0]).toFixed(3)}, ${Number(f.geometry.coordinates[1]).toFixed(3)}]`
                                     : f.geometry?.type || 'Polygon Boundary'}
@@ -808,7 +852,7 @@ export default function DataLibrary() {
 
             {/* Modal Footer with Unclipped Actions */}
             <div className="data-lib-modal-footer">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
                 <button
                   type="button"
                   className="btn btn-secondary"
@@ -817,6 +861,22 @@ export default function DataLibrary() {
                   title="Download GeoJSON format of this dataset"
                 >
                   <span>📥</span> Download GeoJSON
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => setSendModalSource(inspectedSource)}
+                  style={{
+                    fontSize: '0.82rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                    boxShadow: '0 2px 8px rgba(2, 132, 199, 0.35)',
+                  }}
+                  title="Send spatial layer & telemetry dossier to Senior Reviewer / Manager"
+                >
+                  <span>📤</span> Send to Senior Reviewer / Manager
                 </button>
                 <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
                   {previewData?.record_count || 1} records available
@@ -987,6 +1047,26 @@ export default function DataLibrary() {
           </div>
         </div>
       </div>
+      {/* ── 8. Universal Senior / Manager Dispatch Modal ── */}
+      {sendModalSource && (
+        <SendDocumentModal
+          isOpen={!!sendModalSource}
+          onClose={() => setSendModalSource(null)}
+          documentType="spatial_dataset"
+          documentId={sendModalSource.id}
+          documentTitle={sendModalSource.name}
+          subtitle={
+            sendModalSource.organization
+              ? `Source Agency: ${sendModalSource.organization} · Vintage: ${sendModalSource.vintage || '2024'}`
+              : undefined
+          }
+          fileFormat="GeoJSON"
+          hazardType={activeHazard || 'FLOOD'}
+          onSuccess={() => {
+            loadSources();
+          }}
+        />
+      )}
     </div>
   );
 }

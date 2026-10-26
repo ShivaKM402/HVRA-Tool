@@ -34,8 +34,8 @@
 }
 
 .district-item.selected {
-  background: #eff6ff;
-  border-color: #bfdbfe;
+  background: #fef2f2;
+  border-color: #fecaca;
 }
 
 .district-name {
@@ -45,7 +45,7 @@
 }
 
 .district-item.selected .district-name {
-  color: #1d4ed8;
+  color: #dc2626;
 }
 
 .district-sub {
@@ -60,7 +60,7 @@
 }
 
 .district-item.selected .district-arrow {
-  color: #2563eb;
+  color: #dc2626;
 }
 
 .blocks-grid {
@@ -79,9 +79,9 @@
 
 .block-pill-card:hover {
   background: #ffffff;
-  border-color: #93c5fd;
+  border-color: #fca5a5;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.08);
 }
 
 .block-pill-name {

@@ -12,6 +12,6 @@ class GeneratedReportSerializer(serializers.ModelSerializer):
         fields = ["id", "assessment", "format", "status", "file_size_bytes", "generated_at"]
 
 
-class GeneratedReportViewSet(viewsets.ReadOnlyModelViewSet):
+class GeneratedReportViewSet(viewsets.ModelViewSet):
     queryset = GeneratedReport.objects.all()
     serializer_class = GeneratedReportSerializer

@@ -33,7 +33,7 @@ export default function Profile() {
               width: 64,
               height: 64,
               borderRadius: '50%',
-              background: isAdmin ? '#7c3aed' : '#2563eb',
+              background: isAdmin ? '#7c3aed' : '#dc2626',
               color: '#ffffff',
               display: 'flex',
               alignItems: 'center',

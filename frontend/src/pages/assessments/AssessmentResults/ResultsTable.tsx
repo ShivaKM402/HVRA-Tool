@@ -115,8 +115,8 @@ export default function ResultsTable({ results, selectedBlockId, onBlockSelect }
                   onClick={() => onBlockSelect(isSelected ? null : r.administrative_unit)}
                   style={{ 
                     cursor: 'pointer',
-                    backgroundColor: isSelected ? '#eff6ff' : 'transparent',
-                    borderLeft: isSelected ? '4px solid #2563eb' : '4px solid transparent',
+                    backgroundColor: isSelected ? '#fef2f2' : 'transparent',
+                    borderLeft: isSelected ? '4px solid #dc2626' : '4px solid transparent',
                     transition: 'all 0.2s ease'
                   }}
                   onMouseEnter={(e) => {

@@ -1067,12 +1067,23 @@ export default function NewAssessment() {
 
   const renderStepIndicators = () => {
     const isVulnerability = assessmentModule === 'VULNERABILITY';
-    const categories = [
+    const isExposure = assessmentModule === 'EXPOSURE';
+
+    const vulnCategories = [
       { key: 'SOCIO_ECONOMIC', title: '1. Socio-Economic Vulnerability', icon: '👥', desc: 'Demographic fragility, poverty incidence, and marginal worker vulnerability.' },
       { key: 'PHYSICAL', title: '2. Physical Vulnerability', icon: '🏗️', desc: 'Housing construction fragility, stormwater drainage deficits, and submersible roads.' },
       { key: 'ENVIRONMENTAL', title: '3. Environmental Vulnerability', icon: '🌿', desc: 'Wetland/flood basin sink reduction and paved surface runoff factor.' },
       { key: 'OTHER', title: '4. Other / Coping Capacity Vulnerability', icon: '🛡️', desc: 'Health access gaps, community early-warning coverage, and relief shelter capacity.' },
     ];
+
+    const exposureCategories = [
+      { key: 'OTHER', title: '1. Population & Demographic Exposure', icon: '👥', desc: 'Resident population and settlements situated in modelled flood inundation envelope (§6.2).' },
+      { key: 'PHYSICAL', title: '2. Buildings, Infrastructure & Lifelines Exposed', icon: '🏢', desc: 'Residential structures, PWD highways, and critical facility assets exposed (§6.2).' },
+      { key: 'ENVIRONMENTAL', title: '3. Agricultural & Natural Resources Exposed', icon: '🌾', desc: 'Productive paddy lands and seasonal crops vulnerable to flood submergence (§6.2).' },
+      { key: 'SOCIO_ECONOMIC', title: '4. Commercial & Industrial Assets Exposed', icon: '💼', desc: 'Commercial inventory, industrial units, and economic assets in flood zones (§6.2).' },
+    ];
+
+    const activeCategories = isVulnerability ? vulnCategories : (isExposure ? exposureCategories : null);
 
     const toggleAllCategory = (catKey: string, select: boolean) => {
       const catInds = indicators.filter(i => (i.category || 'OTHER') === catKey);
@@ -1104,7 +1115,7 @@ export default function NewAssessment() {
               <div style={{ fontWeight: 600, color: 'var(--color-gov-navy)', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <span>{ind.name}</span>
                 {ind.department && (
-                  <span className="badge" style={{ fontSize: '0.7rem', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
+                  <span className="badge" style={{ fontSize: '0.7rem', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}>
                     🏛️ {ind.department}
                   </span>
                 )}
@@ -1135,6 +1146,8 @@ export default function NewAssessment() {
             <p className="text-muted" style={{ margin: 0 }}>
               {isVulnerability
                 ? 'Flood Vulnerability indicators organized under 4 mandatory assessment dimensions (§6.1).'
+                : isExposure
+                ? 'Flood Exposure indicators mapped across population, infrastructure, and asset categories (§6.2).'
                 : 'Select the indicators mapped with responsible government departments.'}
             </p>
           </div>
@@ -1156,9 +1169,9 @@ export default function NewAssessment() {
           </div>
         </div>
 
-        {isVulnerability ? (
+        {activeCategories ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            {categories.map(cat => {
+            {activeCategories.map(cat => {
               const catInds = indicators.filter(i => (i.category || 'OTHER') === cat.key);
               if (catInds.length === 0) return null;
               const allChecked = catInds.every(i => enabledIndicators.has(i.id));
@@ -1216,7 +1229,7 @@ export default function NewAssessment() {
               <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <span>{ind.name}</span>
                 {ind.department && (
-                  <span className="badge" style={{ fontSize: '0.7rem', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
+                  <span className="badge" style={{ fontSize: '0.7rem', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}>
                     🏛️ {ind.department}
                   </span>
                 )}

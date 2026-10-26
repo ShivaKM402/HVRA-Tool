@@ -61,32 +61,52 @@ export const SEND_TO_OPTIONS = [
   {
     value: 'district_collector',
     label: '🏢 District Collector (DDMA Chairman)',
-    role: 'Statutory Approval Authority',
-    office: 'District Disaster Management Authority',
+    role: 'Statutory Approval Authority (Level 4)',
+    office: 'District Disaster Management Authority (DDMA)',
+    portalAccount: '@district_admin',
+    officialEmail: 'collectorate.kottayam@kerala.gov.in',
+    controlRoomPhone: '1077 (Toll-Free DEOC) / 0481-2562201',
+    dispatchMode: 'In-Portal Approval Queue (e-Office Statutory Clearance)',
   },
   {
     value: 'ksdma_officer',
     label: '🔰 KSDMA Senior Disaster Management Officer',
-    role: 'State Review & Protocol Compliance',
+    role: 'State Review & Protocol Compliance (Level 5)',
     office: 'Kerala State Disaster Management Authority',
+    portalAccount: '@state_admin',
+    officialEmail: 'ksdma.disaster@kerala.gov.in',
+    controlRoomPhone: '1070 (Toll-Free SEOC) / 0471-2364424',
+    dispatchMode: 'Statewide SDMA Command Queue',
   },
   {
     value: 'state_coordinator',
     label: '🏛️ State Disaster Management Coordinator',
     role: 'Inter-Agency Coordination Lead',
     office: 'Revenue & Disaster Management Dept',
+    portalAccount: '@state_admin',
+    officialEmail: 'revenue.disaster@kerala.gov.in',
+    controlRoomPhone: '0471-2333198',
+    dispatchMode: 'Revenue Department Intranet Queue',
   },
   {
     value: 'task_force_lead',
     label: '📋 DEOC Task Force Lead',
-    role: 'Operational Readiness Lead',
+    role: 'Operational Readiness Lead (Level 3)',
     office: 'District Emergency Operations Center',
+    portalAccount: '@manager',
+    officialEmail: 'deoc.operations@kerala.gov.in',
+    controlRoomPhone: '1077 (24x7 Control Room)',
+    dispatchMode: 'DEOC Review Board & Field Queue',
   },
   {
     value: 'department_head',
     label: '👤 Head of Department (Chief Engineer / Director)',
-    role: 'Internal Line Department Sign-off',
+    role: 'Internal Line Department Sign-off (Level 2)',
     office: 'State Directorate',
+    portalAccount: '@senior_employee',
+    officialEmail: 'chiefengineer.line@kerala.gov.in',
+    controlRoomPhone: '0471-2324900',
+    dispatchMode: 'Department Directorate Queue',
   },
 ];
 
@@ -568,13 +588,46 @@ export default function DepartmentCoordinationPage() {
             </select>
           </div>
 
-          {/* Recipient Profile Badge */}
+          {/* Recipient Profile Badge with Official Contact & Dispatch Channels */}
           <div className="dc-recipient-card">
-            <div className="dc-recipient-icon">👤</div>
+            <div className="dc-recipient-icon">🏛️</div>
             <div className="dc-recipient-info">
-              <span className="dc-recipient-name">{currentRecipient.label}</span>
+              <div className="dc-recipient-topline">
+                <span className="dc-recipient-name">{currentRecipient.label}</span>
+                <span className="dc-recipient-account-badge">{currentRecipient.portalAccount}</span>
+              </div>
               <span className="dc-recipient-office">{currentRecipient.office}</span>
-              <span className="dc-recipient-role">Role: {currentRecipient.role}</span>
+              <span className="dc-recipient-role">Statutory Authority: <strong>{currentRecipient.role}</strong></span>
+
+              {/* Official Contact Endpoints & Routing */}
+              <div className="dc-recipient-contacts-grid">
+                <div className="dc-contact-chip">
+                  <span className="dc-contact-icon">💻</span>
+                  <div>
+                    <span className="dc-contact-label">Internal Routing</span>
+                    <span className="dc-contact-value">{currentRecipient.dispatchMode}</span>
+                  </div>
+                </div>
+                <div className="dc-contact-chip">
+                  <span className="dc-contact-icon">✉️</span>
+                  <div>
+                    <span className="dc-contact-label">Official NIC Email</span>
+                    <span className="dc-contact-value">{currentRecipient.officialEmail}</span>
+                  </div>
+                </div>
+                <div className="dc-contact-chip">
+                  <span className="dc-contact-icon">📞</span>
+                  <div>
+                    <span className="dc-contact-label">24x7 Control Room Phone</span>
+                    <span className="dc-contact-value">{currentRecipient.controlRoomPhone}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Delivery Explanation */}
+              <div className="dc-dispatch-explanation">
+                ℹ️ <strong>How this is delivered:</strong> This report is securely dispatched into the officer&apos;s digital review queue inside this portal (tied to their official role). No external phone number or manual email is required for submission.
+              </div>
             </div>
           </div>
         </div>

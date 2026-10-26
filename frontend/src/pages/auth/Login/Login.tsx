@@ -11,11 +11,6 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import {
   ShieldCheck,
-  Building2,
-  Landmark,
-  HardHat,
-  Briefcase,
-  UserCheck,
   User,
   Lock,
   Eye,
@@ -25,6 +20,7 @@ import {
   LogIn,
   AlertTriangle,
 } from 'lucide-react';
+import hvraLogo from '/assets/hvra/logo.png';
 import './Login.css';
 
 interface GovernanceRoleAccount {
@@ -37,82 +33,71 @@ interface GovernanceRoleAccount {
   desc: string;
   scope: string;
   category: 'FIELD' | 'ADMIN';
+  iconBg: string;
 }
 
 const GOVERNANCE_ROLES: GovernanceRoleAccount[] = [
   {
     level: 1,
     label: 'Employee',
-    roleBadge: 'Level 1 · Field Staff',
+    roleBadge: 'Level 1 – Field Staff',
     username: 'employee',
     password: 'employee123',
     role: 'DEPARTMENT_OFFICER',
-    desc: 'Enters field telemetry, spatial records & submits department surveys',
-    scope: 'Line Department / Panchayats',
+    desc: 'Enters field telemetry...',
+    scope: '@employee · Line Department / Panchayats',
     category: 'FIELD',
+    iconBg: '#1d4ed8',
   },
   {
     level: 2,
     label: 'Senior Employee',
-    roleBadge: 'Level 2 · Department Lead',
+    roleBadge: 'Level 2 – Department Lead',
     username: 'senior_employee',
     password: 'senior123',
     role: 'SENIOR_OFFICER',
-    desc: 'Verifies baseline records, validates boundaries & line clearance',
-    scope: 'Executive Engineer / HoD Office',
+    desc: 'Verifies baseline rec...',
+    scope: '@senior_employee · Executive Engineer / HoD Office',
     category: 'FIELD',
+    iconBg: '#0d9488',
   },
   {
     level: 3,
     label: 'Manager',
-    roleBadge: 'Level 3 · Operations Lead',
+    roleBadge: 'Level 3 – Operations Lead',
     username: 'manager',
     password: 'manager123',
     role: 'MANAGER',
-    desc: 'Coordinates inter-department sign-offs & reviews Task Force queue',
-    scope: 'DEOC Operations / Review Queue',
+    desc: 'Coordinates inter-d...',
+    scope: '@manager · DEOC Operations / Review Queue',
     category: 'FIELD',
+    iconBg: '#8b5cf6',
   },
   {
     level: 4,
-    label: 'District Administrator',
-    roleBadge: 'Level 4 · DDMA Authority',
+    label: 'Level 4 – DDMA Authority',
+    roleBadge: 'Level 4 – DDMA Authority',
     username: 'district_admin',
     password: 'district123',
     role: 'DISTRICT_OFFICIAL',
-    desc: 'Formally endorses & signs off on district hazard & risk assessments',
-    scope: 'District Collectorate / DDMA',
+    desc: 'Formally endorses &...',
+    scope: '@district_admin · District Collectorate / DDMA',
     category: 'ADMIN',
+    iconBg: '#ea580c',
   },
   {
     level: 5,
     label: 'State Administrator',
-    roleBadge: 'Level 5 · State SDMA Head',
+    roleBadge: 'Level 5 – State SDMA Head',
     username: 'state_admin',
     password: 'admin123',
     role: 'PLATFORM_ADMIN',
-    desc: 'Statewide governance, master policy calibration & system authority',
-    scope: 'Kerala State Disaster Management',
+    desc: 'Statewide governan...',
+    scope: '@state_admin · Kerala State Disaster Management',
     category: 'ADMIN',
+    iconBg: '#0284c7',
   },
 ];
-
-const getRoleIcon = (level: number) => {
-  switch (level) {
-    case 1:
-      return <HardHat size={20} color="#2563eb" />;
-    case 2:
-      return <UserCheck size={20} color="#0d9488" />;
-    case 3:
-      return <Briefcase size={20} color="#7c3aed" />;
-    case 4:
-      return <Building2 size={20} color="#d97706" />;
-    case 5:
-      return <Landmark size={20} color="#1d4ed8" />;
-    default:
-      return <User size={20} color="#2563eb" />;
-  }
-};
 
 export default function Login() {
   const { login } = useAuth();
@@ -182,16 +167,13 @@ export default function Login() {
 
   return (
     <div className="login-viewport">
-      {/* Background glow orbs */}
-      <div className="login-bg-glow" />
-      <div className="login-bg-glow-2" />
+      {/* Full-page Kerala landscape + digital topo background */}
+      <div className="login-bg" />
 
       {/* ── Top Portal Header Bar ── */}
       <header className="login-topbar">
         <div className="login-brand-left">
-          <div className="login-seal">
-            <ShieldCheck size={24} color="#ffffff" />
-          </div>
+          <img src={hvraLogo} alt="HVRA Logo" className="login-logo-img" />
           <div className="login-brand-titles">
             <span className="login-gov-kerala">Government of Kerala</span>
             <span className="login-app-name">HVRA Multi-Hazard Command Portal</span>
@@ -210,11 +192,11 @@ export default function Login() {
         {/* Hero Section */}
         <div className="login-hero">
           <div className="login-hero-pill">
-            <Landmark size={14} color="#1d4ed8" />
-            <span>5-Tier Officer Sign-In</span>
+            <span>5-TIER OFFICER SIGN-IN</span>
           </div>
           <h1 className="login-hero-title">
-            Sign in to the <span>HVRA Command Center</span>
+            Sign in to the<br />
+            <strong>HVRA Command Center</strong>
           </h1>
           <p className="login-hero-sub">
             Select your administrative role below for 1-click access, or sign in using your official credentials.
@@ -228,7 +210,9 @@ export default function Login() {
             <div className="login-quick-head">
               <div className="login-quick-title-group">
                 <h3>
-                  <Zap size={18} color="#f59e0b" fill="#f59e0b" />
+                  <span className="login-quick-zap-icon">
+                    <Zap size={16} color="#ffffff" fill="#ffffff" />
+                  </span>
                   <span>Quick-Fill &amp; 1-Click Sign-In</span>
                 </h3>
                 <p>Click any officer role to sign in instantly without typing.</p>
@@ -270,44 +254,33 @@ export default function Login() {
                       key={acc.username}
                       className={`login-role-card ${isSelected ? 'login-role-card-active' : ''}`}
                       onClick={() => handleFillOnly(acc)}
-                      title="Click to fill credentials into the form"
+                      onDoubleClick={() => handleInstantLogin(acc)}
+                      title="Click to select credentials, double-click to sign in"
                     >
                       <div className="login-role-left">
-                        <div className="login-role-icon">{getRoleIcon(acc.level)}</div>
+                        <div className="login-role-icon" style={{ backgroundColor: acc.iconBg }}>
+                          <User size={18} color="#ffffff" />
+                        </div>
                         <div className="login-role-meta">
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-                            <span className="login-role-name">{acc.label}</span>
-                            <span className={`login-role-badge login-role-badge--level-${acc.level}`}>
-                              {acc.roleBadge}
-                            </span>
-                          </div>
+                          <span className="login-role-name">{acc.label}</span>
+                          <span className="login-role-badge">
+                            {acc.roleBadge}
+                          </span>
                           <span className="login-role-desc">{acc.desc}</span>
                           <span className="login-role-user">
-                            @{acc.username} · {acc.scope}
+                            {acc.scope}
                           </span>
                         </div>
                       </div>
-
-                      <button
-                        type="button"
-                        className="login-role-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleInstantLogin(acc);
-                        }}
-                        disabled={busy}
-                        title={`Sign in immediately as ${acc.label}`}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-                      >
-                        <Zap size={12} fill="currentColor" />
-                        <span>Sign In</span>
-                      </button>
                     </div>
                   );
                 })}
               </div>
             </div>
           </div>
+
+          {/* Vertical Divider */}
+          <div className="login-divider" />
 
           {/* ── Manual Sign-In Card (Right) ── */}
           <div className="login-form-card">

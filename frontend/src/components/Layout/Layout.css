@@ -1,5 +1,4 @@
-/* Persistent Layout Styles — Crisp Google Material Style */
-
+/* ── Persistent Layout Styles ── */
 .main-content {
   min-width: 0;
   overflow-x: hidden;
@@ -18,86 +17,366 @@
   margin: 0 auto;
 }
 
-/* District Switcher (Compact Google Pill with Smooth Hover) */
-.district-switcher {
+.app-layout--landing .page-content,
+.app-layout--dashboard .page-content,
+.app-layout--weather .page-content {
+  padding: 0 !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+}
+
+/* ── Topbar Official Branding ── */
+.portal-brand-link {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
-  background: #f8fafc;
-  border: 1.5px solid var(--border-default);
-  border-radius: 9px;
-  padding: 0.3rem 0.75rem;
-  white-space: nowrap;
+  gap: 0.95rem;
+  text-decoration: none;
+}
+
+.portal-topbar-logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  object-fit: cover;
   flex-shrink: 0;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.district-switcher:hover {
+.portal-topbar-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  justify-content: center;
+}
+
+.portal-gov-title {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.15;
+  margin-bottom: 1px;
+}
+
+.portal-app-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  margin-bottom: 1px;
+}
+
+.portal-agency-title {
+  font-size: 0.72rem;
+  color: #64748b;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+/* Landing Page Header Transparency Mode */
+.google-header-container--landing {
+  background: transparent !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  padding: 1.25rem 2.5rem 0.5rem !important;
+}
+
+.google-header-container--landing .google-top-bar {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+  height: auto !important;
+  min-height: auto !important;
+  padding: 0 !important;
+}
+
+.google-header-container--landing .portal-topbar-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.google-header-container--landing .portal-gov-title {
+  font-size: 0.72rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.05em !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  text-transform: uppercase !important;
+}
+
+.google-header-container--landing .portal-app-title {
+  font-size: 1.22rem !important;
+  font-weight: 800 !important;
+  color: #ffffff !important;
+  line-height: 1.2 !important;
+  margin: 1px 0 !important;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.4) !important;
+}
+
+.google-header-container--landing .portal-agency-title {
+  font-size: 0.72rem !important;
+  font-weight: 500 !important;
+  color: rgba(255, 255, 255, 0.78) !important;
+}
+
+.google-header-container--landing .portal-district-pill {
+  background: #ffffff !important;
+  border: none !important;
+  border-radius: 999px !important;
+  padding: 0.5rem 1.15rem !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.45rem !important;
+}
+
+.google-header-container--landing .portal-district-select {
+  color: #0f172a !important;
+  font-weight: 600 !important;
+  font-size: 0.85rem !important;
+  border: none !important;
+  background: transparent !important;
+  cursor: pointer !important;
+  outline: none !important;
+}
+
+.google-header-container--landing .portal-districts-connected-badge {
+  background: rgba(14, 43, 22, 0.88) !important;
+  border: 1px solid rgba(34, 197, 94, 0.35) !important;
+  border-radius: 999px !important;
+  color: #4ade80 !important;
+  font-weight: 600 !important;
+  font-size: 0.82rem !important;
+  padding: 0.5rem 1.15rem !important;
+  box-shadow: 0 0 15px rgba(34, 197, 94, 0.2) !important;
+  backdrop-filter: blur(8px) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.45rem !important;
+}
+
+.google-header-container--landing .portal-circle-icon-btn {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 50% !important;
+  background: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12) !important;
+  color: #0f172a !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.google-header-container--landing .portal-user-badge-btn {
+  background: #ffffff !important;
+  border: none !important;
+  border-radius: 999px !important;
+  padding: 0.35rem 0.95rem 0.35rem 0.45rem !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  cursor: pointer !important;
+}
+
+.google-header-container--landing .portal-user-avatar-circle {
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 50% !important;
+  background: #dc2626 !important;
+  color: #ffffff !important;
+  font-size: 0.82rem !important;
+  font-weight: 700 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.google-header-container--landing .portal-user-badge-name {
+  color: #0f172a !important;
+  font-weight: 600 !important;
+  font-size: 0.84rem !important;
+}
+
+/* ── Modern Topbar Pills & Buttons ── */
+.portal-district-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   background: #ffffff;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.15), 0 2px 6px rgba(26, 115, 232, 0.08);
-  transform: translateY(-1px);
+  border: 1.5px solid #e2e8f0;
+  border-radius: 999px;
+  padding: 0.38rem 0.95rem 0.38rem 0.85rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.15s ease;
+  flex-shrink: 0;
 }
 
-.district-select {
+.portal-district-pill:hover {
+  border-color: #dc2626;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.12);
+}
+
+.portal-district-select {
   border: none;
   background: transparent;
-  font-family: var(--font-sans);
-  font-size: 0.82rem;
-  font-weight: 500;
-  color: #334155;
+  font-family: inherit;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #1e293b;
   outline: none;
   cursor: pointer;
-  max-width: 180px;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding: 0;
+  margin: 0;
+  min-width: 155px;
+  width: auto;
 }
 
-/* Command Palette Trigger (Google-style Search Pill) */
-.cmd-trigger-btn {
+.portal-districts-connected-badge {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
-  background: #f1f5f9;
-  border: 1px solid var(--border-default);
-  border-radius: 8px;
-  padding: 0.35rem 0.75rem;
-  font-family: var(--font-sans);
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: #64748b;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.15s ease;
+  gap: 0.5rem;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 999px;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #059669;
 }
 
-.cmd-trigger-btn:hover {
+.portal-pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  animation: loginPulse 1.8s infinite;
+}
+
+.portal-circle-icon-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
   background: #ffffff;
-  color: #1e293b;
-  border-color: var(--color-primary);
-  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.1);
-}
-
-.cmd-kbd {
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  font-weight: 600;
-  background: #ffffff;
-  border: 1px solid var(--border-default);
-  border-radius: 4px;
-  padding: 1px 4px;
-  color: #64748b;
-}
-
-/* Topbar Icon Buttons */
-.topbar-icon-btn {
-  position: relative;
+  border: 1.5px solid #e2e8f0;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  color: #1e293b;
+  text-decoration: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.portal-circle-icon-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.portal-user-badge-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 999px;
+  padding: 0.25rem 0.85rem 0.25rem 0.35rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+
+.portal-user-badge-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.portal-user-avatar-circle {
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
+  background: #dc2626;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.portal-user-badge-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.portal-search-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 999px;
+  padding: 0.38rem 1.15rem;
+  font-size: 0.82rem;
+  color: #64748b;
+  cursor: pointer;
+  min-width: 240px;
+  max-width: 380px;
+  flex: 1;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+
+.portal-search-pill:hover {
+  background: #ffffff;
+  border-color: #dc2626;
+  color: #1e293b;
+}
+
+.google-nav-bar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.portal-tier2-back-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  border: none;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #0f172a;
+  cursor: pointer;
+  padding: 0.3rem 0.5rem;
+  border-radius: 6px;
+  font-family: inherit;
+}
+
+.portal-tier2-back-title:hover {
+  color: #dc2626;
+}
+
+.topbar-icon-btn {
   background: transparent;
   border: none;
   font-size: 1.05rem;
@@ -266,8 +545,8 @@
 }
 
 .google-nav-dropdown-btn.active {
-  background: rgba(26, 115, 232, 0.08);
-  color: var(--color-primary, #1a73e8);
+  background: rgba(220, 38, 38, 0.08);
+  color: var(--color-primary, #dc2626);
   font-weight: 600;
 }
 
@@ -292,7 +571,7 @@
 
 .google-nav-dropdown-btn.open .google-nav-arrow {
   transform: rotate(180deg);
-  color: var(--color-primary, #1a73e8);
+  color: var(--color-primary, #dc2626);
 }
 
 .google-nav-menu {
@@ -344,8 +623,8 @@
 }
 
 .google-nav-menu-item.active {
-  background: #eff6ff;
-  border-color: #dbeafe;
+  background: #fef2f2;
+  border-color: #fecaca;
 }
 
 .google-nav-menu-icon {
@@ -370,7 +649,7 @@
 }
 
 .google-nav-menu-item.active .google-nav-menu-title {
-  color: var(--color-primary, #1a73e8);
+  color: var(--color-primary, #dc2626);
 }
 
 .google-nav-menu-desc {

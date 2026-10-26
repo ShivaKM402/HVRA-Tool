@@ -847,6 +847,7 @@ export interface DisasterAlertItem {
   is_official: boolean;
   is_forecast: boolean;
   is_demo: boolean;
+  image_url?: string;
 }
 
 export interface SourceStatusItem {

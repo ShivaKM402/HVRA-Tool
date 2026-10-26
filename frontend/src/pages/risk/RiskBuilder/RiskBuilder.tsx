@@ -152,6 +152,10 @@ export default function RiskBuilder() {
       };
 
       const res = await createRiskAssessment(payload);
+
+      // 5-second realistic generation delay for client presentations
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+
       showToast({
         title: 'Composite Risk Generated',
         message: `Assessment "${name}" generated successfully.`,
@@ -426,7 +430,7 @@ export default function RiskBuilder() {
                 className="btn btn-primary"
                 disabled={submitting}
               >
-                {submitting ? 'Generating...' : 'Save & Generate Composite Risk →'}
+                {submitting ? 'Executing Risk Synthesis (R = H × V × E) (5s)...' : 'Save & Generate Composite Risk →'}
               </button>
             </div>
           </div>

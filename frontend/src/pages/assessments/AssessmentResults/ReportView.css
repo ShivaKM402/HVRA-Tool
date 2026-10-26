@@ -182,7 +182,7 @@
 .report-map-figure-badge {
   display: inline-block;
   padding: 0.2rem 0.5rem;
-  background: var(--color-primary, #1a73e8);
+  background: var(--color-primary, #dc2626);
   color: #ffffff;
   font-size: 0.72rem;
   font-weight: 700;
@@ -217,7 +217,7 @@
 
 .map-mode-btn.active {
   background: #ffffff;
-  color: var(--color-primary, #1a73e8);
+  color: var(--color-primary, #dc2626);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 

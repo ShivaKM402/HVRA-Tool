@@ -30,7 +30,7 @@
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, #2563eb, #06b6d4, #10b981);
+  background: linear-gradient(90deg, #dc2626, #f97316, #ef4444);
   background-size: 200% 100%;
   animation: shimmer 2s linear infinite;
 }
@@ -43,18 +43,18 @@
 .spinner-large {
   width: 60px;
   height: 60px;
-  border: 4px solid rgba(37, 99, 235, 0.12);
-  border-top-color: #2563eb;
+  border: 4px solid rgba(220, 38, 38, 0.12);
+  border-top-color: #dc2626;
   border-radius: 50%;
   animation: spin 0.8s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite;
   margin: 0 auto 1.5rem;
-  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.25);
+  box-shadow: 0 4px 16px rgba(220, 38, 38, 0.25);
 }
 
 .spinner-tiny {
   width: 16px;
   height: 16px;
-  border: 2px solid #2563eb;
+  border: 2px solid #dc2626;
   border-top-color: transparent;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
@@ -74,6 +74,33 @@
   color: #64748b;
   line-height: 1.55;
   margin: 0;
+}
+
+.processing-progress-wrap {
+  width: 100%;
+  height: 8px;
+  background: #f1f5f9;
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 1.5rem 0 0.5rem;
+  border: 1px solid #e2e8f0;
+}
+
+.processing-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #dc2626, #ea580c, #16a34a);
+  border-radius: 999px;
+  transition: width 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.processing-progress-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 1.5rem;
 }
 
 .processing-steps {
@@ -120,9 +147,9 @@
 }
 
 .processing-step-item.current .step-circle {
-  background: #eff6ff;
-  border: 2px solid #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+  background: #fef2f2;
+  border: 2px solid #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2);
 }
 
 .processing-step-item.done .step-circle {

@@ -116,7 +116,7 @@
 .journey-step.active {
   background: #ffffff;
   border-color: var(--color-primary);
-  box-shadow: 0 1px 4px rgba(26, 115, 232, 0.15);
+  box-shadow: 0 1px 4px rgba(220, 38, 38, 0.15);
 }
 
 .step-num {

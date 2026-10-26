@@ -364,7 +364,7 @@ export default function DepartmentCoordinationTab({ assessmentId, onRefresh }: D
             style={{
               width: `${pctComplete}%`,
               height: '100%',
-              background: pctComplete === 100 ? '#16a34a' : '#2563eb',
+              background: pctComplete === 100 ? '#16a34a' : '#dc2626',
               transition: 'width 0.4s ease',
             }}
           />
@@ -372,7 +372,7 @@ export default function DepartmentCoordinationTab({ assessmentId, onRefresh }: D
 
         {/* Sequential Handover Guidance (when active) */}
         {coordinationMode === 'SEQUENTIAL' && (
-          <div style={{ fontSize: '0.78rem', color: '#475569', background: '#f8fafc', padding: '0.5rem 0.75rem', borderRadius: '6px', borderLeft: '3px solid #2563eb' }}>
+          <div style={{ fontSize: '0.78rem', color: '#475569', background: '#f8fafc', padding: '0.5rem 0.75rem', borderRadius: '6px', borderLeft: '3px solid #dc2626' }}>
             <strong>Sequential Handover Pipeline:</strong> Stage 1 (Water Resources Inundation) ➔ Stage 2 (LSGD &amp; Economics Settlements/Population) ➔ Stage 3 (PWD Lifelines &amp; Health Access).
           </div>
         )}
@@ -409,14 +409,14 @@ export default function DepartmentCoordinationTab({ assessmentId, onRefresh }: D
                 borderRadius: '8px',
                 fontWeight: isSelected ? 700 : 500,
                 opacity: isLocked ? 0.65 : 1,
-                border: isUserDept ? '2px solid #2563eb' : undefined,
+                border: isUserDept ? '2px solid #dc2626' : undefined,
               }}
               title={isUserDept ? 'Your assigned department jurisdiction' : dept.department}
             >
               <span>🏛️</span>
               <span>{dept.department}</span>
               {isUserDept && (
-                <span style={{ fontSize: '0.65rem', background: '#dbeafe', color: '#1e40af', padding: '0.1rem 0.3rem', borderRadius: '4px', fontWeight: 700 }}>
+                <span style={{ fontSize: '0.65rem', background: '#fee2e2', color: '#991b1b', padding: '0.1rem 0.3rem', borderRadius: '4px', fontWeight: 700 }}>
                   You
                 </span>
               )}
@@ -621,7 +621,7 @@ export default function DepartmentCoordinationTab({ assessmentId, onRefresh }: D
                           <div style={{ fontSize: '0.68rem', fontWeight: 700 }}>
                             {ind.current_value !== null && ind.current_value !== undefined ? (
                               parseFloat(val) !== ind.current_value ? (
-                                <span style={{ color: '#2563eb' }}>
+                                <span style={{ color: '#dc2626' }}>
                                   Diff: {parseFloat(val) - ind.current_value > 0 ? '+' : ''}
                                   {(parseFloat(val) - ind.current_value).toFixed(1)} {ind.unit}
                                 </span>

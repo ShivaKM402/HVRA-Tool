@@ -280,6 +280,27 @@ export const getDataSourcePreview = async (id: number): Promise<DataSourcePrevie
   return response.data;
 };
 
+export interface SendToReviewerPayload {
+  sent_to: string;
+  note?: string;
+  urgency?: 'ROUTINE' | 'PRIORITY' | 'URGENT';
+  reviewer_org?: string;
+  custom_recipient?: {
+    name?: string;
+    designation?: string;
+    email?: string;
+  };
+  attachment_name?: string;
+}
+
+export const sendDataSourceToReviewer = async (
+  id: number,
+  payload: SendToReviewerPayload
+): Promise<{ message: string; dispatch: any; dataset: DataSource }> => {
+  const response = await api.post(`/data-sources/${id}/send-to-reviewer/`, payload);
+  return response.data;
+};
+
 // -------------------------------------------------------
 // Assessments
 // -------------------------------------------------------

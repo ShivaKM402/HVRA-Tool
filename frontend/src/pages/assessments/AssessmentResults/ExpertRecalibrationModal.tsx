@@ -287,8 +287,8 @@ export default function ExpertRecalibrationModal({
               padding: '0.6rem 0.5rem',
               background: 'none',
               border: 'none',
-              borderBottom: activeTab === 'weights' ? '3px solid #2563eb' : '3px solid transparent',
-              color: activeTab === 'weights' ? '#1d4ed8' : '#64748b',
+              borderBottom: activeTab === 'weights' ? '3px solid #dc2626' : '3px solid transparent',
+              color: activeTab === 'weights' ? '#dc2626' : '#64748b',
               fontWeight: activeTab === 'weights' ? 700 : 500,
               fontSize: '0.85rem',
               cursor: 'pointer',
@@ -302,8 +302,8 @@ export default function ExpertRecalibrationModal({
               padding: '0.6rem 0.5rem',
               background: 'none',
               border: 'none',
-              borderBottom: activeTab === 'overrides' ? '3px solid #2563eb' : '3px solid transparent',
-              color: activeTab === 'overrides' ? '#1d4ed8' : '#64748b',
+              borderBottom: activeTab === 'overrides' ? '3px solid #dc2626' : '3px solid transparent',
+              color: activeTab === 'overrides' ? '#dc2626' : '#64748b',
               fontWeight: activeTab === 'overrides' ? 700 : 500,
               fontSize: '0.85rem',
               cursor: 'pointer',
@@ -474,7 +474,7 @@ export default function ExpertRecalibrationModal({
                           step="0.1"
                           value={currentWeight}
                           onChange={(e) => handleWeightChange(ind.indicator, parseFloat(e.target.value))}
-                          style={{ flex: 1, accentColor: '#2563eb', cursor: 'pointer', height: '5px' }}
+                          style={{ flex: 1, accentColor: '#dc2626', cursor: 'pointer', height: '5px' }}
                         />
                         <input
                           type="number"
@@ -632,7 +632,7 @@ export default function ExpertRecalibrationModal({
                     type="button"
                     onClick={handleAddValueOverride}
                     style={{
-                      background: '#2563eb',
+                      background: '#dc2626',
                       color: '#ffffff',
                       border: 'none',
                       borderRadius: '6px',
@@ -761,7 +761,7 @@ export default function ExpertRecalibrationModal({
               onClick={handleSubmitRecalculation}
               disabled={isSubmitting}
               style={{
-                background: '#2563eb',
+                background: '#dc2626',
                 border: 'none',
                 padding: '0.5rem 1.25rem',
                 borderRadius: '6px',
@@ -772,7 +772,7 @@ export default function ExpertRecalibrationModal({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
-                boxShadow: '0 2px 4px rgba(37, 99, 235, 0.25)',
+                boxShadow: '0 2px 4px rgba(220, 38, 38, 0.25)',
               }}
             >
               {isSubmitting ? (

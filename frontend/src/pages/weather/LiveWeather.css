@@ -2,97 +2,374 @@
  * LiveWeather.css — Open-Meteo Live Weather & Flood Hydrology Dashboard
  */
 
+.weather-page-root {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-sans, system-ui, -apple-system, sans-serif);
+  color: #0f172a;
+}
+
 .weather-page-container {
   padding: 1.5rem 2rem;
-  max-width: 1380px;
+  max-width: 1440px;
   margin: 0 auto;
   font-family: var(--font-sans, system-ui, -apple-system, sans-serif);
   color: #0f172a;
 }
 
-/* Header Bar */
-.weather-header {
+/* ==========================================================================
+   Editorial Weather & Disaster Hero Banner — 100% True Edge-to-Edge Full-Width
+   ========================================================================== */
+.weather-editorial-hero-fullwidth {
+  position: relative;
+  width: 100%;
+  background-image: linear-gradient(135deg, rgba(15, 23, 42, 0.72) 0%, rgba(15, 23, 42, 0.88) 100%),
+                    url('/kerala-weather-hero.jpg');
+  background-size: cover;
+  background-position: center center;
+  border-radius: 0;
+  margin: 0 0 1.75rem 0;
+  padding: 2.75rem 0;
+  color: #ffffff;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.28);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.hero-inner-container {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 2.5rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1.25rem;
-  border-bottom: 1px solid #e2e8f0;
+  gap: 2rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.weather-title-area h1 {
-  margin: 0;
-  font-size: 1.6rem;
+.weather-body-container {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 2.5rem 3rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Fallback for standard hero container */
+.weather-editorial-hero {
+  position: relative;
+  background-image: linear-gradient(135deg, rgba(15, 23, 42, 0.72) 0%, rgba(15, 23, 42, 0.88) 100%),
+                    url('/kerala-weather-hero.jpg');
+  background-size: cover;
+  background-position: center center;
+  border-radius: 0;
+  padding: 2.25rem 2.5rem;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.25);
+  overflow: hidden;
+}
+
+.hero-content-left {
+  flex: 1;
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.hero-top-badge {
+  display: flex;
+  align-items: center;
+}
+
+.hero-badge-pill {
+  background: #dc2626;
+  color: #ffffff;
+  font-size: 0.72rem;
   font-weight: 800;
-  color: #0f172a;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.35);
+}
+
+.hero-main-title {
+  margin: 0;
+  font-size: 2.2rem;
+  font-weight: 900;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.hero-main-subtitle {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #cbd5e1;
+  line-height: 1.5;
+  font-weight: 500;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+.hero-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.hero-control-group {
   display: flex;
   align-items: center;
   gap: 0.6rem;
 }
 
-.weather-subtitle {
-  margin: 0.35rem 0 0;
+.hero-control-label {
   font-size: 0.85rem;
-  color: #64748b;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.hero-district-select {
+  padding: 0.55rem 1.1rem;
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  cursor: pointer;
+  outline: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transition: all 0.15s ease;
+}
+
+.hero-district-select:hover {
+  background: #f8fafc;
+}
+
+.hero-district-select:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.3);
+}
+
+.hero-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1.1rem;
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transition: all 0.15s ease;
+}
+
+.hero-refresh-btn:hover {
+  background: #f1f5f9;
+}
+
+/* Frosted Glass Telemetry Widget on Right of Hero */
+.hero-telemetry-glass-card {
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 18px;
+  padding: 1.4rem 1.6rem;
+  width: 280px;
+  flex-shrink: 0;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.glass-card-header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 1rem;
 }
 
-.weather-source-badge {
-  background: #f1f5f9;
-  color: #0284c7;
-  border: 1px solid #cbd5e1;
-  border-radius: 999px;
-  padding: 2px 8px;
-  font-size: 0.72rem;
+.weather-cloud-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 4px 8px rgba(96, 165, 250, 0.4));
+}
+
+.weather-primary-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.weather-location-label {
+  font-size: 0.85rem;
   font-weight: 700;
+  color: #cbd5e1;
+  letter-spacing: 0.02em;
 }
 
-.weather-controls {
+.weather-temp-display {
+  font-size: 2.2rem;
+  font-weight: 900;
+  line-height: 1.1;
+  color: #ffffff;
+}
+
+.weather-condition-label {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.glass-card-metrics-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  padding-top: 0.85rem;
+  text-align: center;
+}
+
+.glass-metric-col .metric-label {
+  font-size: 0.68rem;
+  color: #94a3b8;
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+  text-transform: uppercase;
+}
+
+.glass-metric-col .metric-val {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+@media (max-width: 980px) {
+  .hero-inner-container,
+  .weather-editorial-hero {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0 1.25rem;
+  }
+  .weather-body-container {
+    padding: 0 1.25rem 2.5rem;
+  }
+  .hero-telemetry-glass-card {
+    width: 100%;
+  }
+}
+
+/* ==========================================================================
+   5 Prominent Rounded Navigation Subtabs (MacBook Mockup)
+   ========================================================================== */
+.weather-subtabs-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.85rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 1100px) {
+  .weather-subtabs-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .weather-subtabs-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.weather-subtab-card {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-}
-
-.district-picker-select {
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  border: 1.5px solid #cbd5e1;
+  padding: 0.85rem 1rem;
   background: #ffffff;
-  font-size: 0.85rem;
-  font-weight: 600;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: left;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   color: #1e293b;
-  cursor: pointer;
-  outline: none;
-  transition: all 0.15s ease;
 }
 
-.district-picker-select:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
-}
-
-.refresh-weather-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  border: 1px solid #cbd5e1;
+.weather-subtab-card:hover {
   background: #f8fafc;
-  color: #334155;
-  font-size: 0.82rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.15s ease;
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
 }
 
-.refresh-weather-btn:hover {
-  background: #e2e8f0;
-  color: #0f172a;
+.weather-subtab-card.active {
+  background: #dc2626;
+  border-color: #b91c1c;
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(220, 38, 38, 0.28);
+}
+
+.weather-subtab-card.active .subtab-sub {
+  color: #fecaca;
+}
+
+.subtab-icon-wrap {
+  position: relative;
+  font-size: 1.35rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.subtab-beacon-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 6px #ef4444;
+}
+
+.subtab-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.subtab-text strong {
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.subtab-text span {
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.subtab-sub {
+  font-size: 0.74rem;
+  color: #64748b;
+  font-weight: 500;
 }
 
 /* Alert Banner */
@@ -373,8 +650,8 @@
 
 .daily-forecast-item:hover {
   background: #ffffff;
-  border-color: #bfdbfe;
-  box-shadow: 0 3px 8px rgba(37, 99, 235, 0.08);
+  border-color: #fecaca;
+  box-shadow: 0 3px 8px rgba(220, 38, 38, 0.08);
 }
 
 .daily-date-label {

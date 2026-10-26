@@ -14,7 +14,6 @@ import {
   Mountain,
   Compass,
   Zap,
-  Landmark,
   Building2,
   ArrowRight,
   ArrowLeft,
@@ -30,11 +29,12 @@ import {
   Trash2,
   Layers,
   Search,
+  ChevronDown,
 } from 'lucide-react';
 import './Dashboard.css';
 
 // ── Hazard Icon Component Helper ──
-export const renderHazardIcon = (code: HazardCode | null, size = 20) => {
+const renderHazardIcon = (code: HazardCode | null, size = 20) => {
   if (!code) return <Layers size={size} />;
   switch (code) {
     case 'FLOOD':
@@ -51,11 +51,39 @@ export const renderHazardIcon = (code: HazardCode | null, size = 20) => {
 };
 
 // ── Hazard Card High-Resolution Imagery Mapping ──
-export const HAZARD_CARD_IMAGES: Record<HazardCode, string> = {
-  FLOOD: '/flood-card-bg.jpg',
+const HAZARD_CARD_IMAGES: Record<HazardCode, string> = {
+  FLOOD: '/assets/hvra/BG4.jpg',
   LANDSLIDE: '/landslide-card-bg.jpg',
   COASTAL: '/coastal-card-bg.jpg',
   EXTREME_WEATHER: '/lightning-card-bg.jpg',
+};
+
+const HAZARD_CARD_BANNERS: Record<HazardCode, string> = {
+  FLOOD: '/assets/hvra/banner_flood.png',
+  LANDSLIDE: '/assets/hvra/banner_landslide.png',
+  COASTAL: '/assets/hvra/banner_coastal.png',
+  EXTREME_WEATHER: '/assets/hvra/banner_weather.png',
+};
+
+const HAZARD_BUTTON_COLORS: Record<HazardCode, string> = {
+  FLOOD: '#3b5998',
+  LANDSLIDE: '#4a9b8e',
+  COASTAL: '#7c4dbe',
+  EXTREME_WEATHER: '#e67e22',
+};
+
+const HAZARD_DESCRIPTIONS: Record<HazardCode, string> = {
+  FLOOD: 'Riverine inundation, dam discharge & backwater surges',
+  LANDSLIDE: 'Slope stability, debris flow & Western Ghats slip zones',
+  COASTAL: 'Storm surge, sea incursion & shoreline retreat',
+  EXTREME_WEATHER: 'Severe squall gusts, lightning strikes & convective storms',
+};
+
+const HAZARD_PORTAL_LABELS: Record<HazardCode, string> = {
+  FLOOD: 'Open Flood Portal',
+  LANDSLIDE: 'Open Landslide Portal',
+  COASTAL: 'Open Coastal Portal',
+  EXTREME_WEATHER: 'Open Weather Portal',
 };
 
 // ── 3-dot Card Actions Menu ──────────────────────────────────
@@ -143,7 +171,7 @@ export default function Dashboard() {
 
   const [_health, setHealth] = useState<HealthCheckResponse | null>(null);
   const [assessments, setAssessments] = useState<Assessment[]>([]);
-  const [hazards, setHazards] = useState<HazardType[]>([]);
+  const [_hazards, setHazards] = useState<HazardType[]>([]);
   const [districts, setDistricts] = useState<AdministrativeUnit[]>([]);
   const [selectedDistrict, setSelectedDistrict] = useState<AdministrativeUnit | null>(null);
   const [loading, setLoading] = useState(true);
@@ -152,133 +180,6 @@ export default function Dashboard() {
   // Table filtering state
   const [searchQuery, setSearchQuery] = useState('');
   const [tableModuleFilter, setTableModuleFilter] = useState('ALL');
-
-
-  // Department Taskforce definitions for each hazard domain
-  const HAZARD_DEPARTMENT_TASKS: Record<
-    HazardCode,
-    Array<{
-      department: string;
-      role: string;
-      indicators: string[];
-      status: 'SUBMITTED' | 'PENDING';
-      officer: string;
-      assessmentId: number;
-    }>
-  > = {
-    FLOOD: [
-      {
-        department: 'Water Resources Department (Irrigation)',
-        role: 'Hydrological River Gauge & Reservoir Surge Telemetry',
-        indicators: ['Flood-prone Area (%)', 'River Gauge Discharge Anomaly', 'Flood Frequency'],
-        status: 'SUBMITTED',
-        officer: 'Er. Ramesh K. (Executive Engineer, Hydrology)',
-        assessmentId: 86,
-      },
-      {
-        department: 'Local Self Government (LSGD / Panchayats)',
-        role: 'Inundation Habitations, Shelter Logs & Kutcha Housing',
-        indicators: ['Residential Buildings in Floodplain', 'Kutcha Housing Stock', 'Relief Shelter Shortfall'],
-        status: 'SUBMITTED',
-        officer: 'Sri. Suresh V. (Assistant Director of Panchayats)',
-        assessmentId: 86,
-      },
-      {
-        department: 'Public Works Department (PWD)',
-        role: 'Submerged Roadways, Culverts & Lifeline Bridges',
-        indicators: ['Submersible Road Length (km)', 'Highways in Hazard Zone', 'Drainage Inadequacy'],
-        status: 'PENDING',
-        officer: 'Executive Engineer (PWD Roads Division)',
-        assessmentId: 86,
-      },
-      {
-        department: 'Health & Family Welfare Department',
-        role: 'Critical Hospital Access & Post-Flood Epidemic Surveillance',
-        indicators: ['Critical Facilities Exposed', 'Emergency Health Access Gap'],
-        status: 'PENDING',
-        officer: 'District Medical Officer (DMO Thiruvananthapuram)',
-        assessmentId: 86,
-      },
-    ],
-    LANDSLIDE: [
-      {
-        department: 'Mining & Geology / KSDMA',
-        role: 'Western Ghats Slip Zones, Debris Inundation & Quarry Monitoring',
-        indicators: ['Landslide Susceptibility Zone (%)', 'Historical Debris Flow Incidents'],
-        status: 'SUBMITTED',
-        officer: 'Smt. Latha M. (Deputy Collector, KSDMA)',
-        assessmentId: 87,
-      },
-      {
-        department: 'Water Resources Department (Irrigation)',
-        role: 'Antecedent Soil Moisture & Precipitation Trigger Anomaly',
-        indicators: ['Cumulative Rainfall Trigger Anomaly', 'Basin Discharge Logs'],
-        status: 'SUBMITTED',
-        officer: 'Er. Ramesh K. (Hydrology Division)',
-        assessmentId: 87,
-      },
-      {
-        department: 'Department of Environment & Climate Change',
-        role: 'Steep Slopes (>30°) & Forest Buffer Depletion',
-        indicators: ['Steep Slope Terrain Area (>30°)', 'Vegetation Loss Index'],
-        status: 'PENDING',
-        officer: 'Environmental Officer (Kottayam Range)',
-        assessmentId: 87,
-      },
-    ],
-    COASTAL: [
-      {
-        department: 'Harbour Engineering Department',
-        role: 'Sea Wall Structural Integrity & Shoreline Retreat Monitoring',
-        indicators: ['Annual Shoreline Retreat & Erosion Rate (m/yr)', 'Sea Wall Condition'],
-        status: 'SUBMITTED',
-        officer: 'Er. Mathew P. (Harbour Engineering Dept)',
-        assessmentId: 88,
-      },
-      {
-        department: 'Local Self Government & Fisheries',
-        role: 'Fisherfolk Settlement Inundation & High Tide Ingress (200m)',
-        indicators: ['Fisherfolk & Coastal Dwellings within 200m HTL'],
-        status: 'PENDING',
-        officer: 'Joint Director of Fisheries (Trivandrum Coast)',
-        assessmentId: 88,
-      },
-      {
-        department: 'Water Resources Department (Irrigation)',
-        role: 'Tidal Ingress & River Estuary Backwater Surges',
-        indicators: ['Peak High-Tide & Storm Inundation Surge Depth'],
-        status: 'PENDING',
-        officer: 'Executive Engineer (Canals & Estuaries)',
-        assessmentId: 88,
-      },
-    ],
-    EXTREME_WEATHER: [
-      {
-        department: 'Revenue & Disaster Management (KSDMA)',
-        role: 'Ground Flash Lightning Density & Automated Alert Dissemination',
-        indicators: ['Lightning Strike Flash Density (flashes/km²)', 'Squall Warning Logs'],
-        status: 'SUBMITTED',
-        officer: 'State Emergency Operations Center (SEOC)',
-        assessmentId: 89,
-      },
-      {
-        department: 'India Meteorological Department (IMD)',
-        role: 'Doppler Radar Squall Gust Velocity & Convective Cell Tracking',
-        indicators: ['Severe Thunderstorm Peak Gust Velocity (km/h)'],
-        status: 'PENDING',
-        officer: 'Meteorologist-in-Charge (IMD Thiruvananthapuram)',
-        assessmentId: 89,
-      },
-      {
-        department: 'Local Self Government (LSGD / Panchayats)',
-        role: 'Tin / Sheet / Kutcha Roof Vulnerability to Wind Damage',
-        indicators: ['Kutcha / Sheet Roof Structures Exposed to Gusts'],
-        status: 'PENDING',
-        officer: 'Town Planning Inspector (LSGD Kottayam)',
-        assessmentId: 89,
-      },
-    ],
-  };
 
   useEffect(() => {
     const load = async () => {
@@ -331,9 +232,6 @@ export default function Dashboard() {
     if (!activeHazard) return assessments;
     return assessments.filter((a) => (a.hazard_type || '').toUpperCase() === activeHazard);
   }, [assessments, activeHazard]);
-
-  const completedCount = useMemo(() => scopedAssessments.filter((a) => a.status === 'COMPLETED').length, [scopedAssessments]);
-  const activeHazards = useMemo(() => hazards.filter((h) => h.is_active).length, [hazards]);
 
   // District-specific assessment count for dossier
   const districtAssessments = useMemo(() => {
@@ -422,38 +320,16 @@ export default function Dashboard() {
     return (
       <div className="hazard-selection-page-wrapper">
         <div className="hazard-selection-container">
-          {/* Official Emblem & State Header */}
-          <div className="hazard-portal-header">
-            <div className="hazard-emblem-badge">
-              <div className="hazard-emblem-icon-box">
-                <Landmark size={22} color="#ffffff" />
-              </div>
-              <div>
-                <div className="hazard-emblem-gov-title">
-                  Government of Kerala • Disaster Management Department
-                </div>
-                <div className="hazard-emblem-gov-sub">
-                  Kerala State Disaster Management Authority (KSDMA) • State Emergency Operations Center
-                </div>
-              </div>
-            </div>
-            <div className="hazard-portal-live-pill">
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
-              <span>14 Revenue Districts Connected</span>
-            </div>
-          </div>
-
           {/* Central Hero Heading */}
           <div className="hazard-portal-hero">
-            <div className="hazard-portal-agency-chip">
-              <Building2 size={13} color="#93c5fd" />
-              <span>KERALA STATE DISASTER MANAGEMENT AUTHORITY (KSDMA)</span>
+            <div className="hazard-portal-agency-chip" style={{ background: '#dc2626', border: '1px solid #dc2626', color: '#ffffff' }}>
+              <span>Kerala State Disaster Management Authority (KSDMA)</span>
             </div>
             <h1 className="hazard-portal-title">
               Select a Hazard Domain to Enter
             </h1>
             <p className="hazard-portal-subtitle">
-              Choose one of the 4 operational hazard boxes below. When you enter a domain, all analytical models, line-department taskforces, indicators, and spatial assessment dossiers inside will be configured <strong>strictly and exclusively</strong> for that hazard.
+              Select one of the 4 operational hazard boxes to configure all models, taskforces, indicators, and spatial assessments exclusively for that hazard.
             </p>
           </div>
 
@@ -462,55 +338,43 @@ export default function Dashboard() {
             {(['FLOOD', 'LANDSLIDE', 'COASTAL', 'EXTREME_WEATHER'] as HazardCode[]).map((code) => {
               const meta = HAZARD_CATALOG[code];
               const stats = hazardStats[code];
-              const indCount = code === 'FLOOD' ? 21 : code === 'LANDSLIDE' ? 4 : 3;
 
               return (
                 <div
                   key={code}
                   className={`hazard-gateway-box hazard-gateway-box--${code}`}
-                  style={{
-                    '--box-color': meta.color,
-                    '--box-bg': `${meta.color}15`,
-                  } as React.CSSProperties}
                   onClick={() => setActiveHazard(code)}
                 >
-                  {/* Dedicated 100% Visible Photo Banner */}
+                  {/* Photo Banner with Live Telemetry chip & squircle icon */}
                   <div className="hazard-card-photo-banner">
                     <img
-                      src={HAZARD_CARD_IMAGES[code]}
+                      src={HAZARD_CARD_BANNERS[code]}
                       alt={meta.name}
                       className="hazard-card-banner-img"
                       loading="lazy"
                     />
-                    <div className="hazard-card-photo-overlay" />
-                    <div className="hazard-box-icon-bubble">
-                      {code === 'FLOOD' && <Waves size={24} color="#ffffff" />}
-                      {code === 'LANDSLIDE' && <Mountain size={24} color="#ffffff" />}
-                      {code === 'COASTAL' && <Compass size={24} color="#ffffff" />}
-                      {code === 'EXTREME_WEATHER' && <Zap size={24} color="#ffffff" fill="#ffffff" />}
-                    </div>
-                    <div className="hazard-card-photo-chip">
-                      <span className="hazard-card-photo-dot" />
-                      <span>Live Telemetry</span>
-                    </div>
                   </div>
 
                   {/* Card Content & Actions */}
                   <div className="hazard-card-body">
                     <h3 className="hazard-box-title">{meta.name}</h3>
-                    <div className="hazard-box-tagline">{meta.tagline}</div>
+                    <p className="hazard-box-tagline">{HAZARD_DESCRIPTIONS[code]}</p>
 
-                    <div className="hazard-box-bottom-area" style={{ marginTop: 'auto', paddingTop: '1.15rem' }}>
-                      <div className="hazard-box-stats-row" style={{ border: 'none', padding: '0.4rem 0' }}>
-                        <span><strong>{indCount}</strong> Indicators</span>
-                        <span><strong>{stats.count}</strong> Runs</span>
-                      </div>
+                    <div className="hazard-box-divider" />
 
-                      <button className="hazard-box-btn" type="button" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
-                        <span>Open {meta.shortName} Portal</span>
-                        <ArrowRight size={14} />
-                      </button>
+                    <div className="hazard-box-stats-row">
+                      <span><strong>21</strong> Indicators</span>
+                      <span><strong>{stats.count || 2}</strong> Runs</span>
                     </div>
+
+                    <button
+                      className="hazard-box-btn"
+                      type="button"
+                      style={{ background: HAZARD_BUTTON_COLORS[code] }}
+                    >
+                      <span>{HAZARD_PORTAL_LABELS[code]}</span>
+                      <ArrowRight size={15} />
+                    </button>
                   </div>
                 </div>
               );
@@ -518,54 +382,34 @@ export default function Dashboard() {
           </div>
 
           {/* Real-time Disaster Intelligence Strip */}
-          <div
-            style={{
-              marginTop: '1.75rem',
-              padding: '1.1rem 1.45rem',
-              borderRadius: '16px',
-              background: '#ffffff',
-              border: '1.5px solid #e2e8f0',
-              boxShadow: '0 4px 18px rgba(0,0,0,0.04)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '1rem',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.9rem' }}>
-              <div
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 12,
-                  background: '#fef2f2',
-                  border: '1px solid #fecaca',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <Radio size={22} color="#dc2626" />
+          <div className="hazard-portal-bottom-banner">
+            <div className="hazard-bottom-banner-left">
+              <div className="hazard-bottom-alert-icon">
+                <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
+                  <path d="M6 10C4 12.5 3 14.8 3 17C3 19.2 4 21.5 6 24" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round"/>
+                  <path d="M9.5 13C8.5 14.3 8 15.6 8 17C8 18.4 8.5 19.7 9.5 21" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round"/>
+                  <path d="M28 10C30 12.5 31 14.8 31 17C31 19.2 30 21.5 28 24" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round"/>
+                  <path d="M24.5 13C25.5 14.3 26 15.6 26 17C26 18.4 25.5 19.7 24.5 21" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round"/>
+                  <rect x="15" y="7" width="4" height="13" rx="2" fill="#ef4444"/>
+                  <circle cx="17" cy="24" r="2.2" fill="#ef4444"/>
+                </svg>
               </div>
               <div>
-                <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#0f172a' }}>
+                <h4 className="hazard-bottom-title">
                   Real-time Disaster Monitoring &amp; Official Alert Feeds Active
-                </div>
-                <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                  Consolidated multi-hazard bulletins from NDMA SACHET, IMD-KSDMA, USGS Seismology &amp; statewide verified news.
-                </div>
+                </h4>
+                <p className="hazard-bottom-subtitle">
+                  Consolidated multi-hazard bulletins from NDMA, SAC, IMD-KSDMA, USGS Seismology &amp; statewide verified news.
+                </p>
               </div>
             </div>
 
             <button
-              className="btn btn-primary btn-sm"
+              className="hazard-bottom-btn"
               onClick={() => navigate('/weather?tab=live-alerts')}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontWeight: 800 }}
             >
               <span>Open Live Disaster Operations</span>
-              <ArrowRight size={14} />
+              <ArrowRight size={15} />
             </button>
           </div>
         </div>
@@ -579,97 +423,99 @@ export default function Dashboard() {
       <div
         className="dashboard-page-header"
         style={{
-          backgroundImage: `linear-gradient(135deg, rgba(9, 14, 26, 0.40) 0%, rgba(15, 23, 42, 0.45) 50%, rgba(30, 41, 59, 0.55) 100%), url("${HAZARD_CARD_IMAGES[activeHazard] || '/kerala-hero-bg.jpg'}")`,
+          backgroundImage: activeHazard === 'FLOOD'
+            ? 'linear-gradient(90deg, rgba(8, 14, 26, 0.94) 0%, rgba(15, 23, 42, 0.85) 38%, rgba(15, 23, 42, 0.50) 70%, rgba(15, 23, 42, 0.25) 100%), url("/assets/hvra/BG4.jpg")'
+            : `linear-gradient(90deg, rgba(8, 14, 26, 0.94) 0%, rgba(15, 23, 42, 0.85) 38%, rgba(15, 23, 42, 0.50) 70%, rgba(15, 23, 42, 0.25) 100%), url("${HAZARD_CARD_IMAGES[activeHazard] || '/kerala-hero-bg.jpg'}")`,
         }}
       >
-        <div className="dashboard-header-text">
-          <div className="dashboard-header-pill">
-            <span style={{ display: 'inline-flex', alignItems: 'center' }}>
-              {renderHazardIcon(activeHazard, 15)}
-            </span>
-            <span>Kerala State Disaster Management Authority • {activeHazardMeta?.shortName} Domain Console</span>
+        <div className="dashboard-header-inner">
+          <div className="dashboard-header-text">
+            <div className="dashboard-header-pill" style={{ background: '#dc2626', border: 'none', color: '#ffffff' }}>
+              <span>Kerala State Disaster Management Authority • {activeHazardMeta?.shortName || 'Flood'} Domain Console</span>
+            </div>
+            <h1 className="dashboard-header-title">
+              {activeHazardMeta?.name || 'Flood Hazard'} &amp; Risk Intelligence
+            </h1>
+            <p className="dashboard-header-desc">
+              {activeHazardMeta?.tagline || 'Riverine inundation, dam discharge & backwater surges'}. Dedicated line-department data submissions, telemetry indicators, and spatial assessment dossiers.
+            </p>
+
+            <div className="dashboard-header-actions">
+              <button
+                className="btn btn-primary btn-sm"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  background: '#dc2626',
+                  borderColor: '#dc2626',
+                  fontWeight: 700,
+                }}
+                onClick={() => navigate(`/new-assessment?module=HAZARD&hazard=${activeHazard}`)}
+              >
+                <Plus size={15} />
+                <span>Run {activeHazardMeta?.shortName || 'Flood'} Assessment</span>
+              </button>
+              <button
+                className="btn btn-secondary btn-sm"
+                style={{
+                  color: '#ffffff',
+                  borderColor: 'rgba(255, 255, 255, 0.25)',
+                  background: 'rgba(15, 23, 42, 0.7)',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                }}
+                onClick={() =>
+                  navigate(
+                    hazardStats[activeHazard].primaryId
+                      ? `/department-coordination?assessmentId=${hazardStats[activeHazard].primaryId}`
+                      : `/department-coordination?hazard=${activeHazard}`
+                  )
+                }
+                title="Departmental Data Coordination for this hazard"
+              >
+                <Building2 size={15} />
+                <span>{activeHazardMeta?.shortName || 'Flood'} Dept Tasks</span>
+              </button>
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => navigate('/weather?tab=live-alerts')}
+                title="Live Disaster Alerts, Official Warnings & Incident Feeds"
+                style={{
+                  fontWeight: 700,
+                  color: '#dc2626',
+                  background: '#ffffff',
+                  borderColor: '#fca5a5',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                }}
+              >
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#dc2626', display: 'inline-block' }} />
+                <Radio size={14} />
+                <span>Live Alerts</span>
+              </button>
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => clearHazard()}
+                title="Return to 4-Column Hazard Selection Gateway"
+                style={{
+                  fontWeight: 700,
+                  color: '#dc2626',
+                  background: '#ffffff',
+                  borderColor: '#fca5a5',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                }}
+              >
+                <ArrowLeft size={14} />
+                <span>Change Hazard (4 Columns)</span>
+              </button>
+            </div>
           </div>
-          <h1 className="dashboard-header-title">
-            {activeHazardMeta?.name} &amp; Risk Intelligence
-          </h1>
-          <p className="dashboard-header-desc">
-            {activeHazardMeta?.tagline}. Dedicated line-department data submissions, telemetry indicators, and spatial assessment dossiers.
-          </p>
-        </div>
-        <div className="dashboard-header-actions">
-          <button
-            className="btn btn-primary btn-sm"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.45rem',
-              background: activeHazardMeta?.color,
-              borderColor: activeHazardMeta?.color,
-              fontWeight: 700,
-            }}
-            onClick={() => navigate(`/new-assessment?module=HAZARD&hazard=${activeHazard}`)}
-          >
-            <Plus size={15} />
-            <span>Run {activeHazardMeta?.shortName} Assessment</span>
-          </button>
-          <button
-            className="btn btn-secondary btn-sm"
-            style={{
-              color: activeHazardMeta?.color,
-              borderColor: `${activeHazardMeta?.color}40`,
-              background: `${activeHazardMeta?.color}0a`,
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.45rem',
-            }}
-            onClick={() =>
-              navigate(
-                hazardStats[activeHazard].primaryId
-                  ? `/department-coordination?assessmentId=${hazardStats[activeHazard].primaryId}`
-                  : `/department-coordination?hazard=${activeHazard}`
-              )
-            }
-            title="Departmental Data Coordination for this hazard"
-          >
-            <Building2 size={15} />
-            <span>{activeHazardMeta?.shortName} Dept Tasks</span>
-          </button>
-          <button
-            className="btn btn-secondary btn-sm"
-            onClick={() => navigate('/weather?tab=live-alerts')}
-            title="Live Disaster Alerts, Official Warnings & Incident Feeds"
-            style={{
-              fontWeight: 700,
-              color: '#dc2626',
-              background: '#fef2f2',
-              borderColor: '#fca5a5',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.45rem',
-            }}
-          >
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#dc2626', display: 'inline-block' }} />
-            <Radio size={14} />
-            <span>Live Alerts</span>
-          </button>
-          <button
-            className="btn btn-secondary btn-sm"
-            onClick={() => clearHazard()}
-            title="Return to 4-Column Hazard Selection Gateway"
-            style={{
-              fontWeight: 700,
-              color: '#1d4ed8',
-              background: '#eff6ff',
-              borderColor: '#bfdbfe',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.45rem',
-            }}
-          >
-            <ArrowLeft size={14} />
-            <span>Change Hazard (4 Columns)</span>
-          </button>
         </div>
       </div>
 
@@ -678,46 +524,35 @@ export default function Dashboard() {
         <div className="kpi-grid">
           <div
             className="kpi-card"
-            style={
-              {
-                '--kpi-accent': activeHazardMeta?.color || '#4f46e5',
-                '--kpi-bg': activeHazardMeta ? `${activeHazardMeta.color}10` : '#eff0ff',
-                position: 'relative',
-              } as React.CSSProperties
-            }
+            style={{ '--kpi-accent': '#dc2626' } as React.CSSProperties}
           >
-            <div style={{ position: 'absolute', top: '0.6rem', right: '0.6rem' }}>
-              <CardMenu
-                items={[
-                  { icon: <FileText size={14} />, label: 'View All Reports', onClick: () => navigate('/reports') },
-                  {
-                    icon: <Plus size={14} />,
-                    label: 'New Assessment',
-                    onClick: () =>
-                      navigate(
-                        activeHazard
-                          ? `/new-assessment?module=HAZARD&hazard=${activeHazard}`
-                          : '/new-assessment?module=HAZARD'
-                      ),
-                  },
-                ]}
-              />
-            </div>
-            <div className="kpi-header">
-              <div className="kpi-icon-bubble">
-                {activeHazardMeta ? renderHazardIcon(activeHazard, 22) : <FileText size={22} />}
+            <div className="kpi-card-top">
+              <div className="kpi-icon-bubble" style={{ background: '#fef2f2', color: '#dc2626' }}>
+                <Waves size={24} color="#dc2626" />
               </div>
-              <span className="badge badge-info" style={{ fontSize: '0.68rem' }}>
-                {activeHazardMeta ? `${activeHazardMeta.shortName} Domain` : 'All Modules'}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <span className="kpi-pill-chip" style={{ background: '#fee2e2', color: '#b91c1c' }}>
+                  Flood Domain
+                </span>
+                <CardMenu
+                  items={[
+                    { icon: <FileText size={14} />, label: 'View All Reports', onClick: () => navigate('/reports') },
+                    {
+                      icon: <Plus size={14} />,
+                      label: 'New Assessment',
+                      onClick: () => navigate(`/new-assessment?module=HAZARD&hazard=${activeHazard}`),
+                    },
+                  ]}
+                />
+              </div>
             </div>
             <div className="kpi-value">{scopedAssessments.length}</div>
             <div className="kpi-label">
-              {activeHazardMeta ? `${activeHazardMeta.shortName} Risk Assessments` : 'Total Risk Assessments'}
+              Flood Risk Assessments
             </div>
             <div className="kpi-subtext">
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
-                <TrendingUp size={13} color={activeHazardMeta?.color || '#3b82f6'} />
+                <TrendingUp size={13} color="#dc2626" />
                 <span>Continuous ledger updates</span>
               </span>
             </div>
@@ -725,24 +560,24 @@ export default function Dashboard() {
 
           <div
             className="kpi-card"
-            style={{ '--kpi-accent': '#10b981', '--kpi-bg': '#ecfdf5', position: 'relative' } as React.CSSProperties}
+            style={{ '--kpi-accent': '#10b981' } as React.CSSProperties}
           >
-            <div style={{ position: 'absolute', top: '0.6rem', right: '0.6rem' }}>
-              <CardMenu
-                items={[{ icon: <CheckCircle2 size={14} />, label: 'View Completed', onClick: () => navigate('/reports') }]}
-              />
-            </div>
-            <div className="kpi-header">
-              <div className="kpi-icon-bubble">
-                <CheckCircle2 size={22} color="#10b981" />
+            <div className="kpi-card-top">
+              <div className="kpi-icon-bubble" style={{ background: '#ecfdf5', color: '#10b981' }}>
+                <CheckCircle2 size={24} color="#10b981" />
               </div>
-              <span className="badge badge-success" style={{ fontSize: '0.68rem' }}>
-                100% Validated
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <span className="kpi-pill-chip" style={{ background: '#dcfce7', color: '#15803d' }}>
+                  {scopedAssessments.length > 0 ? `${Math.round((scopedAssessments.filter((a) => a.status === 'COMPLETED').length / scopedAssessments.length) * 100)}% Validated` : 'Pipeline Ready'}
+                </span>
+                <CardMenu
+                  items={[{ icon: <CheckCircle2 size={14} />, label: 'View Completed', onClick: () => navigate('/reports') }]}
+                />
+              </div>
             </div>
-            <div className="kpi-value">{completedCount}</div>
+            <div className="kpi-value">{scopedAssessments.filter((a) => a.status === 'COMPLETED').length}</div>
             <div className="kpi-label">
-              {activeHazardMeta ? `${activeHazardMeta.shortName} Validated Syntheses` : 'Completed Syntheses'}
+              Flood Validated Syntheses
             </div>
             <div className="kpi-subtext">
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
@@ -754,84 +589,67 @@ export default function Dashboard() {
 
           <div
             className="kpi-card"
-            style={{ '--kpi-accent': '#f59e0b', '--kpi-bg': '#fffbeb', position: 'relative' } as React.CSSProperties}
+            style={{ '--kpi-accent': '#f59e0b' } as React.CSSProperties}
           >
-            <div style={{ position: 'absolute', top: '0.6rem', right: '0.6rem' }}>
-              <CardMenu
-                items={[
-                  { icon: <AlertTriangle size={14} />, label: 'View Hazards', onClick: () => navigate('/data-library') },
-                  {
-                    icon: <Plus size={14} />,
-                    label: 'Run Hazard Assessment',
-                    onClick: () =>
-                      navigate(
-                        activeHazard
-                          ? `/new-assessment?module=HAZARD&hazard=${activeHazard}`
-                          : '/new-assessment?module=HAZARD'
-                      ),
-                  },
-                ]}
-              />
-            </div>
-            <div className="kpi-header">
-              <div className="kpi-icon-bubble">
-                <BarChart3 size={22} color="#f59e0b" />
+            <div className="kpi-card-top">
+              <div className="kpi-icon-bubble" style={{ background: '#fffbeb', color: '#f59e0b' }}>
+                <BarChart3 size={24} color="#f59e0b" />
               </div>
-              <span className="badge badge-warning" style={{ fontSize: '0.68rem' }}>
-                Monitored
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <span className="kpi-pill-chip" style={{ background: '#fef9c3', color: '#a16207' }}>
+                  Monitored
+                </span>
+                <CardMenu
+                  items={[
+                    { icon: <AlertTriangle size={14} />, label: 'View Hazards', onClick: () => navigate('/data-library') },
+                    {
+                      icon: <Plus size={14} />,
+                      label: 'Run Hazard Assessment',
+                      onClick: () => navigate(`/new-assessment?module=HAZARD&hazard=${activeHazard}`),
+                    },
+                  ]}
+                />
+              </div>
             </div>
-            <div className="kpi-value">
-              {activeHazard === 'FLOOD'
-                ? 21
-                : activeHazard === 'LANDSLIDE'
-                ? 4
-                : activeHazard === 'COASTAL'
-                ? 3
-                : activeHazard === 'EXTREME_WEATHER'
-                ? 3
-                : activeHazards}
-            </div>
+            <div className="kpi-value">21</div>
             <div className="kpi-label">
-              {activeHazardMeta ? `${activeHazardMeta.shortName} Key Indicators` : 'Active Kerala Hazards'}
+              Flood Key Indicators
             </div>
             <div className="kpi-subtext">
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
                 <Activity size={13} color="#f59e0b" />
-                <span>{activeHazardMeta ? `Lead: ${activeHazardMeta.leadAgency.split('(')[0]}` : 'Riverine, Pluvial & Flash Flood Risk'}</span>
+                <span>Lead: Water Resources Department</span>
               </span>
             </div>
           </div>
 
           <div
             className="kpi-card"
-            style={{ '--kpi-accent': '#8b5cf6', '--kpi-bg': '#f5f3ff', position: 'relative' } as React.CSSProperties}
+            style={{ '--kpi-accent': '#8b5cf6' } as React.CSSProperties}
           >
-            <div style={{ position: 'absolute', top: '0.6rem', right: '0.6rem' }}>
-              <CardMenu
-                items={[
-                  { icon: <MapPin size={14} />, label: 'Explore Districts', onClick: () => navigate('/admin-units') },
-                ]}
-              />
-            </div>
-            <div className="kpi-header">
-              <div className="kpi-icon-bubble">
-                <Building2 size={22} color="#8b5cf6" />
+            <div className="kpi-card-top">
+              <div className="kpi-icon-bubble" style={{ background: '#f5f3ff', color: '#8b5cf6' }}>
+                <Building2 size={24} color="#8b5cf6" />
               </div>
-              <span className="badge badge-completed" style={{ fontSize: '0.68rem' }}>
-                {activeHazard ? 'Coordinated' : 'Full Coverage'}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <span className="kpi-pill-chip" style={{ background: '#f3e8ff', color: '#7e22ce' }}>
+                  Coordinated
+                </span>
+                <CardMenu
+                  items={[
+                    { icon: <MapPin size={14} />, label: 'Explore Districts', onClick: () => navigate('/admin-units') },
+                  ]}
+                />
+              </div>
             </div>
-            <div className="kpi-value">
-              {activeHazard ? HAZARD_DEPARTMENT_TASKS[activeHazard]?.length || 4 : districts.length}
-            </div>
+            <div className="kpi-value">4</div>
             <div className="kpi-label">
-              {activeHazardMeta ? 'Responsible Line Departments' : 'Revenue Districts Synced'}
+              Responsible Line Departments
             </div>
             <div className="kpi-subtext">
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
                 <MapPin size={13} color="#8b5cf6" />
-                <span>{activeHazardMeta ? 'Multi-agency indicator validation' : 'Taluka & Grama Panchayat resolution'}</span>
+                <span>Multi-agency indicator validation</span>
               </span>
             </div>
           </div>
@@ -842,81 +660,112 @@ export default function Dashboard() {
           <div className="spatial-theater-card" id="geospatial-theater-anchor">
             <div className="spatial-theater-header">
               <div className="spatial-theater-title">
-                <MapPin size={22} color="#1a73e8" style={{ flexShrink: 0 }} />
+                <div className="spatial-theater-icon-box">
+                  <MapPin size={22} color="#dc2626" />
+                </div>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#0f172a', fontWeight: 800 }}>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#0f172a', fontWeight: 800 }}>
                     Geospatial Flood Risk &amp; Territory Intelligence Center
                   </h3>
-                  <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                    State-wide administrative boundaries, flood inundation zones, and telemetry monitoring
+                  <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.2rem' }}>
+                    State-wide administrative boundaries, flood inundation zones, and telemetry monitoring.
                   </div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                <span className="badge badge-info" style={{ fontSize: '0.72rem' }}>
-                  {selectedDistrict ? selectedDistrict.name.replace(' [DEMO]', '') : 'All Districts'}
+              <div className="spatial-header-dropdown-pill">
+                <span>{selectedDistrict ? selectedDistrict.name.replace(' [DEMO]', '').toUpperCase() : 'ALAPPUZHA'}</span>
+                <ChevronDown size={14} color="#dc2626" />
+              </div>
+            </div>
+
+            {/* Quick District Selector Pills */}
+            <div className="district-pill-scroll">
+              {districts.map((d) => (
+                <button
+                  key={d.id}
+                  className={`district-pill-btn${(selectedDistrict?.id === d.id || (!selectedDistrict && d.name.toLowerCase().includes('alappuzha'))) ? ' active' : ''}`}
+                  onClick={() => setSelectedDistrict(d)}
+                >
+                  {d.name.replace(' [DEMO]', '')}
+                </button>
+              ))}
+            </div>
+
+            <KeralaMap selectedDistrict={selectedDistrict} />
+          </div>
+
+          {/* Selected District Dossier Card */}
+          <div className="district-dossier-card">
+            <div className="dossier-header-title">
+              Territory Profile
+            </div>
+
+            {/* Backwater Houseboat Banner Image */}
+            <div className="dossier-photo-banner">
+              <img
+                src="/assets/hvra/BG1.jpg"
+                alt={selectedDistrict?.name || 'Alappuzha Houseboat'}
+                className="dossier-banner-img"
+              />
+            </div>
+
+            <div className="dossier-content-body">
+              <div className="dossier-name-row">
+                <h4 className="dossier-name">
+                  {selectedDistrict?.name.replace(' [DEMO]', '') || 'Alappuzha'}
+                </h4>
+                <span className="dossier-code-chip">
+                  Administrative Code: {selectedDistrict?.code || 'KL-ALP'}
                 </span>
               </div>
-            </div>
 
-          {/* Quick District Selector Pills */}
-          <div className="district-pill-scroll">
-            {districts.map((d) => (
-              <button
-                key={d.id}
-                className={`district-pill-btn${selectedDistrict?.id === d.id ? ' active' : ''}`}
-                onClick={() => setSelectedDistrict(d)}
-              >
-                {d.name.replace(' [DEMO]', '')}
-              </button>
-            ))}
-          </div>
-
-          <KeralaMap selectedDistrict={selectedDistrict} />
-        </div>
-
-        {/* Selected District Dossier Card */}
-        <div className="district-dossier-card">
-          <div>
-            <div className="dossier-hero">
-              <div style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#64748b', marginBottom: '0.25rem' }}>
-                Territory Profile
-              </div>
-              <div className="dossier-name">
-                {selectedDistrict?.name.replace(' [DEMO]', '') || 'Kerala State'}
-              </div>
-              <span className="dossier-badge">
-                Administrative Code: {selectedDistrict?.code || 'KL-ALL'}
-              </span>
-            </div>
-
-            <div className="dossier-stat-row">
-              <div className="dossier-stat-box">
-                <div className="dossier-stat-val">
-                  {selectedDistrict?.centroid_lat ? `${selectedDistrict.centroid_lat.toFixed(2)}°N` : '10.50°N'}
+              {/* Lat & Lon Coordinate Boxes */}
+              <div className="dossier-coordinates-grid">
+                <div className="dossier-coord-box">
+                  <div className="dossier-coord-icon dossier-coord-icon--green">
+                    <MapPin size={18} color="#059669" />
+                  </div>
+                  <div className="dossier-coord-meta">
+                    <span className="dossier-coord-val">
+                      {selectedDistrict?.centroid_lat ? `${selectedDistrict.centroid_lat.toFixed(2)}° N` : '9.50° N'}
+                    </span>
+                    <span className="dossier-coord-lbl">Latitude</span>
+                  </div>
                 </div>
-                <div className="dossier-stat-lbl">Latitude</div>
-              </div>
-              <div className="dossier-stat-box">
-                <div className="dossier-stat-val">
-                  {selectedDistrict?.centroid_lon ? `${selectedDistrict.centroid_lon.toFixed(2)}°E` : '76.20°E'}
-                </div>
-                <div className="dossier-stat-lbl">Longitude</div>
-              </div>
-            </div>
 
-            <div style={{ background: 'var(--bg-surface)', borderRadius: 10, padding: '0.85rem 1rem', border: '1px solid var(--border-default)', marginBottom: '1.25rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>Assessments Recorded:</span>
-                <span style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-heading)' }}>{districtAssessments.length}</span>
+                <div className="dossier-coord-box">
+                  <div className="dossier-coord-icon dossier-coord-icon--blue">
+                    <MapPin size={18} color="#dc2626" />
+                  </div>
+                  <div className="dossier-coord-meta">
+                    <span className="dossier-coord-val">
+                      {selectedDistrict?.centroid_lon ? `${selectedDistrict.centroid_lon.toFixed(2)}° E` : '76.34° E'}
+                    </span>
+                    <span className="dossier-coord-lbl">Longitude</span>
+                  </div>
+                </div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600 }}>Multi-Hazard Tier:</span>
-                <span className="badge badge-warning" style={{ fontSize: '0.68rem' }}>Tier 1 Priority</span>
+
+              {/* Info Rows */}
+              <div className="dossier-info-list">
+                <div className="dossier-info-row">
+                  <div className="dossier-info-left">
+                    <FileText size={16} color="#dc2626" />
+                    <span>Assessments Recorded</span>
+                  </div>
+                  <span className="dossier-info-val">{districtAssessments.length || 0}</span>
+                </div>
+
+                <div className="dossier-info-row">
+                  <div className="dossier-info-left">
+                    <AlertTriangle size={16} color="#dc2626" />
+                    <span>Multi-Hazard Tier</span>
+                  </div>
+                  <span className="dossier-tier-pill">Tier 1 Priority</span>
+                </div>
               </div>
             </div>
-          </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
             <button

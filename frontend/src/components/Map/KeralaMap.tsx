@@ -167,12 +167,12 @@ export default function KeralaMap({ districtKey, selectedDistrict, hideDropdown:
     );
     layer.on({
       click:     () => setSelectedBlock(props),
-      mouseover: (e: any) => e.target.setStyle({ weight: 3, color: '#1d4ed8', fillOpacity: 0.45 }),
-      mouseout:  (e: any) => e.target.setStyle({ weight: 1.5, color: '#2563eb', fillOpacity: 0.22 }),
+      mouseover: (e: any) => e.target.setStyle({ weight: 3, color: '#b91c1c', fillOpacity: 0.45 }),
+      mouseout:  (e: any) => e.target.setStyle({ weight: 1.5, color: '#dc2626', fillOpacity: 0.22 }),
     });
   }, [cleanName]);
 
-  const blockStyle  = { fillColor: '#3b82f6', weight: 1.5, opacity: 1, color: '#2563eb', fillOpacity: 0.22 };
+  const blockStyle  = { fillColor: '#ef4444', weight: 1.5, opacity: 1, color: '#dc2626', fillOpacity: 0.22 };
   const borderStyle = { fillColor: 'transparent', weight: 3.5, opacity: 1, color: '#0f172a', dashArray: '6,6', fillOpacity: 0 };
 
   const blockCount = blockList.length || blocksGeoJSON?.features?.length || 0;
@@ -269,9 +269,9 @@ export default function KeralaMap({ districtKey, selectedDistrict, hideDropdown:
               <span
                 key={block.id}
                 style={{
-                  background: '#eff6ff', border: '1px solid #bfdbfe',
+                  background: '#fef2f2', border: '1px solid #fecaca',
                   borderRadius: '999px', padding: '0.2rem 0.65rem',
-                  fontSize: '0.78rem', color: '#1d4ed8', fontWeight: 500,
+                  fontSize: '0.78rem', color: '#dc2626', fontWeight: 500,
                 }}
               >
                 {block.name}
@@ -294,7 +294,7 @@ export default function KeralaMap({ districtKey, selectedDistrict, hideDropdown:
         )}
         {blocksGeoJSON && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ display: 'inline-block', width: 14, height: 14, backgroundColor: 'rgba(59,130,246,0.3)', border: '1.5px solid #2563eb', borderRadius: 2 }} />
+            <span style={{ display: 'inline-block', width: 14, height: 14, backgroundColor: 'rgba(239,68,68,0.25)', border: '1.5px solid #dc2626', borderRadius: 2 }} />
             {cleanName} Blocks ({blockCount} units)
           </div>
         )}

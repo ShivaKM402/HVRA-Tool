@@ -13,6 +13,7 @@ import type { RiskAssessment, RiskResultsResponse, ApprovalStatus } from '@/type
 import ResultsMap from '@/components/Map/ResultsMap';
 import ApprovalPanel from '@/components/ApprovalPanel/ApprovalPanel';
 import { useAuth } from '@/context/AuthContext';
+import SendDocumentModal from '@/components/Modals/SendDocumentModal';
 
 const RISK_COLORS: Record<string, string> = {
   VERY_HIGH: '#7f1d1d',
@@ -45,6 +46,7 @@ export default function RiskResults() {
 
   // Task Force review status (HVRA §8.2)
   const [approvalStatus, setApprovalStatus] = useState<ApprovalStatus | null>(null);
+  const [isSendModalOpen, setIsSendModalOpen] = useState(false);
 
   const handleDeleteRiskScenario = async () => {
     if (!risk) return;
@@ -129,7 +131,7 @@ export default function RiskResults() {
   }));
 
   const isMultiplicative = resultsData.formula === 'MULTIPLICATIVE';
-  const weights = resultsData.weights || {};
+  const weights = resultsData.weights || { hazard: 1, vulnerability: 1, exposure: 1 };
 
   const rows = [...resultsData.results].sort((a, b) =>
     sortDesc
@@ -164,6 +166,25 @@ export default function RiskResults() {
             </button>
             <button className="btn btn-secondary" style={{ fontSize: '0.85rem', padding: '0.4rem 0.9rem' }} disabled={downloading !== null} onClick={() => handleDownload('pdf')}>
               {downloading === 'pdf' ? 'Generating...' : '⬇️ PDF'}
+            </button>
+            <button
+              className="btn btn-sm"
+              style={{
+                fontSize: '0.85rem',
+                padding: '0.4rem 0.95rem',
+                background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+                color: '#ffffff',
+                border: 'none',
+                fontWeight: 700,
+                boxShadow: '0 2px 8px rgba(220, 38, 38, 0.35)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+              }}
+              onClick={() => setIsSendModalOpen(true)}
+              title="Send Composite Risk Dossier to Senior Reviewer or Manager"
+            >
+              📤 Send to Senior / Manager
             </button>
             <Link to={`/risk-assessments/${risk.id}/report`} className="btn btn-primary" style={{ fontSize: '0.85rem', padding: '0.4rem 1rem' }}>
               📄 View Report
@@ -329,6 +350,24 @@ export default function RiskResults() {
       <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '1rem' }}>
         <Link to="/reports" className="btn btn-secondary">← Back to Reports</Link>
       </div>
+
+      {/* Universal Senior / Manager Dispatch Modal */}
+      {isSendModalOpen && risk && (
+        <SendDocumentModal
+          isOpen={isSendModalOpen}
+          onClose={() => setIsSendModalOpen(false)}
+          documentType="risk_assessment"
+          documentId={risk.id}
+          documentTitle={risk.name}
+          subtitle={`District: ${risk.district_name || 'Kerala'} · Multi-Hazard Composite Risk (H × V × E)`}
+          fileFormat="PDF"
+          hazardType="MULTI-HAZARD"
+          districtName={risk.district_name}
+          onSuccess={() => {
+            setApprovalStatus('SUBMITTED');
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -89,13 +89,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     roleCode === 'VIEWER'
   );
 
-  // Employees can NEVER delete. Only District/State Admins or staff can delete.
+  // Allow deleting assessments and generated reports for all authenticated users (except read-only VIEWER)
   const canDelete = Boolean(
-    !isEmployee && (
-      isAdmin ||
-      roleCode === 'DISTRICT_OFFICIAL' ||
-      user?.is_staff
-    )
+    user && roleCode !== 'VIEWER'
   );
 
   return (

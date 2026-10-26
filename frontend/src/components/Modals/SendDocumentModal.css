@@ -1,0 +1,467 @@
+/* =========================================================
+   SendDocumentModal — Unified Senior / Manager Dispatch Modal
+   HVRA Section 2 & 6: Statutory Review & Management Workflow
+   ========================================================= */
+
+.sdm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  padding: 1.25rem;
+  overflow-y: auto;
+  box-sizing: border-box;
+  animation: sdmFadeIn 0.18s ease-out;
+}
+
+@keyframes sdmFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.sdm-modal {
+  width: 100%;
+  max-width: 620px;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28), 0 4px 16px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin: auto;
+  animation: sdmPop 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+  max-height: 92vh;
+}
+
+@keyframes sdmPop {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Header */
+.sdm-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 1.15rem 1.4rem;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #ffffff;
+  border-bottom: 1px solid #334155;
+}
+
+.sdm-header-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+}
+
+.sdm-header-icon {
+  font-size: 1.75rem;
+  background: rgba(255, 255, 255, 0.12);
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  flex-shrink: 0;
+}
+
+.sdm-header-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+.sdm-header-sub {
+  margin: 0.2rem 0 0;
+  font-size: 0.78rem;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.sdm-tag {
+  display: inline-block;
+  padding: 0.12rem 0.45rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.sdm-tag--pdf { background: #fee2e2; color: #b91c1c; }
+.sdm-tag--docx { background: #dbeafe; color: #1d4ed8; }
+.sdm-tag--geo { background: #ccfbf1; color: #0f766e; }
+.sdm-tag--risk { background: #fef3c7; color: #b45309; }
+
+.sdm-close-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  font-size: 1.35rem;
+  color: #94a3b8;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: all 0.15s ease;
+}
+.sdm-close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+/* Scrollable Body */
+.sdm-body {
+  padding: 1.25rem 1.4rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  background: #f8fafc;
+}
+
+/* Document Target Card */
+.sdm-doc-target {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.sdm-doc-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.sdm-doc-meta {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 0.15rem;
+}
+
+/* Section styling */
+.sdm-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.sdm-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sdm-hint {
+  font-size: 0.73rem;
+  font-weight: 400;
+  color: #94a3b8;
+}
+
+.sdm-select {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.86rem;
+  background: #ffffff;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+.sdm-select:focus {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12);
+}
+
+/* Recipient Profile Badge */
+.sdm-recipient-card {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 0.75rem 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.sdm-recipient-icon {
+  font-size: 1.5rem;
+  background: #dcfce7;
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sdm-recipient-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.sdm-recipient-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #14532d;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.sdm-recipient-office {
+  font-size: 0.74rem;
+  color: #15803d;
+  margin-top: 0.1rem;
+}
+
+/* Priority & Channel Row */
+.sdm-row-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.sdm-pills {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.sdm-pill-btn {
+  flex: 1;
+  padding: 0.45rem 0.5rem;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  border-radius: 6px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s ease;
+}
+.sdm-pill-btn:hover {
+  background: #f1f5f9;
+}
+.sdm-pill-btn.active-routine {
+  background: #f0fdf4;
+  border-color: #86efac;
+  color: #15803d;
+}
+.sdm-pill-btn.active-priority {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #b45309;
+}
+.sdm-pill-btn.active-urgent {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #b91c1c;
+}
+
+/* Custom Recipient Form */
+.sdm-custom-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+  background: #ffffff;
+  border: 1px dashed #94a3b8;
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+
+.sdm-input {
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  background: #ffffff;
+  color: #0f172a;
+  outline: none;
+  box-sizing: border-box;
+}
+.sdm-input:focus {
+  border-color: #0284c7;
+}
+
+/* Checklist */
+.sdm-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.65rem 0.85rem;
+}
+
+.sdm-check-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.8rem;
+  color: #334155;
+  cursor: pointer;
+}
+.sdm-check-row input[type="checkbox"] {
+  accent-color: #0284c7;
+  cursor: pointer;
+  width: 15px;
+  height: 15px;
+}
+
+/* Notes Textarea */
+.sdm-textarea {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.84rem;
+  font-family: inherit;
+  color: #0f172a;
+  background: #ffffff;
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+}
+.sdm-textarea:focus {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12);
+}
+
+/* File Attachment */
+.sdm-file-box {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.6rem 0.85rem;
+}
+
+.sdm-file-btn {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.sdm-file-btn:hover {
+  background: #e2e8f0;
+}
+
+.sdm-file-name {
+  font-size: 0.78rem;
+  color: #64748b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Footer */
+.sdm-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.4rem;
+  background: #ffffff;
+  border-top: 1px solid #e2e8f0;
+  gap: 0.75rem;
+}
+
+.sdm-footer-left {
+  font-size: 0.75rem;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.sdm-footer-right {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.sdm-btn-cancel {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0.55rem 1rem;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.sdm-btn-cancel:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.sdm-btn-dispatch {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  border: none;
+  border-radius: 8px;
+  padding: 0.6rem 1.25rem;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
+  transition: all 0.15s ease;
+}
+.sdm-btn-dispatch:hover:not(:disabled) {
+  background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+  transform: translateY(-1px);
+}
+.sdm-btn-dispatch:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+}

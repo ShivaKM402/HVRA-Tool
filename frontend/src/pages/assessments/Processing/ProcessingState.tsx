@@ -16,6 +16,8 @@ export default function ProcessingState() {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [completed, setCompleted] = useState(false);
   const [assessmentName, setAssessmentName] = useState('Assessment');
+  const [progressPercent, setProgressPercent] = useState(20);
+  const [secondsRemaining, setSecondsRemaining] = useState(5);
 
   const steps = [
     { id: 1, label: 'Ingesting Administrative Boundaries & GIS Layers', desc: 'Fetching block & panchayat polygons for district geometry' },
@@ -29,48 +31,48 @@ export default function ProcessingState() {
     if (!id) return;
     const assessmentId = parseInt(id, 10);
 
-    // Initial check of assessment
+    // Load actual assessment name in background without cutting the animation
     getAssessment(assessmentId)
       .then((a) => {
-        setAssessmentName(a.name);
-        if (a.status === 'COMPLETED') {
-          handleSuccess(a.name);
+        if (a && a.name) {
+          setAssessmentName(a.name);
         }
       })
       .catch((err) => {
         console.warn('Initial check failed', err);
       });
 
-    // Step animation timer
+    // 5-second realistic generation progression (1,000ms per step = 5 seconds)
+    let currentStep = 0;
     const interval = setInterval(() => {
-      setCurrentStepIndex((prev) => {
-        if (prev < steps.length - 1) {
-          return prev + 1;
-        } else {
-          clearInterval(interval);
-          handleSuccess(assessmentName);
-          return prev;
-        }
-      });
-    }, 1200);
+      currentStep += 1;
+      if (currentStep < steps.length) {
+        setCurrentStepIndex(currentStep);
+        setProgressPercent(Math.min(100, (currentStep + 1) * 20));
+        setSecondsRemaining(Math.max(1, 5 - currentStep));
+      } else {
+        clearInterval(interval);
+        setCurrentStepIndex(steps.length);
+        setProgressPercent(100);
+        setSecondsRemaining(0);
+        setCompleted(true);
+
+        showToast({
+          title: 'Assessment Processing Completed ✓',
+          message: 'Spatial calculation complete. Proceeding to Thematic Map.',
+          type: 'success',
+          link: `/assessments/${id}/results?tab=map`,
+        });
+
+        // Redirect smoothly after reaching 100%
+        setTimeout(() => {
+          navigate(`/assessments/${id}/results?tab=map`);
+        }, 800);
+      }
+    }, 1000);
 
     return () => clearInterval(interval);
-  }, [id]);
-
-  const handleSuccess = (name: string) => {
-    setCompleted(true);
-    showToast({
-      title: 'Assessment Processing Completed',
-      message: `"${name}" calculation complete. Proceeding to Thematic Map.`,
-      type: 'success',
-      link: `/assessments/${id}/results?tab=map`,
-    });
-
-    // Auto redirect after a brief moment
-    setTimeout(() => {
-      navigate(`/assessments/${id}/results?tab=map`);
-    }, 1000);
-  };
+  }, [id, navigate, showToast]);
 
   return (
     <div className="processing-container">
@@ -87,6 +89,15 @@ export default function ProcessingState() {
           <p className="processing-desc">
             The mathematical scoring and GIS intersection engine is running defensible spatial algorithms for your selected territory.
           </p>
+
+          {/* 5-Second Generation Progress Bar */}
+          <div className="processing-progress-wrap">
+            <div className="processing-progress-bar" style={{ width: `${progressPercent}%` }} />
+          </div>
+          <div className="processing-progress-meta">
+            <span>Spatial Computation: {progressPercent}%</span>
+            <span>{completed ? '✓ Complete' : `~${secondsRemaining}s remaining`}</span>
+          </div>
         </div>
 
         <div className="processing-steps">
@@ -109,7 +120,7 @@ export default function ProcessingState() {
 
         <div className="processing-footer">
           <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
-            {completed ? '✓ Processing complete. Redirecting...' : 'Please wait while calculations finish...'}
+            {completed ? '✓ Processing complete. Redirecting to Spatial Results…' : 'Executing 5-stage GIS scoring engine (5s)...'}
           </div>
           <div style={{ display: 'flex', gap: '0.75rem' }}>
             <Link to={`/assessments/${id}/results?tab=map`} className="btn btn-primary btn-sm">
@@ -124,3 +135,4 @@ export default function ProcessingState() {
     </div>
   );
 }
+

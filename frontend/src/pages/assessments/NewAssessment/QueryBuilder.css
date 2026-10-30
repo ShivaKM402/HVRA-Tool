@@ -248,7 +248,25 @@
   transition: background var(--transition-fast);
 }
 .qb-ind.on { background: rgba(26, 115, 232, 0.05); }
-.qb-ind-title { font-weight: 600; color: var(--text-heading); line-height: 1.25; }
+.qb-ind-title {
+  font-weight: 600;
+  color: var(--text-heading);
+  line-height: 1.25;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.qb-ind-dept-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  background: rgba(30, 41, 59, 0.06);
+  border: 1px solid var(--border-default);
+  color: var(--text-muted);
+}
 .qb-ind-desc {
   font-size: 0.74rem;
   color: var(--text-muted);

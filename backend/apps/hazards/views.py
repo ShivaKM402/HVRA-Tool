@@ -113,7 +113,10 @@ class HazardIndicatorViewSet(viewsets.ModelViewSet):
         category = self.request.query_params.get("category")
         department = self.request.query_params.get("department")
         if hazard_type:
-            qs = qs.filter(models.Q(hazard_type=hazard_type.upper()) | models.Q(hazard_type=""))
+            if module_type and module_type.upper() == "HAZARD":
+                qs = qs.filter(hazard_type=hazard_type.upper())
+            else:
+                qs = qs.filter(models.Q(hazard_type=hazard_type.upper()) | models.Q(hazard_type=""))
         if module_type:
             qs = qs.filter(module_type=module_type.upper())
         if category:

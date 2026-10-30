@@ -25,6 +25,8 @@ class UserRole(models.TextChoices):
 
 class UserProfile(models.Model):
     """Extends the Django auth User with an HVRA role + organisation."""
+    objects = models.Manager()
+
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, related_name="profile"
     )

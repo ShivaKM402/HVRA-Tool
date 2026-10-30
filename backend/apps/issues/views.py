@@ -8,6 +8,8 @@ from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 
+from apps.ai_services.vision import analyze_incident_photo
+
 from .models import (
     IssueTemplate,
     IssueReport,
@@ -81,8 +83,15 @@ class IssueReportViewSet(viewsets.ModelViewSet):
             # Reports filed by current employee
             qs = qs.filter(reported_by=user)
         elif queue == "senior_review":
-            # Issues pending senior review
-            qs = qs.filter(status=IssueStatus.SUBMITTED)
+            # Issues on senior review desk (pending + approved + revisions so files stay visible)
+            if not status_param:
+                qs = qs.filter(
+                    status__in=[
+                        IssueStatus.SUBMITTED,
+                        IssueStatus.SENIOR_APPROVED,
+                        IssueStatus.REVISION_REQUESTED_BY_SENIOR,
+                    ]
+                )
             # Filter by territory if user is territory-restricted
             profile = getattr(user, "profile", None)
             if profile and profile.district_id and not user.is_superuser:
@@ -90,14 +99,16 @@ class IssueReportViewSet(viewsets.ModelViewSet):
             if profile and profile.department and not profile.can_approve_cross_department and not user.is_superuser:
                 qs = qs.filter(department__iexact=profile.department)
         elif queue == "manager_review":
-            # Issues pending manager decision or draft generation
-            qs = qs.filter(
-                status__in=[
-                    IssueStatus.SENIOR_APPROVED,
-                    IssueStatus.MANAGER_APPROVED,
-                    IssueStatus.DRAFT_ASSESSMENT_GENERATED,
-                ]
-            )
+            # Issues pending manager decision or draft generation (approved + revisions remain visible)
+            if not status_param:
+                qs = qs.filter(
+                    status__in=[
+                        IssueStatus.SENIOR_APPROVED,
+                        IssueStatus.MANAGER_APPROVED,
+                        IssueStatus.REVISION_REQUESTED_BY_MANAGER,
+                        IssueStatus.DRAFT_ASSESSMENT_GENERATED,
+                    ]
+                )
             profile = getattr(user, "profile", None)
             if profile and profile.district_id and not user.is_superuser:
                 qs = qs.filter(district_id=profile.district_id)
@@ -279,6 +290,46 @@ class IssueReportViewSet(viewsets.ModelViewSet):
             IssueAttachmentSerializer(attachment, context={"request": request}).data,
             status=status.HTTP_201_CREATED,
         )
+
+    # ------------------------------------------------------------------
+    # AI Feature 2 — Vision AI Photo Analysis
+    # ------------------------------------------------------------------
+    @action(detail=True, methods=["post"], url_path="analyze-photo")
+    def analyze_photo(self, request, pk=None):
+        """
+        POST /api/issues/{id}/analyze-photo/
+        Accepts a field incident photo (multipart/form-data, field: 'image').
+        Uses GPT-4o vision to extract severity, water depth, damage type, and description.
+        Returns structured JSON for auto-filling the incident report form.
+        """
+        issue = self.get_object()
+        image_file = request.FILES.get("image")
+        if not image_file:
+            return Response(
+                {"error": "No image file provided. Send image as multipart/form-data with field 'image'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Validate it's an image
+        content_type = image_file.content_type or ""
+        if not content_type.startswith("image/"):
+            return Response(
+                {"error": "Uploaded file must be an image (JPEG, PNG, WebP)."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Size limit: 10 MB
+        if image_file.size > 10 * 1024 * 1024:
+            return Response(
+                {"error": "Image must be under 10 MB."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        image_bytes = image_file.read()
+        hazard_type = getattr(issue.template, "hazard_type", "FLOOD") if issue.template else "FLOOD"
+        result = analyze_incident_photo(image_bytes, hazard_type)
+
+        return Response(result, status=status.HTTP_200_OK)
 
 
 class WorkflowAssignmentRuleViewSet(viewsets.ModelViewSet):

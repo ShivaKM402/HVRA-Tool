@@ -7,9 +7,11 @@ import {
   downloadReportDocx,
   downloadReportPdf,
   downloadReportCsv,
+  downloadReportBundle,
   getRiskAssessments,
   downloadRiskReportDocx,
   downloadRiskReportPdf,
+  downloadRiskReportBundle,
   getSavedQueries,
   deleteSavedQuery,
   shareSavedQuery,
@@ -287,7 +289,7 @@ export default function Reports() {
     }
   };
 
-  const handleDownload = async (id: number, name: string, format: 'docx' | 'pdf' | 'csv') => {
+  const handleDownload = async (id: number, name: string, format: 'docx' | 'pdf' | 'csv' | 'bundle') => {
     try {
       setDownloadingId(id);
       const safeName = name.replace(/[^a-zA-Z0-9_-]/g, '_');
@@ -295,6 +297,8 @@ export default function Reports() {
         await downloadReportDocx(id, `${safeName}.docx`);
       } else if (format === 'pdf') {
         await downloadReportPdf(id, `${safeName}.pdf`);
+      } else if (format === 'bundle') {
+        await downloadReportBundle(id, `${safeName}_data_package.zip`);
       } else {
         await downloadReportCsv(id, `${safeName}.csv`);
       }
@@ -305,12 +309,14 @@ export default function Reports() {
     }
   };
 
-  const handleRiskDownload = async (id: number, name: string, format: 'docx' | 'pdf') => {
+  const handleRiskDownload = async (id: number, name: string, format: 'docx' | 'pdf' | 'bundle') => {
     try {
       setDownloadingId(id);
       const safeName = name.replace(/[^a-zA-Z0-9_-]/g, '_');
       if (format === 'docx') {
         await downloadRiskReportDocx(id, `${safeName}.docx`);
+      } else if (format === 'bundle') {
+        await downloadRiskReportBundle(id, `${safeName}_data_package.zip`);
       } else {
         await downloadRiskReportPdf(id, `${safeName}.pdf`);
       }
@@ -810,6 +816,15 @@ export default function Reports() {
                                 📥 PDF
                               </button>
                               <button
+                                className="btn btn-secondary"
+                                style={{ fontSize: '0.75rem', padding: '0.28rem 0.55rem', color: '#047857', background: '#ecfdf5', borderColor: '#a7f3d0', fontWeight: 600 }}
+                                title="Export Complete Data Package (ZIP) for Cross-Agency Sharing"
+                                onClick={() => handleDownload(a.id, a.name, 'bundle')}
+                                disabled={downloadingId === a.id}
+                              >
+                                📦 Package
+                              </button>
+                              <button
                                 className="btn btn-sm"
                                 style={{
                                   fontSize: '0.75rem',
@@ -1062,6 +1077,15 @@ export default function Reports() {
                                 disabled={downloadingId === r.id}
                               >
                                 📥 PDF
+                              </button>
+                              <button
+                                className="btn btn-secondary"
+                                style={{ fontSize: '0.75rem', padding: '0.28rem 0.55rem', color: '#047857', background: '#ecfdf5', borderColor: '#a7f3d0', fontWeight: 600 }}
+                                title="Export Complete Multi-Hazard Risk Data Package (ZIP)"
+                                onClick={() => handleRiskDownload(r.id, r.name, 'bundle')}
+                                disabled={downloadingId === r.id}
+                              >
+                                📦 Package
                               </button>
                               <button
                                 className="btn btn-sm"

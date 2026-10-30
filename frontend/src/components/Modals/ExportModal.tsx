@@ -22,7 +22,7 @@ export default function ExportModal({ isOpen, onClose, assessmentId, assessmentN
 
   if (!isOpen) return null;
 
-  const handleDownload = async (format: 'pdf' | 'docx' | 'csv' | 'print') => {
+  const handleDownload = async (format: 'pdf' | 'docx' | 'csv' | 'print' | 'bundle') => {
     if (format === 'print') {
       onClose();
       window.print();
@@ -33,17 +33,20 @@ export default function ExportModal({ isOpen, onClose, assessmentId, assessmentN
       setDownloading(format);
       const endpointPrefix = isRisk ? `/api/risk-assessments/${assessmentId}` : `/api/assessments/${assessmentId}`;
       const url = `${endpointPrefix}/export/${format}/`;
+      const ext = format === 'bundle' ? 'zip' : format;
       
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `${assessmentName.toLowerCase().replace(/\s+/g, '_')}_report.${format}`);
+      link.setAttribute('download', `${assessmentName.toLowerCase().replace(/\s+/g, '_')}_${format === 'bundle' ? 'data_package' : 'report'}.${ext}`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
       showToast({
-        title: 'Report Export Initiated',
-        message: `${format.toUpperCase()} export for "${assessmentName}" downloaded successfully.`,
+        title: format === 'bundle' ? 'Data Package Exported ✓' : 'Report Export Initiated',
+        message: format === 'bundle'
+          ? `Complete multi-format package (PDF, DOCX, CSV, GeoJSON & Metadata) downloaded.`
+          : `${format.toUpperCase()} export for "${assessmentName}" downloaded successfully.`,
         type: 'success',
       });
       onClose();
@@ -60,11 +63,11 @@ export default function ExportModal({ isOpen, onClose, assessmentId, assessmentN
 
   return (
     <div className="onboard-overlay" onClick={onClose} style={{ zIndex: 9997 }}>
-      <div className="onboard-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480, textAlign: 'left' }}>
+      <div className="onboard-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 520, textAlign: 'left' }}>
         <div className="onboard-header">
           <div>
             <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>
-              Report Generation & Export
+              Report Generation & Cross-File Export (Stage 2)
             </div>
             <h3 style={{ margin: '0.2rem 0 0', fontSize: '1.25rem', color: '#0f172a' }}>Choose Export Format</h3>
           </div>
@@ -72,6 +75,45 @@ export default function ExportModal({ isOpen, onClose, assessmentId, assessmentN
         </div>
 
         <div style={{ padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {/* Complete Data Package (ZIP) - Cross-Agency Standard */}
+          <div
+            onClick={() => handleDownload('bundle')}
+            style={{
+              padding: '0.9rem 1rem',
+              borderRadius: 8,
+              border: '1.5px solid #10b981',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1rem',
+              background: '#ecfdf5',
+              transition: 'all 0.15s ease',
+            }}
+            className="hover-card"
+          >
+            <span style={{ fontSize: '1.85rem' }}>📦</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 800, fontSize: '0.94rem', color: '#065f46', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                Complete Data Package (.zip)
+                <span style={{ fontSize: '0.65rem', background: '#10b981', color: '#fff', padding: '0.1rem 0.4rem', borderRadius: 4, fontWeight: 700 }}>
+                  RECOMMENDED
+                </span>
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#047857', marginTop: '0.15rem' }}>
+                All files bundled: PDF & DOCX reports, CSV tables, GeoJSON spatial boundaries, and provenance certificate.
+              </div>
+            </div>
+            <span
+              className="btn btn-primary btn-sm"
+              style={{
+                pointerEvents: 'none',
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                borderColor: '#059669',
+              }}
+            >
+              {downloading === 'bundle' ? 'Packaging...' : 'Export ZIP'}
+            </span>
+          </div>
           <div
             onClick={() => handleDownload('pdf')}
             style={{

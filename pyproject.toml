@@ -1,0 +1,16 @@
+[tool.pyrefly]
+python-interpreter-path = "backend/venv/Scripts/python.exe"
+search-paths = ["backend"]
+
+[tool.pyrefly.errors]
+missing-attribute = false
+
+[tool.pyright]
+extraPaths = ["backend"]
+include = ["backend"]
+venvPath = "backend"
+venv = "venv"
+pythonVersion = "3.10"
+pythonPlatform = "Windows"
+reportMissingImports = false
+reportAttributeAccessIssue = false

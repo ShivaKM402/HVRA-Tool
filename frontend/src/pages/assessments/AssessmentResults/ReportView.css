@@ -266,6 +266,67 @@
   font-weight: 500;
 }
 
+/* Matrix Table & Badges for Differentiated Modules */
+.rpt-matrix-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 0.73rem;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 0.02em;
+}
+
+/* Hazard Badges */
+.badge-hh { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+.badge-mh { background: #fff7ed; color: #ea580c; border: 1px solid #fed7aa; }
+.badge-lh { background: #fefce8; color: #ca8a04; border: 1px solid #fef08a; }
+.badge-nh { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+
+/* Vulnerability Badges */
+.badge-hv { background: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; }
+.badge-mv { background: #f5f3ff; color: #6366f1; border: 1px solid #ddd6fe; }
+.badge-lv { background: #faf5ff; color: #818cf8; border: 1px solid #e9d5ff; }
+.badge-nv { background: #ecfdf5; color: #10b981; border: 1px solid #a7f3d0; }
+
+/* Exposure Badges */
+.badge-he { background: #f0fdfa; color: #0f766e; border: 1px solid #99f6e4; }
+.badge-me { background: #f0fdf4; color: #0d9488; border: 1px solid #a7f3d0; }
+.badge-le { background: #f0fdfa; color: #14b8a6; border: 1px solid #ccfbf1; }
+.badge-ne { background: #ecfdf5; color: #10b981; border: 1px solid #a7f3d0; }
+
+/* Resilience Priority Badges */
+.badge-p1 { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; font-weight: 700; padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; }
+.badge-p2 { background: #fff7ed; color: #ea580c; border: 1px solid #fed7aa; font-weight: 600; padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; }
+.badge-p3 { background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; font-weight: 500; padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; }
+
+.rpt-matrix-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.84rem;
+}
+
+.rpt-matrix-table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 0.65rem 0.6rem;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.12);
+}
+
+.rpt-matrix-table td {
+  padding: 0.55rem 0.6rem;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: middle;
+}
+
+.rpt-matrix-table tbody tr:hover {
+  background-color: #f8fafc !important;
+}
+
 @media (max-width: 980px) {
   .rpt { grid-template-columns: 1fr; padding: 1rem; }
   .rpt-toc { position: static; max-height: none; }

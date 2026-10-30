@@ -16,12 +16,25 @@ import random
 from typing import Dict, Any, List
 
 # Which modules are supported by the demo generator
-SUPPORTED_MODULES = ("VULNERABILITY", "EXPOSURE")
+SUPPORTED_MODULES = ("HAZARD", "VULNERABILITY", "EXPOSURE")
 
 # ------------------------------------------------------------------
 # Per-indicator generator: code → (low, high, rounding)
 # (prototype ranges; not official statistics)
 # ------------------------------------------------------------------
+HAZARD_RANGES = {
+    "FLOOD_PRONE_AREA": (12.0, 78.0, 1),             # % flood-prone area
+    "RAINFALL_INTENSITY": (120.0, 340.0, 1),         # mm/day
+    "ELEVATION": (3.5, 95.0, 1),                     # metres above MSL
+    "TERRAIN_SLOPE": (1.0, 18.0, 1),                 # degrees
+    "DISTANCE_TO_RIVER": (0.3, 6.5, 2),              # km
+    "DRAINAGE_DENSITY": (0.9, 3.8, 2),               # km/sq.km
+    "SOIL_INFILTRATION": (4.0, 35.0, 1),             # mm/hr
+    "TOPOGRAPHIC_WETNESS_INDEX": (6.0, 16.0, 1),     # TWI index
+    "LULC_FLOOD_FACTOR": (22.0, 80.0, 1),            # % runoff/impervious
+    "HISTORICAL_FLOOD_EVENTS": (1, 10, 0),           # count
+    "FLOOD_FREQUENCY": (0.1, 1.2, 2),                # events/yr
+}
 VULNERABILITY_RANGES = {
     "POP_DENSITY": (150, 2600, 1),          # persons / sq.km
     "DEPENDENT_POPULATION": (8, 42, 1),     # % under 5 + over 60
@@ -66,7 +79,11 @@ EXPOSURE_RANGES = {
     "FLD_ECONOMIC_ASSETS": (15, 750, 0),       # INR crore commercial assets
 }
 
-CODE_RANGES = {"VULNERABILITY": VULNERABILITY_RANGES, "EXPOSURE": EXPOSURE_RANGES}
+CODE_RANGES = {
+    "HAZARD": HAZARD_RANGES,
+    "VULNERABILITY": VULNERABILITY_RANGES,
+    "EXPOSURE": EXPOSURE_RANGES,
+}
 
 
 def _stable_rng(block_id: int, code: str, salt: str = "") -> random.Random:

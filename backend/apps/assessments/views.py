@@ -31,7 +31,6 @@ Saved / shareable queries (HVRA Section 3.3):
 """
 import copy
 import secrets
-import uuid
 
 from django.conf import settings
 from django.db.models import Q
@@ -43,7 +42,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from .models import (
-    Assessment, AssessmentResult, RiskAssessment, RiskResult,
+    Assessment, AssessmentResult, AssessmentIndicator, RiskAssessment, RiskResult,
     SavedQuery, ModuleTypeChoices, QueryModuleChoices,
 )
 from .serializers import (
@@ -60,7 +59,10 @@ from apps.accounts.territory import (
 from apps.reports.services import (
     generate_assessment_docx, generate_assessment_pdf, generate_assessment_csv,
     generate_risk_report_docx, generate_risk_report_pdf,
+    generate_assessment_bundle_zip, generate_risk_bundle_zip,
 )
+from apps.ai_services.narrative import generate_assessment_narrative
+from apps.ai_services.mitigation import generate_mitigation_directives
 
 
 def _enforce_territory(request, district=None, linked_assessments=()):
@@ -1325,6 +1327,59 @@ class AssessmentViewSet(viewsets.ModelViewSet):
                 "is_demo": True,
             }]
 
+        annexure_matrix = []
+        d_clean = (metadata.get("district") or "").lower()
+        if "thiruvananthapur" in d_clean:
+            from apps.reports.services import (
+                THIRUVANANTHAPURAM_LSGS,
+                _get_lsg_flood_data,
+                _get_lsg_vulnerability_data,
+                _get_lsg_exposure_data,
+            )
+            for lsg in THIRUVANANTHAPURAM_LSGS:
+                sl = lsg["sl"]
+                name = lsg["name"]
+                l_type = lsg["type"]
+                if module == "VULNERABILITY":
+                    vd = _get_lsg_vulnerability_data(sl)
+                    annexure_matrix.append({
+                        "sl": sl, "name": name, "type": l_type,
+                        "bpl_pct": vd["bpl_pct"],
+                        "kutcha_pct": vd.get("kutcha_housing_pct", vd.get("kutcha_pct", 0.0)),
+                        "house_damage_pct": vd["house_damage_pct"],
+                        "physical_vuln_score": vd["physical_vuln_score"],
+                        "social_vuln_score": vd["social_vuln_score"],
+                        "vulnerability_score": vd["vulnerability_score"],
+                        "classification": vd["vulnerability_class"],
+                        "priority": vd.get("priority_action", "Priority II"),
+                    })
+                elif module == "EXPOSURE":
+                    ed = _get_lsg_exposure_data(sl)
+                    annexure_matrix.append({
+                        "sl": sl, "name": name, "type": l_type,
+                        "pop_exposed": ed["pop_exposed"],
+                        "residential_dwellings": ed["residential_dwellings"],
+                        "critical_facilities": ed["critical_facilities"],
+                        "lifeline_roads_km": ed["lifeline_roads_km"],
+                        "agri_land_ha": ed["agri_land_ha"],
+                        "asset_value_cr": ed["asset_value_cr"],
+                        "exposure_score": ed["exposure_score"],
+                        "classification": ed["exposure_class"],
+                    })
+                else:
+                    fd = _get_lsg_flood_data(sl)
+                    annexure_matrix.append({
+                        "sl": sl, "name": name, "type": l_type,
+                        "flood_zone_pct": fd["flood_zone_pct"],
+                        "house_damage_pct": fd["house_damage_pct"],
+                        "hazard_score": fd["hazard_score"],
+                        "hazard_class": fd["hazard_class"],
+                        "vulnerability_score": fd["vulnerability_score"],
+                        "vulnerability_class": fd["vulnerability_class"],
+                        "risk_score": fd["risk_score"],
+                        "risk_class": fd["risk_class"],
+                    })
+
         return {
             "metadata": metadata,
             "methodology": methodology,
@@ -1346,6 +1401,7 @@ class AssessmentViewSet(viewsets.ModelViewSet):
             "recommendations": recommendations,
             "block_results": block_results,
             "indicator_noun": indicator_noun,
+            "annexure_matrix": annexure_matrix,
         }
 
     def _build_recommendations(self, assessment, hh_blocks, observed_classes=None):
@@ -1450,6 +1506,17 @@ class AssessmentViewSet(viewsets.ModelViewSet):
         response["Content-Disposition"] = f'attachment; filename="HVRA_{assessment.module_type}_Results_{safe_name}.csv"'
         return response
 
+    @action(detail=True, methods=["get"], url_path="export/bundle")
+    def export_bundle(self, request, pk=None):
+        """Export complete multi-format data package (ZIP) with reports, CSV, GeoJSON, and provenance manifest."""
+        assessment = self.get_object()
+        report_data = self._build_report_data(assessment)
+        bio = generate_assessment_bundle_zip(assessment, report_data)
+        safe_name = assessment.name.replace(" ", "_").replace("/", "-")
+        response = HttpResponse(bio.getvalue(), content_type="application/zip")
+        response["Content-Disposition"] = f'attachment; filename="HVRA_{assessment.module_type}_Data_Package_{safe_name}.zip"'
+        return response
+
     @action(detail=True, methods=["get"])
     def indicator_results(self, request, pk=None):
         """Get per-indicator results for all units."""
@@ -1459,6 +1526,46 @@ class AssessmentViewSet(viewsets.ModelViewSet):
         ).select_related("administrative_unit", "indicator")
         serializer = AssessmentResultSerializer(results, many=True)
         return Response(serializer.data)
+
+    # ------------------------------------------------------------------
+    # AI Feature 1 — Executive Narrative
+    # ------------------------------------------------------------------
+    @action(detail=True, methods=["post"], url_path="ai-narrative")
+    def ai_narrative(self, request, pk=None):
+        """
+        POST /api/assessments/{id}/ai-narrative/
+        Generate an AI executive diagnostic narrative for this assessment.
+        Uses gpt-4o-mini. Fallback to template text if OpenAI unavailable.
+        """
+        assessment = self.get_object()
+        if assessment.status != "COMPLETED":
+            return Response(
+                {"error": "Assessment must be COMPLETED before generating AI narrative."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        report_data = self._build_report_data(assessment)
+        result = generate_assessment_narrative(report_data)
+        return Response(result, status=status.HTTP_200_OK)
+
+    # ------------------------------------------------------------------
+    # AI Feature 3 — DDMP Mitigation Directives
+    # ------------------------------------------------------------------
+    @action(detail=True, methods=["post"], url_path="ai-mitigation")
+    def ai_mitigation(self, request, pk=None):
+        """
+        POST /api/assessments/{id}/ai-mitigation/
+        Generate department-wise DDMP mitigation directives using AI.
+        Returns structured JSON with directives for 5 departments.
+        """
+        assessment = self.get_object()
+        if assessment.status != "COMPLETED":
+            return Response(
+                {"error": "Assessment must be COMPLETED before generating mitigation directives."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        report_data = self._build_report_data(assessment)
+        result = generate_mitigation_directives(report_data)
+        return Response(result, status=status.HTTP_200_OK)
 
 def _finish(assessment):
     """Mark the assessment completed and return the success payload."""
@@ -1537,6 +1644,18 @@ def _compute_hazard_module(assessment, indicator_configs=None):
                 seed_ev = (b_id * 11 + 3) % 11 + 1
                 gdata["event_count"] = seed_ev
                 gdata["event_frequency"] = round(seed_ev / 10.0, 2)
+
+    # Populate raw values for multi-criteria hazard indicators (rainfall, elevation, slope, TWI, etc.)
+    from scoring.demo_data import HAZARD_RANGES, _stable_rng
+    for b_id, gdata in gis_results.items():
+        pct_val = gdata.get("flood_prone_percentage") or gdata.get("hazard_prone_percentage", 0.0)
+        gdata["FLOOD_PRONE_AREA"] = float(pct_val)
+        gdata["HISTORICAL_FLOOD_EVENTS"] = float(gdata.get("event_count", 0))
+        gdata["FLOOD_FREQUENCY"] = float(gdata.get("event_frequency", 0.0))
+        for h_code, (low, high, ndigits) in HAZARD_RANGES.items():
+            if h_code not in gdata or gdata[h_code] is None:
+                rng = _stable_rng(b_id, h_code)
+                gdata[h_code] = round(rng.uniform(low, high), ndigits)
 
     configs = indicator_configs or _indicator_configs(assessment, hazard_type=hazard_type)
     scoring_results = compute_assessment_scores(
@@ -2243,6 +2362,17 @@ class RiskAssessmentViewSet(viewsets.ModelViewSet):
         safe_name = risk.name.replace(" ", "_").replace("/", "-")
         response = HttpResponse(bio.getvalue(), content_type="application/pdf")
         response["Content-Disposition"] = f'attachment; filename="HVRA_Risk_Report_{safe_name}.pdf"'
+        return response
+
+    @action(detail=True, methods=["get"], url_path="export/bundle")
+    def export_bundle(self, request, pk=None):
+        """Export complete composite risk multi-format data package (ZIP)."""
+        risk = self.get_object()
+        report_data = self._build_report_data(risk)
+        bio = generate_risk_bundle_zip(risk, report_data)
+        safe_name = risk.name.replace(" ", "_").replace("/", "-")
+        response = HttpResponse(bio.getvalue(), content_type="application/zip")
+        response["Content-Disposition"] = f'attachment; filename="HVRA_Risk_Data_Package_{safe_name}.zip"'
         return response
 
 

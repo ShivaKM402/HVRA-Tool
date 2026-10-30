@@ -46,6 +46,8 @@ class HazardEvent(models.Model):
     A historical hazard event (point-referenced).
     Used for: counting events per block, frequency calculation.
     """
+    objects = models.Manager()
+
     hazard_type = models.CharField(
         max_length=32, choices=HazardTypeChoices.choices, db_index=True
     )
@@ -113,6 +115,8 @@ class HazardLayer(models.Model):
     Example: Flood-prone polygon layer.
     Geometry stored as GeoJSON FeatureCollection text.
     """
+    objects = models.Manager()
+
     name = models.CharField(max_length=255)
     hazard_type = models.CharField(max_length=32, choices=HazardTypeChoices.choices)
     geometry_type = models.CharField(
@@ -181,6 +185,8 @@ class HazardIndicator(models.Model):
     Definition of an indicator (hazard / vulnerability / exposure) with default
     weightage. Weights and thresholds are configurable — not hard-coded.
     """
+    objects = models.Manager()
+
     module_type = models.CharField(
         max_length=16,
         choices=ModuleTypeChoices.choices,
@@ -278,6 +284,8 @@ class ClimateContext(models.Model):
     hazard type + region. Report Chapters "Climate Context" are populated from
     this library instead of a hard-coded placeholder.
     """
+    objects = models.Manager()
+
     hazard_type = models.CharField(
         max_length=32, choices=HazardTypeChoices.choices, blank=True,
         help_text="Hazard the statement relates to. Blank = general/state-wide.",
@@ -322,6 +330,8 @@ class Recommendation(models.Model):
     library (filtered by module + observed hazard/risk classes) instead of
     ad-hoc hard-coded lists.
     """
+    objects = models.Manager()
+
     module_type = models.CharField(
         max_length=16,
         choices=RecommendationModuleChoices.choices,

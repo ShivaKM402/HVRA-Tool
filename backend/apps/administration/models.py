@@ -27,6 +27,8 @@ class AdministrativeUnit(models.Model):
     """
     Represents an administrative unit at any level of the hierarchy.
     """
+    objects = models.Manager()
+
     name = models.CharField(max_length=255, db_index=True)
     code = models.CharField(max_length=64, unique=True, db_index=True)
     level = models.CharField(

@@ -20,7 +20,7 @@ export default function ReviewQueue() {
   // Filters
   const [districtFilter, setDistrictFilter] = useState<string>('ALL');
   const [moduleFilter, setModuleFilter] = useState<string>('ALL');
-  const [statusFilter, setStatusFilter] = useState<string>('SUBMITTED');
+  const [statusFilter, setStatusFilter] = useState<string>('ALL'); // Default to ALL so approved and rejected files always stay visible
 
   // Modal State
   const [selectedItem, setSelectedItem] = useState<{ id: number; name: string; isRisk: boolean } | null>(null);
@@ -341,13 +341,19 @@ export default function ReviewQueue() {
                               item.approval_status === 'APPROVED' ? '#dcfce7' : item.approval_status === 'SUBMITTED' ? '#ffedd5' : item.approval_status === 'REJECTED' ? '#fee2e2' : '#f1f5f9',
                             color:
                               item.approval_status === 'APPROVED' ? '#15803d' : item.approval_status === 'SUBMITTED' ? '#c2410c' : item.approval_status === 'REJECTED' ? '#b91c1c' : '#475569',
+                            fontWeight: 700,
                           }}
                         >
-                          {item.approval_status}
+                          {item.approval_status === 'APPROVED' ? '✓ ENDORSED' : item.approval_status === 'REJECTED' ? '❌ REVISION REQ' : item.approval_status}
                         </span>
+                        {item.reviewer_name && (
+                          <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '0.2rem' }}>
+                            By: {item.reviewer_name.split('(')[0].trim()}
+                          </div>
+                        )}
                       </td>
                       <td style={{ textAlign: 'right' }}>
-                        <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end' }}>
+                        <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end', alignItems: 'center' }}>
                           <Link
                             to={`/department-coordination?assessmentId=${item.id}`}
                             className="btn btn-secondary btn-sm"
@@ -358,12 +364,31 @@ export default function ReviewQueue() {
                           <Link to={targetReportUrl} className="btn btn-secondary btn-sm" title="Inspect Dossier">
                             Inspect 👁️
                           </Link>
-                          {item.approval_status === 'SUBMITTED' && (
+                          {item.approval_status === 'APPROVED' && (
+                            <a
+                              href={`${item.isRisk ? '/api/risk-assessments' : '/api/assessments'}/${item.id}/export/bundle/`}
+                              className="btn btn-secondary btn-sm"
+                              title="Export Complete Data Package (ZIP) for Cross-Agency Sharing"
+                              style={{ background: '#ecfdf5', borderColor: '#a7f3d0', color: '#065f46', fontWeight: 600 }}
+                              download
+                            >
+                              📦 Package
+                            </a>
+                          )}
+                          {item.approval_status === 'SUBMITTED' ? (
                             <button
                               className="btn btn-primary btn-sm"
                               onClick={() => handleOpenDecision(item)}
                             >
                               Decide 🏛️
+                            </button>
+                          ) : (
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              onClick={() => handleOpenDecision(item)}
+                              title="Modify / Re-evaluate Decision"
+                            >
+                              🔄 Re-evaluate
                             </button>
                           )}
                         </div>

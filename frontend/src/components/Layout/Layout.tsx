@@ -12,6 +12,7 @@ import { useToast } from '../../context/ToastContext';
 import CommandPalette from '../CommandPalette/CommandPalette';
 import OnboardingTour from '../OnboardingTour/OnboardingTour';
 import ToastStack from '../Toast/ToastStack';
+import AskHVRAPanel from '../AskHVRA/AskHVRAPanel';
 import { fetchDistrictWeather, type DistrictWeatherReport } from '../../services/weatherService';
 import {
   Waves,
@@ -67,6 +68,7 @@ export default function Layout() {
   const [isOnboardingTourOpen, setIsOnboardingTourOpen] = useState(false);
   const [openNavDropdown, setOpenNavDropdown] = useState<'hazard' | 'dept' | 'data' | null>(null);
   const [quickWeather, setQuickWeather] = useState<DistrictWeatherReport | null>(null);
+  const [isAskHVRAOpen, setIsAskHVRAOpen] = useState(false);
 
   // Active district display name
   const currentDistrictObj = districts.find((d) => d.id === activeDistrictId);
@@ -690,6 +692,18 @@ export default function Layout() {
         isOpen={isOnboardingTourOpen}
         onClose={() => setIsOnboardingTourOpen(false)}
       />
+
+      {/* Ask HVRA — Floating AI Assistant Button */}
+      <button
+        className="ask-hvra-fab"
+        onClick={() => setIsAskHVRAOpen(true)}
+        title="Ask HVRA AI Assistant"
+        aria-label="Open AI Assistant"
+      >
+        <span className="ask-hvra-fab-icon">🌊</span>
+        <span className="ask-hvra-fab-label">Ask HVRA</span>
+      </button>
+      <AskHVRAPanel isOpen={isAskHVRAOpen} onClose={() => setIsAskHVRAOpen(false)} />
     </div>
   );
 }

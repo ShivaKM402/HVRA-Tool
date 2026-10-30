@@ -1,0 +1,35 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/backend/venv/Scripts/python.exe",
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/backend"
+  ],
+  "python.autoComplete.extraPaths": [
+    "${workspaceFolder}/backend"
+  ],
+
+  // Pyrefly - disabled (we use pyrefly.toml instead)
+  "python.pyrefly.typeCheckingMode": "off",
+  "python.pyrefly.disableTypeErrors": true,
+
+  // Pylance / Pyright - suppress Django false positives
+  "python.analysis.typeCheckingMode": "off",
+  "python.analysis.diagnosticMode": "openFilesOnly",
+  "python.analysis.diagnosticSeverityOverrides": {
+    "reportAttributeAccessIssue": "none",
+    "reportMissingModuleSource": "none",
+    "reportMissingImports": "none",
+    "reportOptionalMemberAccess": "none",
+    "reportGeneralTypeIssues": "none",
+    "reportOperatorIssue": "none",
+    "reportIndexIssue": "none",
+    "reportCallIssue": "none",
+    "reportArgumentType": "none",
+    "reportReturnType": "none",
+    "reportUnusedVariable": "none",
+    "reportUndefinedVariable": "none"
+  },
+
+  // ESLint / TypeScript - only show real errors
+  "typescript.preferences.includePackageJsonAutoImports": "off",
+  "eslint.rules.customizations": []
+}

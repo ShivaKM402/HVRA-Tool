@@ -12,6 +12,8 @@ class DataSource(models.Model):
     A known data source with full provenance metadata.
     Required for traceability and auditability.
     """
+    objects = models.Manager()
+
     name = models.CharField(max_length=255)
     organization = models.CharField(max_length=255, blank=True)
     description = models.TextField(blank=True)
@@ -42,6 +44,8 @@ class UploadedDataset(models.Model):
     A user-uploaded dataset with validation status.
     Supported formats: CSV, GeoJSON, Shapefile (zipped).
     """
+    objects = models.Manager()
+
     FORMAT_CHOICES = [
         ("CSV", "CSV"),
         ("GEOJSON", "GeoJSON"),

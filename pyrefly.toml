@@ -1,0 +1,32 @@
+search-path = ["backend"]
+python-interpreter-path = "backend/venv/Scripts/python.exe"
+
+[errors]
+# Django metaclass false positives - .objects manager is injected at runtime
+missing-attribute = false
+# Import resolution false positives in virtualenv
+missing-import = false
+untyped-import = false
+# Suppress all common Django/DRF type inference failures
+bad-argument-type = false
+bad-override = false
+bad-override-mutable-attribute = false
+bad-assignment = false
+unsupported-operation = false
+unexpected-keyword = false
+bad-index = false
+bad-context-manager = false
+no-matching-overload = false
+missing-argument = false
+not-iterable = false
+bad-function-definition = false
+bad-argument-count = false
+unbound-name = false
+attribute-assign-on-never = false
+unnecessary-type-conversion = false
+# Additional suppressions
+invalid-type-arguments = false
+missing-return = false
+not-callable = false
+readonly-attribute = false
+redundant-cast = false

@@ -585,6 +585,28 @@ export const downloadReportCsv = async (id: number, filename = 'HVRA_Results.csv
   document.body.removeChild(link);
 };
 
+export const downloadReportBundle = async (id: number, filename = 'HVRA_Complete_Data_Package.zip'): Promise<void> => {
+  const response = await api.get(`/assessments/${id}/export/bundle/`, { responseType: 'blob' });
+  const blob = new Blob([response.data], { type: 'application/zip' });
+  const link = document.createElement('a');
+  link.href = window.URL.createObjectURL(blob);
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+export const downloadRiskReportBundle = async (id: number, filename = 'HVRA_Risk_Complete_Data_Package.zip'): Promise<void> => {
+  const response = await api.get(`/risk-assessments/${id}/export/bundle/`, { responseType: 'blob' });
+  const blob = new Blob([response.data], { type: 'application/zip' });
+  const link = document.createElement('a');
+  link.href = window.URL.createObjectURL(blob);
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
 // -------------------------------------------------------
 // Authentication (HVRA §2 — user accounts & sessions)
 // -------------------------------------------------------
@@ -998,6 +1020,68 @@ export const getDisasterAlerts = async (
       force_refresh: params?.force_refresh ? 'true' : undefined,
     },
   });
+  return response.data;
+};
+
+// ============================================================
+// AI Services
+// ============================================================
+
+/** Generate AI executive narrative for a completed assessment */
+export const generateAINarrative = async (
+  assessmentId: number
+): Promise<{ narrative: string; cached: boolean; ai_generated: boolean }> => {
+  const response = await api.post(`/assessments/${assessmentId}/ai-narrative/`);
+  return response.data;
+};
+
+/** Generate AI DDMP mitigation directives for a completed assessment */
+export const generateAIMitigation = async (
+  assessmentId: number
+): Promise<{ directives: Record<string, string[]>; ai_generated: boolean }> => {
+  const response = await api.post(`/assessments/${assessmentId}/ai-mitigation/`);
+  return response.data;
+};
+
+/** Analyse an incident photo using GPT-4o Vision */
+export const analyzeIncidentPhoto = async (
+  issueId: number,
+  imageFile: File
+): Promise<{
+  severity: string;
+  water_depth_estimate: string;
+  damage_type: string;
+  description: string;
+  auto_filled_fields: { severity: string; hazard_type: string; description: string };
+  ai_generated: boolean;
+}> => {
+  const formData = new FormData();
+  formData.append('image', imageFile);
+  // issueId=0 means standalone analysis (new incident form, no issue created yet)
+  const url = issueId > 0 ? `/issues/${issueId}/analyze-photo/` : '/ai/analyze-photo/';
+  const response = await api.post(url, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
+};
+
+/** Ask HVRA conversational assistant a natural language question */
+export const askHVRA = async (
+  question: string,
+  context?: object
+): Promise<{
+  answer: string;
+  query_type: 'filter' | 'advisory' | 'general';
+  filter_params: object | null;
+  ai_generated: boolean;
+}> => {
+  const response = await api.post('/ai/ask-hvra/', { question, context: context || {} });
+  return response.data;
+};
+
+/** Check if AI features are active on the backend */
+export const getAIStatus = async (): Promise<{ ai_available: boolean; message: string }> => {
+  const response = await api.get('/ai/status/');
   return response.data;
 };
 

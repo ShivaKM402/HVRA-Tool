@@ -318,7 +318,9 @@ export default function QueryBuilder(props: QueryBuilderProps) {
       <section className="qb-section">
         <h2 className="qb-q">
           <span className="qb-q-num">Q3.</span> Select indicators to include{' '}
-          <span className="qb-q-note">(auto-weighted per technical framework)</span>
+          <span className="qb-q-note">
+            ({indicators.length} Core KSDMA Indicators • auto-weighted per technical framework)
+          </span>
         </h2>
 
         {indicators.length === 0 ? (
@@ -349,7 +351,12 @@ export default function QueryBuilder(props: QueryBuilderProps) {
                     aria-label={`Include ${ind.name}`}
                   />
                   <div className="qb-ind-name">
-                    <div className="qb-ind-title">{ind.name}</div>
+                    <div className="qb-ind-title">
+                      {ind.name}
+                      {ind.department && (
+                        <span className="qb-ind-dept-badge">{ind.department.split('(')[0].trim()}</span>
+                      )}
+                    </div>
                     <div className="qb-ind-desc">{ind.description}</div>
                   </div>
                   <div className="qb-ind-unit">{ind.unit || '—'}</div>

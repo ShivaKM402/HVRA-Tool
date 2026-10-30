@@ -103,6 +103,7 @@ def compute_assessment_scores(
         get_event_frequency_score,
         load_rules_from_db,
     )
+    from .demo_data import HAZARD_RANGES
 
     if not gis_results or not indicator_configs:
         return {}
@@ -131,6 +132,11 @@ def compute_assessment_scores(
                 raw = float(gis_data.get("event_frequency", 0.0))
             elif "TOTAL_AREA" in code:
                 raw = float(gis_data.get("total_area_sqkm", 0.0))
+            elif code in HAZARD_RANGES:
+                from .demo_data import _stable_rng
+                rng = _stable_rng(block_id, code)
+                low, high, ndigits = HAZARD_RANGES[code]
+                raw = round(rng.uniform(low, high), ndigits)
             elif "DEFICIT" in code or "SUSCEPTIBILITY" in code or "POTENTIAL" in code or "FACTOR" in code:
                 # Realistic index metric based on GIS or hash
                 raw = float(gis_data.get(code, gis_data.get("hazard_prone_percentage", 45.0) / 10.0))

@@ -46,6 +46,8 @@ class Assessment(models.Model):
     - data sources used
     - status and audit trail
     """
+    objects = models.Manager()
+
     # Identity
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
@@ -195,6 +197,8 @@ class AssessmentIndicator(models.Model):
     Records which indicator was selected for an assessment and at what weight.
     Weight is stored at assessment time for auditability.
     """
+    objects = models.Manager()
+
     assessment = models.ForeignKey(
         Assessment,
         on_delete=models.CASCADE,
@@ -233,6 +237,8 @@ class AssessmentResult(models.Model):
     One row per (assessment, administrative_unit, indicator).
     Final classification is on the summary row where indicator is NULL.
     """
+    objects = models.Manager()
+
     assessment = models.ForeignKey(
         Assessment,
         on_delete=models.CASCADE,
@@ -313,6 +319,8 @@ class RiskAssessment(models.Model):
     with optional user-adjustable module weights for scenario testing.
     Weighted sum (additive) remains available via the ``formula`` field.
     """
+    objects = models.Manager()
+
     # Identity
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
@@ -434,6 +442,8 @@ class RiskResult(models.Model):
     Stores the component module scores, the combined risk score (0–10) and a
     risk class (VERY_HIGH / HIGH / MODERATE / LOW).
     """
+    objects = models.Manager()
+
     risk_assessment = models.ForeignKey(
         RiskAssessment,
         on_delete=models.CASCADE,
@@ -486,6 +496,8 @@ class SavedQuery(models.Model):
     can re-run it later, or share it with another district/state via a public
     share link.
     """
+    objects = models.Manager()
+
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
 

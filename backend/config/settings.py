@@ -44,6 +44,7 @@ LOCAL_APPS = [
     "apps.assessments",
     "apps.issues",
     "apps.reports",
+    "apps.ai_services",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -195,3 +196,9 @@ HAZARD_CLASS_THRESHOLDS = {
 }
 
 HAZARD_NORMALIZATION_METHOD = "min_max"  # Options: min_max, z_score, rank
+
+# -------------------------------------------------------
+# AI Services — OpenAI Integration
+# -------------------------------------------------------
+OPENAI_API_KEY = config("OPENAI_API_KEY", default="")
+

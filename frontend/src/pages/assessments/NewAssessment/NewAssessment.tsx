@@ -288,7 +288,7 @@ export default function NewAssessment() {
 
       const loadHazardData = async () => {
         try {
-          const inds = await getIndicators(selectedHazardCode);
+          const inds = await getIndicators(selectedHazardCode, 'HAZARD');
           if (!isCurrent) return;
           setIndicators(inds);
 

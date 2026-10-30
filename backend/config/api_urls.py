@@ -29,4 +29,7 @@ urlpatterns = [
 
     # Reports
     path("", include("apps.reports.urls")),
+
+    # AI Services (Ask HVRA, narrative, mitigation, vision)
+    path("ai/", include("apps.ai_services.urls")),
 ]

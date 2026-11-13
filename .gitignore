@@ -1,15 +1,18 @@
 # Dependency & build outputs
 node_modules/
 dist/
+frontend/dist/
 venv/
 .venv/
 
 # Python cache & compiled files
 __pycache__/
+**/__pycache__/
 *.py[cod]
 *$py.class
 *.so
 .pytest_cache/
+**/.pytest_cache/
 .coverage
 htmlcov/
 
@@ -19,6 +22,7 @@ htmlcov/
 *.bak
 *.swp
 *~
+*.sqlite3-journal
 
 # Environment & local files
 .env

@@ -627,7 +627,7 @@ def generate_thematic_map(assessment_or_risk, report_data: dict, is_risk: bool =
                     if dist_geom:
                         break
                 except Exception as e:
-                    print(f"[HVRA Map] Error reading {gp}: {e}")
+                    logger.warning(f"[HVRA Map] Error reading {gp}: {e}")
 
         # Compute map bounds
         if dist_geom:
@@ -890,7 +890,7 @@ def generate_thematic_map(assessment_or_risk, report_data: dict, is_risk: bool =
         buf.seek(0)
         return buf
     except Exception as e:
-        print(f"[HVRA Map] Failed: {e}")
+        logger.warning(f"[HVRA Map] Failed: {e}")
         return _generate_fallback_bar_chart(report_data, is_risk)
 
 
@@ -933,7 +933,7 @@ def _generate_fallback_bar_chart(report_data: dict, is_risk: bool = False) -> io
         buf.seek(0)
         return buf
     except Exception as e:
-        print(f"[HVRA FallbackChart] Failed: {e}")
+        logger.warning(f"[HVRA FallbackChart] Failed: {e}")
         return None
 
 
@@ -1170,7 +1170,7 @@ def generate_multi_thematic_atlas_plate(assessment_or_risk, report_data: dict, m
         buf.seek(0)
         return buf
     except Exception as e:
-        print(f"[HVRA Atlas Plate] Failed: {e}")
+        logger.warning(f"[HVRA Atlas Plate] Failed: {e}")
         return None
 
 
@@ -1398,7 +1398,7 @@ def generate_annexure_chart(district_name: str, block_results: list, module_type
         buf.seek(0)
         return buf
     except Exception as e:
-        print(f"[HVRA Annexure Chart] Failed: {e}")
+        logger.warning(f"[HVRA Annexure Chart] Failed: {e}")
         return None
 
 

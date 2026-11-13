@@ -1,7 +1,15 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { getAssessmentReport } from '@/services/api';
-import { generateAINarrative, generateAIMitigation } from '@/services/api';
+import {
+  getAssessmentReport,
+  generateAINarrative,
+  generateAIMitigation,
+  deleteAssessment,
+  downloadReportDocx,
+  downloadReportPdf,
+  downloadReportCsv,
+  downloadReportBundle,
+} from '@/services/api';
 import ResultsMap from '@/components/Map/ResultsMap';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
@@ -37,7 +45,6 @@ export default function ReportView() {
       return;
     }
     try {
-      const { deleteAssessment } = await import('@/services/api');
       await deleteAssessment(parseInt(id!, 10));
       showToast({
         title: 'Report Deleted',
@@ -333,7 +340,6 @@ export default function ReportView() {
   const handleDownloadDocx = async () => {
     try {
       setDownloadingFormat('docx');
-      const { downloadReportDocx } = await import('@/services/api');
       const filename = (metadata?.name || 'Assessment_Report').replace(/[^a-zA-Z0-9_-]/g, '_');
       await downloadReportDocx(parseInt(id!, 10), `${filename}.docx`);
     } catch (err: any) {
@@ -346,7 +352,6 @@ export default function ReportView() {
   const handleDownloadPdf = async () => {
     try {
       setDownloadingFormat('pdf');
-      const { downloadReportPdf } = await import('@/services/api');
       const filename = (metadata?.name || 'Assessment_Report').replace(/[^a-zA-Z0-9_-]/g, '_');
       await downloadReportPdf(parseInt(id!, 10), `${filename}.pdf`);
     } catch (err: any) {
@@ -359,7 +364,6 @@ export default function ReportView() {
   const handleDownloadCsv = async () => {
     try {
       setDownloadingFormat('csv');
-      const { downloadReportCsv } = await import('@/services/api');
       const filename = (metadata?.name || 'Assessment_Report').replace(/[^a-zA-Z0-9_-]/g, '_');
       await downloadReportCsv(parseInt(id!, 10), `${filename}_results.csv`);
     } catch (err: any) {
@@ -372,7 +376,6 @@ export default function ReportView() {
   const handleDownloadBundle = async () => {
     try {
       setDownloadingFormat('bundle');
-      const { downloadReportBundle } = await import('@/services/api');
       const filename = (metadata?.name || 'Assessment_Report').replace(/[^a-zA-Z0-9_-]/g, '_');
       await downloadReportBundle(parseInt(id!, 10), `${filename}_data_package.zip`);
     } catch (err: any) {
